@@ -1,0 +1,5 @@
+ENVIRONMENT: local
+PORT: 3000
+LOG_LEVEL: info
+SERVICE_NAME: devices-api
+JWT_KEY_SET_URL: http://127.0.0.1:5556/dex/keys
