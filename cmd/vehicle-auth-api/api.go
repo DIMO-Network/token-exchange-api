@@ -5,19 +5,27 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/DIMO-Network/token-exchange-service/internal/api"
 	"github.com/DIMO-Network/token-exchange-service/internal/config"
+	vtx "github.com/DIMO-Network/token-exchange-service/internal/controllers"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	log "github.com/gofiber/fiber/v2/middleware/logger"
 	fiberrecover "github.com/gofiber/fiber/v2/middleware/recover"
+	jwtware "github.com/gofiber/jwt/v3"
 	"github.com/rs/zerolog"
 )
 
 func startWebAPI(ctx context.Context, logger zerolog.Logger, settings *config.Settings) {
+
+	vtxController := vtx.NewVehicleTokenExchangeController(&logger)
+
 	app := fiber.New(fiber.Config{
 		ErrorHandler: func(c *fiber.Ctx, err error) error {
+			logger.Printf("Errror occurred %s", err)
 			return api.ErrorHandler(c, err, logger, settings.Environment)
 		},
 		DisableStartupMessage: true,
@@ -33,10 +41,29 @@ func startWebAPI(ctx context.Context, logger zerolog.Logger, settings *config.Se
 	//cors
 	app.Use(cors.New())
 	// request logging
-	app.Use(log.New())
+	app.Use(log.New(log.ConfigDefault))
 
 	// application routes
 	app.Get("/", healthCheck)
+
+	keyRefreshInterval := time.Hour
+	keyRefreshUnknownKID := true
+	jwtAuth := jwtware.New(jwtware.Config{
+		KeySetURL:            settings.JwtKeySetURL,
+		KeyRefreshInterval:   &keyRefreshInterval,
+		KeyRefreshUnknownKID: &keyRefreshUnknownKID,
+		KeyRefreshErrorHandler: func(j *jwtware.KeySet, err error) {
+			logger.Error().Err(err).Msg("Key refresh error")
+		},
+		ErrorHandler: func(c *fiber.Ctx, err error) error {
+			return c.Status(fiber.StatusUnauthorized).JSON(struct {
+				Message string `json:"message"`
+			}{"Invalid or expired JWT"})
+		},
+	})
+	v1Auth := app.Group("/v1", jwtAuth)
+
+	v1Auth.Get("/protected", vtxController.TestProtectedRoute)
 
 	logger.Info().Msg(settings.ServiceName + " - Server started on port " + settings.Port)
 	// Start Server from a different go routine
