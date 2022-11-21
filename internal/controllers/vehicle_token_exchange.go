@@ -19,7 +19,7 @@ func NewVehicleTokenExchangeController(logger *zerolog.Logger, settings *config.
 		log.Fatal(err)
 	}
 	cadr := contracts.ContractsAddressBook{
-		MultiPrivilegeAddress: settings.MpContractAddress,
+		MultiPrivilegeAddress: settings.VehicleNFTAddress,
 	}
 	ctmr, err := contracts.NewContractsManager(cadr, client)
 	if err != nil {
