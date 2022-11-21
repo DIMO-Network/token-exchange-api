@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"log"
 	"math/big"
 
 	"github.com/DIMO-Network/token-exchange-service/internal/api"
@@ -23,7 +22,7 @@ func NewVehicleTokenExchangeController(logger *zerolog.Logger, settings *config.
 	}
 	ctmr, err := contracts.NewContractsManager(cadr, client)
 	if err != nil {
-		log.Fatal(err)
+		logger.Fatal().Err(err).Str("Contracts", settings.VehicleNFTAddress).Msg("Unable to initialize vehicle nft contract")
 	}
 
 	return &VehicleTokenExchangeController{
