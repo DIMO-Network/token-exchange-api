@@ -19,7 +19,7 @@ func NewContractsManager(addrs ContractsAddressBook, client bind.ContractBackend
 
 	mp, err := priv.NewMultiprivilege(mpAdr, client)
 	if err != nil {
-		return &ContractsManager{}, err
+		return nil, err
 	}
 
 	return &ContractsManager{

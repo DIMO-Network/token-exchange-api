@@ -16,7 +16,7 @@ import (
 func NewVehicleTokenExchangeController(logger *zerolog.Logger, settings *config.Settings) *VehicleTokenExchangeController {
 	client, err := ethclient.Dial(settings.BlockchainNodeUrl)
 	if err != nil {
-		log.Fatal(err)
+		logger.Fatal().Err(err).Str("blockchainUrl", settings.BlockchainNodeUrl).Msg("Failed to dial blockchain node.")
 	}
 	cadr := contracts.ContractsAddressBook{
 		MultiPrivilegeAddress: settings.VehicleNFTAddress,
@@ -45,10 +45,10 @@ type VehiclePermissionRequest struct {
 	Privileges     []*big.Int `json:"privileges"`
 }
 
-func (v VehicleTokenExchangeController) GetVehicleCommandPermissionWithScope(c *fiber.Ctx) error {
+func (v *VehicleTokenExchangeController) GetVehicleCommandPermissionWithScope(c *fiber.Ctx) error {
 	vpr := &VehiclePermissionRequest{}
 	if err := c.BodyParser(vpr); err != nil {
-		return api.ErrorResponseHandler(c, err, fiber.StatusBadRequest)
+		return fiber.NewError(fiber.StatusBadRequest, "Couldn't parse request body.")
 	}
 
 	m := v.contractsManager.MultiPrivilege
