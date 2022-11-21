@@ -16,7 +16,7 @@ import (
 func NewVehicleTokenExchangeController(logger *zerolog.Logger, settings *config.Settings) *VehicleTokenExchangeController {
 	client, err := ethclient.Dial(settings.BlockchainNodeUrl)
 	if err != nil {
-		log.Fatal(err)
+		logger.Fatal().Err(err).Str("blockchainUrl", settings.BlockchainNodeUrl).Msg("Failed to dial blockchain node.")
 	}
 	cadr := contracts.ContractsAddressBook{
 		MultiPrivilegeAddress: settings.MpContractAddress,
