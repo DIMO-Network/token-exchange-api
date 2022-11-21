@@ -45,7 +45,7 @@ type VehiclePermissionRequest struct {
 	Privileges     []*big.Int `json:"privileges"`
 }
 
-func (v VehicleTokenExchangeController) GetVehicleCommandPermissionWithScope(c *fiber.Ctx) error {
+func (v *VehicleTokenExchangeController) GetVehicleCommandPermissionWithScope(c *fiber.Ctx) error {
 	vpr := &VehiclePermissionRequest{}
 	if err := c.BodyParser(vpr); err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "Couldn't parse request body.")
