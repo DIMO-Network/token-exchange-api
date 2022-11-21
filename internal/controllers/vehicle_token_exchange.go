@@ -48,7 +48,7 @@ type VehiclePermissionRequest struct {
 func (v VehicleTokenExchangeController) GetVehicleCommandPermissionWithScope(c *fiber.Ctx) error {
 	vpr := &VehiclePermissionRequest{}
 	if err := c.BodyParser(vpr); err != nil {
-		return api.ErrorResponseHandler(c, err, fiber.StatusBadRequest)
+		return fiber.NewError(fiber.StatusBadRequest, "Couldn't parse request body.")
 	}
 
 	m := v.contractsManager.MultiPrivilege
