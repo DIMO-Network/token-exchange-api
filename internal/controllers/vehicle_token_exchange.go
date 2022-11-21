@@ -19,7 +19,7 @@ func NewVehicleTokenExchangeController(logger *zerolog.Logger, settings *config.
 		log.Fatal(err)
 	}
 	cadr := contracts.ContractsAddressBook{
-		MultiPriviledgeAddress: settings.MpContractAddress,
+		MultiPrivilegeAddress: settings.MpContractAddress,
 	}
 	ctmr, err := contracts.NewContractsManager(cadr, client)
 	if err != nil {
@@ -40,9 +40,9 @@ type VehicleTokenExchangeController struct {
 }
 
 type VehiclePermissionRequest struct {
-	UserAddress    string  `json:"userAddress"` //blockchain address associated with user TODO - remove and infer
-	VehicleTokenID int64   `json:"vehicleTokenId"`
-	Priviledges    []int64 `json:"priviledges"`
+	UserAddress    string     `json:"userAddress"` //blockchain address associated with user TODO - remove and infer
+	VehicleTokenID *big.Int   `json:"vehicleTokenId"`
+	Privileges     []*big.Int `json:"privileges"`
 }
 
 func (v VehicleTokenExchangeController) GetVehicleCommandPermissionWithScope(c *fiber.Ctx) error {
@@ -51,22 +51,22 @@ func (v VehicleTokenExchangeController) GetVehicleCommandPermissionWithScope(c *
 		return api.ErrorResponseHandler(c, err, fiber.StatusBadRequest)
 	}
 
-	m := v.contractsManager.MultiPriviledge
+	m := v.contractsManager.MultiPrivilege
 
-	hasPriviledge := true
-	for _, p := range vpr.Priviledges {
-		res, err := m.HasPrivilege(nil, big.NewInt(vpr.VehicleTokenID), big.NewInt(p), common.HexToAddress(vpr.UserAddress))
+	hasPrivilege := true
+	for _, p := range vpr.Privileges {
+		res, err := m.HasPrivilege(nil, vpr.VehicleTokenID, p, common.HexToAddress(vpr.UserAddress))
 		if err != nil {
-			return api.ErrorResponseHandler(c, err, fiber.StatusBadRequest)
+			return api.ErrorResponseHandler(c, err, fiber.StatusInternalServerError)
 		}
 
 		if !res {
-			hasPriviledge = false
+			hasPrivilege = false
 			break
 		}
 	}
 
 	return c.JSON(fiber.Map{
-		"hasPriviledge": hasPriviledge,
+		"hasPrivilege": hasPrivilege,
 	})
 }

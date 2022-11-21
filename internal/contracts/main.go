@@ -1,28 +1,28 @@
 package contracts
 
 import (
-	m "github.com/DIMO-Network/token-exchange-service/internal/contracts/multi_priviledge"
+	priv "github.com/DIMO-Network/token-exchange-service/internal/contracts/multi_privilege"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 )
 
 type ContractsManager struct {
-	MultiPriviledge *m.Multiprivilege
+	MultiPrivilege *priv.Multiprivilege
 }
 
 type ContractsAddressBook struct {
-	MultiPriviledgeAddress string
+	MultiPrivilegeAddress string
 }
 
 func NewContractsManager(addrs ContractsAddressBook, client bind.ContractBackend) (*ContractsManager, error) {
-	mpAdr := common.HexToAddress(addrs.MultiPriviledgeAddress)
+	mpAdr := common.HexToAddress(addrs.MultiPrivilegeAddress)
 
-	mp, err := m.NewMultiprivilege(mpAdr, client)
+	mp, err := priv.NewMultiprivilege(mpAdr, client)
 	if err != nil {
 		return &ContractsManager{}, err
 	}
 
 	return &ContractsManager{
-		MultiPriviledge: mp,
+		MultiPrivilege: mp,
 	}, nil
 }
