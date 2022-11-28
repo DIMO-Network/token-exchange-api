@@ -1,3 +1,3 @@
 # Token Exchange API
 
-go run ./cmd/vehicle-auth-api
+go run ./cmd/vehicle-auth-service

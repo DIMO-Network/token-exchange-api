@@ -46,21 +46,6 @@ func startWebAPI(ctx context.Context, logger zerolog.Logger, settings *config.Se
 	// application routes
 	app.Get("/", healthCheck)
 
-	/* keyRefreshInterval := time.Hour
-	keyRefreshUnknownKID := true
-	jwtAuth := jwtware.New(jwtware.Config{
-		KeySetURL:            settings.JwtKeySetURL,
-		KeyRefreshInterval:   &keyRefreshInterval,
-		KeyRefreshUnknownKID: &keyRefreshUnknownKID,
-		KeyRefreshErrorHandler: func(j *jwtware.KeySet, err error) {
-			logger.Error().Err(err).Msg("Key refresh error")
-		},
-		ErrorHandler: func(c *fiber.Ctx, err error) error {
-			return c.Status(fiber.StatusUnauthorized).JSON(struct {
-				Message string `json:"message"`
-			}{"Invalid or expired JWT"})
-		},
-	}) */
 	// All api routes should be under v1
 	v1Route := app.Group("/v1")
 	// Token routes
