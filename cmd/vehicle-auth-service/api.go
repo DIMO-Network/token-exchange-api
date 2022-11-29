@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/DIMO-Network/token-exchange-service/internal/api"
 	"github.com/DIMO-Network/token-exchange-service/internal/config"
@@ -15,13 +16,15 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	log "github.com/gofiber/fiber/v2/middleware/logger"
 	fiberrecover "github.com/gofiber/fiber/v2/middleware/recover"
+	jwtWare "github.com/gofiber/jwt/v3"
 	"github.com/rs/zerolog"
 )
 
 func startWebAPI(ctx context.Context, logger zerolog.Logger, settings *config.Settings) {
 
 	dxS := services.NewDexService(&logger, settings)
-	vtxController := vtx.NewVehicleTokenExchangeController(&logger, settings, dxS)
+	userService := services.NewUsersService(&logger, settings)
+	vtxController := vtx.NewVehicleTokenExchangeController(&logger, settings, dxS, userService)
 
 	app := fiber.New(fiber.Config{
 		ErrorHandler: func(c *fiber.Ctx, err error) error {
@@ -46,11 +49,26 @@ func startWebAPI(ctx context.Context, logger zerolog.Logger, settings *config.Se
 	// application routes
 	app.Get("/", healthCheck)
 
+	keyRefreshInterval := time.Hour
+	keyRefreshUnknownKID := true
+	jwtAuth := jwtWare.New(jwtWare.Config{
+		KeySetURL:            settings.JwtKeySetURL,
+		KeyRefreshInterval:   &keyRefreshInterval,
+		KeyRefreshUnknownKID: &keyRefreshUnknownKID,
+		KeyRefreshErrorHandler: func(j *jwtWare.KeySet, err error) {
+			logger.Error().Err(err).Msg("Key refresh error")
+		},
+		ErrorHandler: func(c *fiber.Ctx, err error) error {
+			return c.Status(fiber.StatusUnauthorized).JSON(struct {
+				Message string `json:"message"`
+			}{"Invalid or expired JWT"})
+		},
+	})
+
 	// All api routes should be under v1
 	v1Route := app.Group("/v1")
 	// Token routes
-	// tokenRoutes := v1Route.Group("/tokens", jwtAuth)
-	tokenRoutes := v1Route.Group("/tokens")
+	tokenRoutes := v1Route.Group("/tokens", jwtAuth)
 	tokenRoutes.Post("/exchange", vtxController.GetVehicleCommandPermissionWithScope)
 
 	logger.Info().Msg(settings.ServiceName + " - Server started on port " + settings.Port)
