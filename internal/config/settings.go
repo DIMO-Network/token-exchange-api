@@ -9,4 +9,5 @@ type Settings struct {
 	JwtKeySetURL      string `yaml:"JWT_KEY_SET_URL"`
 	BlockchainNodeUrl string `yaml:"BLOCKCHAIN_NODE_URL"`
 	VehicleNFTAddress string `yaml:"VEHICLE_NFT_ADDRESS"`
+	DexGRPCAdddress   string `yaml:"DEX_GRPC_ADDRESS"`
 }
