@@ -11,6 +11,8 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/gofiber/fiber/v2"
 	"github.com/rs/zerolog"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type VehicleTokenExchangeController struct {
@@ -18,10 +20,10 @@ type VehicleTokenExchangeController struct {
 	contractsManager *contracts.ContractsManager
 	settings         *config.Settings
 	dexService       services.DexService
+	usersService     services.UsersService
 }
 
 type VehiclePermissionRequest struct {
-	UserAddress    string     `json:"userAddress"` //blockchain address associated with user TODO - remove and infer
 	VehicleTokenID *big.Int   `json:"vehicleTokenId"`
 	Privileges     []*big.Int `json:"privileges"`
 }
@@ -30,7 +32,7 @@ type VehiclePermissionResponse struct {
 	Token string `json:"token"`
 }
 
-func NewVehicleTokenExchangeController(logger *zerolog.Logger, settings *config.Settings, dexService services.DexService) *VehicleTokenExchangeController {
+func NewVehicleTokenExchangeController(logger *zerolog.Logger, settings *config.Settings, dexService services.DexService, usersService services.UsersService) *VehicleTokenExchangeController {
 	client, err := ethclient.Dial(settings.BlockchainNodeUrl)
 	if err != nil {
 		logger.Fatal().Err(err).Str("blockchainUrl", settings.BlockchainNodeUrl).Msg("Failed to dial blockchain node.")
@@ -48,6 +50,7 @@ func NewVehicleTokenExchangeController(logger *zerolog.Logger, settings *config.
 		contractsManager: ctmr,
 		settings:         settings,
 		dexService:       dexService,
+		usersService:     usersService,
 	}
 }
 
@@ -61,10 +64,30 @@ func (v *VehicleTokenExchangeController) GetVehicleCommandPermissionWithScope(c 
 		return fiber.NewError(fiber.StatusBadRequest, "Please provide the privileges you need permission for.")
 	}
 
+	claims := services.GetJWTTokenClaims(c)
+	userID := claims["sub"].(string)
+
+	user, err := v.usersService.GetUserByID(c.Context(), userID)
+	if err != nil {
+		if s, ok := status.FromError(err); ok && s.Code() == codes.NotFound {
+			v.logger.Debug().Str("userId", userID).Msg("User not found.")
+			return fiber.NewError(fiber.StatusForbidden, "User not found!")
+		}
+		v.logger.Error().Str("userID", userID).Msg("Users api unavailable!")
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+	}
+
+	userEthAddress := user.GetEthereumAddress()
+	addr := common.HexToAddress(userEthAddress)
+	if userEthAddress == "" {
+		v.logger.Debug().Str("userID", userID).Msg("Ethereum address not found!")
+		return fiber.NewError(fiber.StatusForbidden, "Wallet address not found!")
+	}
+
 	m := v.contractsManager.MultiPrivilege
 
 	for _, p := range vpr.Privileges {
-		res, err := m.HasPrivilege(nil, vpr.VehicleTokenID, p, common.HexToAddress(vpr.UserAddress))
+		res, err := m.HasPrivilege(nil, vpr.VehicleTokenID, p, addr)
 		if err != nil {
 			return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 		}
@@ -80,7 +103,7 @@ func (v *VehicleTokenExchangeController) GetVehicleCommandPermissionWithScope(c 
 	}
 
 	tk, err := v.dexService.SignVehiclePrivilegePayload(c.Context(), services.VehiclePrivilegeDTO{
-		UserID:         vpr.UserAddress,
+		UserID:         userEthAddress,
 		VehicleTokenID: vpr.VehicleTokenID.String(),
 		PrivilegeIDs:   privileges,
 	})

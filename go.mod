@@ -6,7 +6,8 @@ require (
 	github.com/DIMO-Network/shared v0.5.1
 	github.com/dexidp/dex/api/v2 v2.0.0-00010101000000-000000000000
 	github.com/ethereum/go-ethereum v1.10.26
-	github.com/gofiber/fiber/v2 v2.39.0
+	github.com/gofiber/fiber/v2 v2.40.1
+	github.com/gofiber/jwt/v3 v3.3.4
 	github.com/golang-jwt/jwt/v4 v4.4.2
 	github.com/rs/zerolog v1.28.0
 	google.golang.org/grpc v1.49.0
