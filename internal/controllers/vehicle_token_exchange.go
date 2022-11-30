@@ -77,8 +77,9 @@ func (v *VehicleTokenExchangeController) GetVehicleCommandPermissionWithScope(c 
 		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 	}
 
-	userEthAddress := user.GetEthereumAddress()
-	if userEthAddress == "" {
+	userEthAddress := common.HexToAddress(user.GetEthereumAddress())
+
+	if userEthAddress.Bytes() == nil {
 		v.logger.Debug().Str("userID", userID).Msg("Ethereum address not found!")
 		return fiber.NewError(fiber.StatusForbidden, "Wallet address not found!")
 	}
@@ -86,7 +87,7 @@ func (v *VehicleTokenExchangeController) GetVehicleCommandPermissionWithScope(c 
 	m := v.contractsManager.MultiPrivilege
 
 	for _, p := range vpr.Privileges {
-		res, err := m.HasPrivilege(nil, vpr.VehicleTokenID, p, common.HexToAddress(userEthAddress))
+		res, err := m.HasPrivilege(nil, vpr.VehicleTokenID, p, userEthAddress)
 		if err != nil {
 			return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 		}
@@ -102,7 +103,7 @@ func (v *VehicleTokenExchangeController) GetVehicleCommandPermissionWithScope(c 
 	}
 
 	tk, err := v.dexService.SignVehiclePrivilegePayload(c.Context(), services.VehiclePrivilegeDTO{
-		UserID:         userEthAddress,
+		UserID:         userEthAddress.Hash().String(),
 		VehicleTokenID: vpr.VehicleTokenID.String(),
 		PrivilegeIDs:   privileges,
 	})
