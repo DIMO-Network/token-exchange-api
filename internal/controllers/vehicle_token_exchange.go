@@ -11,6 +11,8 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/gofiber/fiber/v2"
 	"github.com/rs/zerolog"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type VehicleTokenExchangeController struct {
@@ -62,13 +64,17 @@ func (v *VehicleTokenExchangeController) GetVehicleCommandPermissionWithScope(c 
 		return fiber.NewError(fiber.StatusBadRequest, "Please provide the privileges you need permission for.")
 	}
 
-	claims := services.GetJwtTokenClaims(c)
+	claims := services.GetJWTTokenClaims(c)
 	userID := claims["sub"].(string)
 
 	user, err := v.usersService.GetUserByID(c.Context(), userID)
 	if err != nil {
-		v.logger.Debug().Str("userID", userID).Msg("User not found!")
-		return fiber.NewError(fiber.StatusForbidden, "User is not authorized!")
+		if s, ok := status.FromError(err); ok && s.Code() == codes.NotFound {
+			v.logger.Debug().Str("userId", userID).Msg("User not found.")
+			return fiber.NewError(fiber.StatusForbidden, "User not found!")
+		}
+		v.logger.Error().Str("userID", userID).Msg("Users api unavailable!")
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 	}
 
 	userEthAddress := user.GetEthereumAddress()

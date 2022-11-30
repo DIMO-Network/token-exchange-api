@@ -10,5 +10,5 @@ type Settings struct {
 	BlockchainNodeUrl       string `yaml:"BLOCKCHAIN_NODE_URL"`
 	VehicleNFTAddress       string `yaml:"VEHICLE_NFT_ADDRESS"`
 	DexGRPCAdddress         string `yaml:"DEX_GRPC_ADDRESS"`
-	UsersServiceGrpcAddress string `yaml:"USERS_SERVICE_GRPC_ADDRESS"`
+	UsersServiceGrpcAddress string `yaml:"USERS_API_GRPC_ADDRESS"`
 }
