@@ -80,7 +80,7 @@ func (v *VehicleTokenExchangeController) GetVehicleCommandPermissionWithScope(c 
 	userEthAddress := user.GetEthereumAddress()
 	if userEthAddress == "" {
 		v.logger.Debug().Str("userID", userID).Msg("Ethereum address not found!")
-		return fiber.NewError(fiber.StatusForbidden, "User is not authorized!")
+		return fiber.NewError(fiber.StatusForbidden, "Wallet address not found!")
 	}
 
 	m := v.contractsManager.MultiPrivilege
