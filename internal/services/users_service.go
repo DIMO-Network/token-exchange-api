@@ -42,12 +42,7 @@ func (u *usersService) GetUserByID(ctx context.Context, userID string) (*pb.User
 	}
 	defer conn.Close()
 
-	resp, err := client.GetUser(ctx, &pb.GetUserRequest{
+	return client.GetUser(ctx, &pb.GetUserRequest{
 		Id: userID,
 	})
-	if err != nil {
-		return nil, err
-	}
-
-	return resp, nil
 }
