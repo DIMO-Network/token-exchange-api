@@ -33,9 +33,9 @@ type VehiclePermissionResponse struct {
 }
 
 func NewVehicleTokenExchangeController(logger *zerolog.Logger, settings *config.Settings, dexService services.DexService, usersService services.UsersService) *VehicleTokenExchangeController {
-	client, err := ethclient.Dial(settings.BlockchainNodeUrl)
+	client, err := ethclient.Dial(settings.BlockchainNodeURL)
 	if err != nil {
-		logger.Fatal().Err(err).Str("blockchainUrl", settings.BlockchainNodeUrl).Msg("Failed to dial blockchain node.")
+		logger.Fatal().Err(err).Str("blockchainUrl", settings.BlockchainNodeURL).Msg("Failed to dial blockchain node.")
 	}
 	cadr := contracts.ContractsAddressBook{
 		MultiPrivilegeAddress: settings.VehicleNFTAddress,
