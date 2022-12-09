@@ -26,6 +26,7 @@ env:
   ENVIRONMENT: dev
   LOG_LEVEL: info
   JWT_KEY_SET_URL: vauth.dev.dimo.zone/keys
+  PORT: '8080'
 service:
   type: ClusterIP
   ports:
@@ -34,6 +35,9 @@ service:
       targetPort: mon-http
       protocol: TCP
 ports:
+  - name: http
+    containerPort: 8080
+    protocol: TCP
   - name: mon-http
     containerPort: 8888
     protocol: TCP
