@@ -22,7 +22,7 @@ type usersService struct {
 func NewUsersService(log *zerolog.Logger, settings *config.Settings) *usersService {
 	return &usersService{
 		log:           log,
-		usersGRPCAddr: settings.UsersServiceGrpcAddress,
+		usersGRPCAddr: settings.UsersAPIGRPCAddress,
 	}
 }
 
