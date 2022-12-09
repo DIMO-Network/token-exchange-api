@@ -72,7 +72,7 @@ func startWebAPI(ctx context.Context, logger zerolog.Logger, settings *config.Se
 	tokenRoutes := v1Route.Group("/tokens", jwtAuth)
 	tokenRoutes.Post("/exchange", vtxController.GetVehicleCommandPermissionWithScope)
 
-	go serveMonitoring("8888", &logger)
+	go serveMonitoring(settings.MonPort, &logger)
 
 	logger.Info().Msg(settings.ServiceName + " - Server started on port " + settings.Port)
 	// Start Server from a different go routine

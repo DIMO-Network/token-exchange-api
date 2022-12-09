@@ -26,6 +26,7 @@ env:
   LOG_LEVEL: info
   JWT_KEY_SET_URL: https://auth.dev.dimo.zone/keys
   PORT: '8080'
+  MON_PORT: '8888'
   DEX_GRPC_ADDRESS: dex-vehicle-dev:5557
   USERS_API_GRPC_ADDRESS: users-api-dev:8086
   VEHICLE_NFT_ADDRESS: '0xA975E31A046AbEe2de14a041Dae5d0983C59128D'
