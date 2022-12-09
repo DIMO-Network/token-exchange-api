@@ -24,7 +24,7 @@ cronJob:
 env:
   ENVIRONMENT: dev
   LOG_LEVEL: info
-  JWT_KEY_SET_URL: auth.dev.dimo.zone/keys
+  JWT_KEY_SET_URL: https://auth.dev.dimo.zone/keys
   PORT: '8080'
   DEX_GRPC_ADDRESS: dex-vehicle-dev:5557
 service:
