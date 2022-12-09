@@ -83,31 +83,7 @@ tolerations: []
 affinity: {}
 podDisruptionBudget:
   minAvailable: 0
-kafka:
-  clusterName: kafka-dev-dimo-kafka
-  topics:
-    - name: topic.device.status.enriched
-      config:
-        segment.ms: '3600000'
-        compression.type: producer
-        cleanup.policy: compact,delete
-        min.compaction.lag.ms: '3600000'
-    - name: table.device.definition
-      config:
-        segment.ms: '3600000'
-        compression.type: producer
-        cleanup.policy: compact
-        min.compaction.lag.ms: '3600000'
-        min.cleanable.dirty.ratio: '0.01'
-        delete.retention.ms: '3600000'
-    - name: table.device.definition.metadata
-      config:
-        segment.ms: '3600000'
-        compression.type: producer
-        cleanup.policy: compact
-        min.compaction.lag.ms: '3600000'
-        min.cleanable.dirty.ratio: '0.01'
-        delete.retention.ms: '3600000'
+kafka: []
 serviceMonitor:
   enabled: true
   path: /metrics
