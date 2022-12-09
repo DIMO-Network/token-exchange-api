@@ -55,6 +55,7 @@ ingress:
       paths:
         - path: /
           pathType: ImplementationSpecific
+  tls: []
 resources:
   limits:
     cpu: 250m
