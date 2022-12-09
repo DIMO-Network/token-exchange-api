@@ -1,0 +1,114 @@
+replicaCount: 1
+image:
+  repository: dimozone/device-definition-join-processor
+  pullPolicy: IfNotPresent
+  tag: e6e3445
+imagePullSecrets: []
+nameOverride: ''
+fullnameOverride: ''
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ''
+podAnnotations: {}
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1001
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - all
+cronJob:
+  enabled: false
+  schedule: 0 0 * * 0
+env:
+  PORT: 8888
+  ENVIRONMENT: dev
+  KAFKA_BROKERS: kafka-dev-dimo-kafka-kafka-brokers:9092
+  LOG_LEVEL: info
+  STATUS_INPUT_TOPIC: topic.device.status.private
+  DEVICE_DEFINITION_TABLE: table.device.definition
+  DEVICE_DEFINITION_METADATA_TABLE: table.device.definition.metadata
+  STATUS_OUTPUT_TOPIC: topic.device.status.enriched
+  CONSUMER_GROUP: device-definition-join-processor
+  VEHICLE_NFT_ADDRESS: '0xA975E31A046AbEe2de14a041Dae5d0983C59128D'
+  USERS_API_GRPC_ADDRESS: users-api-dev:8086
+service:
+  type: ClusterIP
+  ports:
+    mon-http:
+      port: 8888
+      targetPort: mon-http
+      protocol: TCP
+ports:
+  - name: mon-http
+    containerPort: 8888
+    protocol: TCP
+  - name: http
+    containerPort: 8080
+    protocol: TCP
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/auth-tls-secret: ingress/cf-origin-ca
+    nginx.ingress.kubernetes.io/auth-tls-verify-client: 'on'
+    nginx.ingress.kubernetes.io/enable-cors: 'true'
+    nginx.ingress.kubernetes.io/cors-allow-origin: https://app.dev.dimo.zone
+    nginx.ingress.kubernetes.io/limit-rps: '3'
+    external-dns.alpha.kubernetes.io/hostname: token-exchange-api.dev.dimo.zone
+  hosts:
+    - host: rewards-api.dev.dimo.zone
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+  tls: []
+resources:
+  limits:
+    cpu: 250m
+    memory: 384Mi
+  requests:
+    cpu: 100m
+    memory: 192Mi
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 100
+  targetCPUUtilizationPercentage: 80
+nodeSelector: {}
+tolerations: []
+affinity: {}
+podDisruptionBudget:
+  minAvailable: 0
+kafka:
+  clusterName: kafka-dev-dimo-kafka
+  topics:
+    - name: topic.device.status.enriched
+      config:
+        segment.ms: '3600000'
+        compression.type: producer
+        cleanup.policy: compact,delete
+        min.compaction.lag.ms: '3600000'
+    - name: table.device.definition
+      config:
+        segment.ms: '3600000'
+        compression.type: producer
+        cleanup.policy: compact
+        min.compaction.lag.ms: '3600000'
+        min.cleanable.dirty.ratio: '0.01'
+        delete.retention.ms: '3600000'
+    - name: table.device.definition.metadata
+      config:
+        segment.ms: '3600000'
+        compression.type: producer
+        cleanup.policy: compact
+        min.compaction.lag.ms: '3600000'
+        min.cleanable.dirty.ratio: '0.01'
+        delete.retention.ms: '3600000'
+serviceMonitor:
+  enabled: true
+  path: /metrics
+  port: mon-http
+  interval: 30s

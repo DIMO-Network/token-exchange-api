@@ -1,0 +1,25 @@
+{{- if .Values.cronJob.enabled }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "device-definition-join-processor.fullname" . }}-load-dd
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "device-definition-join-processor.labels" . | nindent 4 }}
+spec:
+  schedule: {{ .Values.cronJob.schedule | quote}}
+  concurrencyPolicy: "Forbid"
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          annotations:
+          {{- with .Values.podAnnotations }}
+            {{- toYaml . | nindent 8 }}
+          {{- end }}
+          labels:
+            {{- include "device-definition-join-processor.selectorLabels" . | nindent 12 }}
+        spec:
+          containers: []
+          restartPolicy: OnFailure
+{{ end }}          

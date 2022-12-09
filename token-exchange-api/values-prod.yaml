@@ -1,0 +1,30 @@
+replicaCount: 2
+image:
+  repository: dimozone/device-definition-join-processor
+  pullPolicy: IfNotPresent
+  tag: b44bf48
+cronJob:
+  enabled: false
+  schedule: 0 0 * * 0
+env:
+  ENVIRONMENT: prod
+  KAFKA_BROKERS: kafka-prod-dimo-kafka-kafka-brokers:9092
+resources:
+  limits:
+    cpu: 1
+    memory: 1024Mi
+  requests:
+    cpu: 100m
+    memory: 256Mi
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 100
+  targetCPUUtilizationPercentage: 80
+nodeSelector: {}
+tolerations: []
+affinity: {}
+podDisruptionBudget:
+  minAvailable: 1
+kafka:
+  clusterName: kafka-prod-dimo-kafka

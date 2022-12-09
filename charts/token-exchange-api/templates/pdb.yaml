@@ -1,0 +1,12 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: {{ include "token-exchange-api.fullname" . }}
+  labels:
+    {{- include "token-exchange-api.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+    {{- include "token-exchange-api.selectorLabels" . | nindent 6 }}
+{{ toYaml .Values.podDisruptionBudget | indent 2 }}

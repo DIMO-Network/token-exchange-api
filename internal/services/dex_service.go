@@ -3,7 +3,7 @@ package services
 import (
 	"context"
 
-	"github.com/DIMO-Network/token-exchange-service/internal/config"
+	"github.com/DIMO-Network/token-exchange-api/internal/config"
 	dgrpc "github.com/dexidp/dex/api/v2"
 	"github.com/rs/zerolog"
 	"google.golang.org/grpc"

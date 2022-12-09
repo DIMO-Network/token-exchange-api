@@ -4,7 +4,7 @@ import (
 	"context"
 
 	pb "github.com/DIMO-Network/shared/api/users"
-	"github.com/DIMO-Network/token-exchange-service/internal/config"
+	"github.com/DIMO-Network/token-exchange-api/internal/config"
 	"github.com/rs/zerolog"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"

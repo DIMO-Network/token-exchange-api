@@ -1,4 +1,4 @@
-module github.com/DIMO-Network/token-exchange-service
+module github.com/DIMO-Network/token-exchange-api
 
 go 1.19
 

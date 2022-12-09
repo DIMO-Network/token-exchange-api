@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"github.com/DIMO-Network/shared"
-	"github.com/DIMO-Network/token-exchange-service/internal/config"
+	"github.com/DIMO-Network/token-exchange-api/internal/config"
 	"github.com/rs/zerolog"
 )
 

@@ -1,7 +1,7 @@
 package contracts
 
 import (
-	priv "github.com/DIMO-Network/token-exchange-service/internal/contracts/multi_privilege"
+	priv "github.com/DIMO-Network/token-exchange-api/internal/contracts/multi_privilege"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 )

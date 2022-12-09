@@ -7,11 +7,13 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/DIMO-Network/token-exchange-service/internal/api"
-	"github.com/DIMO-Network/token-exchange-service/internal/config"
-	vtx "github.com/DIMO-Network/token-exchange-service/internal/controllers"
-	"github.com/DIMO-Network/token-exchange-service/internal/services"
+	"github.com/DIMO-Network/token-exchange-api/internal/api"
+	"github.com/DIMO-Network/token-exchange-api/internal/config"
+	vtx "github.com/DIMO-Network/token-exchange-api/internal/controllers"
+	"github.com/DIMO-Network/token-exchange-api/internal/services"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 
+	"github.com/gofiber/adaptor/v2"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	log "github.com/gofiber/fiber/v2/middleware/logger"
@@ -46,9 +48,6 @@ func startWebAPI(ctx context.Context, logger zerolog.Logger, settings *config.Se
 	// request logging
 	app.Use(log.New(log.ConfigDefault))
 
-	// application routes
-	app.Get("/", healthCheck)
-
 	keyRefreshInterval := time.Hour
 	keyRefreshUnknownKID := true
 	jwtAuth := jwtWare.New(jwtWare.Config{
@@ -71,6 +70,8 @@ func startWebAPI(ctx context.Context, logger zerolog.Logger, settings *config.Se
 	tokenRoutes := v1Route.Group("/tokens", jwtAuth)
 	tokenRoutes.Post("/exchange", vtxController.GetVehicleCommandPermissionWithScope)
 
+	go serveMonitoring("8888", &logger)
+
 	logger.Info().Msg(settings.ServiceName + " - Server started on port " + settings.Port)
 	// Start Server from a different go routine
 	go func() {
@@ -87,14 +88,19 @@ func startWebAPI(ctx context.Context, logger zerolog.Logger, settings *config.Se
 	_ = app.Shutdown()
 }
 
-func healthCheck(c *fiber.Ctx) error {
-	res := map[string]interface{}{
-		"data": "Server is up and running",
-	}
+func serveMonitoring(port string, logger *zerolog.Logger) (*fiber.App, error) {
+	logger.Info().Str("port", port).Msg("Starting monitoring web server.")
 
-	if err := c.JSON(res); err != nil {
-		return err
-	}
+	monApp := fiber.New(fiber.Config{DisableStartupMessage: true})
 
-	return nil
+	monApp.Get("/", func(c *fiber.Ctx) error { return nil })
+	monApp.Get("/metrics", adaptor.HTTPHandler(promhttp.Handler()))
+
+	go func() {
+		if err := monApp.Listen(":" + port); err != nil {
+			logger.Fatal().Err(err).Str("port", port).Msg("Failed to start monitoring web server.")
+		}
+	}()
+
+	return monApp, nil
 }

@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/DIMO-Network/token-exchange-service/internal/config"
-	"github.com/DIMO-Network/token-exchange-service/internal/contracts"
-	"github.com/DIMO-Network/token-exchange-service/internal/services"
+	"github.com/DIMO-Network/token-exchange-api/internal/config"
+	"github.com/DIMO-Network/token-exchange-api/internal/contracts"
+	"github.com/DIMO-Network/token-exchange-api/internal/services"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/gofiber/fiber/v2"
