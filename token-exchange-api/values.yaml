@@ -4,8 +4,6 @@ image:
   pullPolicy: IfNotPresent
   tag: e6e3445
 imagePullSecrets: []
-nameOverride: ''
-fullnameOverride: ''
 serviceAccount:
   create: true
   annotations: {}
