@@ -26,5 +26,4 @@ tolerations: []
 affinity: {}
 podDisruptionBudget:
   minAvailable: 1
-kafka:
-  clusterName: kafka-prod-dimo-kafka
+kafka: {}
