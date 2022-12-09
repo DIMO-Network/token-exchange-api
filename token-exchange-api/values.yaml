@@ -35,6 +35,7 @@ env:
   CONSUMER_GROUP: device-definition-join-processor
   VEHICLE_NFT_ADDRESS: '0xA975E31A046AbEe2de14a041Dae5d0983C59128D'
   USERS_API_GRPC_ADDRESS: users-api-dev:8086
+  DEX_GRPC_ADDRESS: 'dex-vehicle-dev:5557'
 service:
   type: ClusterIP
   ports:
