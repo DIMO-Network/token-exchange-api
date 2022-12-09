@@ -23,7 +23,6 @@ WORKDIR /
 COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=build /etc/passwd /etc/passwd
 COPY --from=build /go/src/github.com/DIMO-Network/token-exchange-api/target/bin/token-exchange-api .
-COPY --from=build /go/src/github.com/DIMO-Network/token-exchange-api/migrations /migrations
 
 USER dimo
 
