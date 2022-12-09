@@ -53,7 +53,7 @@ func startWebAPI(ctx context.Context, logger zerolog.Logger, settings *config.Se
 	keyRefreshInterval := time.Hour
 	keyRefreshUnknownKID := true
 	jwtAuth := jwtWare.New(jwtWare.Config{
-		KeySetURL:            settings.JwtKeySetURL,
+		KeySetURL:            settings.JWKKeySetURL,
 		KeyRefreshInterval:   &keyRefreshInterval,
 		KeyRefreshUnknownKID: &keyRefreshUnknownKID,
 		KeyRefreshErrorHandler: func(j *jwtWare.KeySet, err error) {
