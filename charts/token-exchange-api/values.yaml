@@ -25,6 +25,7 @@ env:
   PORT: 8888
   ENVIRONMENT: dev
   LOG_LEVEL: info
+  JWT_KEY_SET_URL: vauth.dev.dimo.zone/keys
 service:
   type: ClusterIP
   ports:
