@@ -29,13 +29,13 @@ env:
 service:
   type: ClusterIP
   ports:
-    mon-http:
-      port: 8888
-      targetPort: mon-http
-      protocol: TCP
     http:
       port: 8080
       targetPort: http
+      protocol: TCP
+    mon-http:
+      port: 8888
+      targetPort: mon-http
       protocol: TCP
 ports:
   - name: http

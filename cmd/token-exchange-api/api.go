@@ -48,6 +48,8 @@ func startWebAPI(ctx context.Context, logger zerolog.Logger, settings *config.Se
 	// request logging
 	app.Use(log.New(log.ConfigDefault))
 
+	app.Get("/", healthCheck)
+
 	keyRefreshInterval := time.Hour
 	keyRefreshUnknownKID := true
 	jwtAuth := jwtWare.New(jwtWare.Config{
@@ -103,4 +105,16 @@ func serveMonitoring(port string, logger *zerolog.Logger) (*fiber.App, error) {
 	}()
 
 	return monApp, nil
+}
+
+func healthCheck(c *fiber.Ctx) error {
+	res := map[string]interface{}{
+		"data": "Server is up and running",
+	}
+
+	if err := c.JSON(res); err != nil {
+		return err
+	}
+
+	return nil
 }
