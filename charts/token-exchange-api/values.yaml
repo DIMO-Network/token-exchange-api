@@ -4,8 +4,6 @@ image:
   pullPolicy: IfNotPresent
   tag: b3550c4
 imagePullSecrets: []
-nameOverride: ''
-fullnameOverride: ''
 serviceAccount:
   create: true
   annotations: {}
@@ -26,13 +24,7 @@ cronJob:
 env:
   PORT: 8888
   ENVIRONMENT: dev
-  KAFKA_BROKERS: kafka-dev-dimo-kafka-kafka-brokers:9092
   LOG_LEVEL: info
-  STATUS_INPUT_TOPIC: topic.device.status.private
-  DEVICE_DEFINITION_TABLE: table.device.definition
-  DEVICE_DEFINITION_METADATA_TABLE: table.device.definition.metadata
-  STATUS_OUTPUT_TOPIC: topic.device.status.enriched
-  CONSUMER_GROUP: token-exchange-api
 service:
   type: ClusterIP
   ports:
