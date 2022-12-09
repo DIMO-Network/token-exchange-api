@@ -2,7 +2,7 @@ replicaCount: 1
 image:
   repository: dimozone/token-exchange-api
   pullPolicy: IfNotPresent
-  tag: 60e77c0
+  tag: b3550c4
 imagePullSecrets: []
 nameOverride: ''
 fullnameOverride: ''
