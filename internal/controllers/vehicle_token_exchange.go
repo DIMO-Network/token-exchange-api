@@ -103,7 +103,7 @@ func (v *VehicleTokenExchangeController) GetVehicleCommandPermissionWithScope(c 
 	}
 
 	tk, err := v.dexService.SignVehiclePrivilegePayload(c.Context(), services.VehiclePrivilegeDTO{
-		UserID:         userEthAddress,
+		UserEthAddress: userEthAddress,
 		VehicleTokenID: vpr.VehicleTokenID.String(),
 		PrivilegeIDs:   privileges,
 	})

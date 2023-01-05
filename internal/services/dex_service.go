@@ -20,7 +20,7 @@ type dexService struct {
 }
 
 type VehiclePrivilegeDTO struct {
-	UserID         string
+	UserEthAddress string
 	VehicleTokenID string
 	PrivilegeIDs   []int64
 }
@@ -49,7 +49,7 @@ func (d *dexService) SignVehiclePrivilegePayload(ctx context.Context, req Vehicl
 	defer conn.Close()
 
 	args := &dgrpc.GetVehiclePrivilegeTokenReq{
-		UserId:         req.UserID,
+		UserEthAddress: req.UserEthAddress,
 		VehicleTokenId: req.VehicleTokenID,
 		PrivilegeIds:   req.PrivilegeIDs,
 	}
