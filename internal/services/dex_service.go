@@ -48,13 +48,13 @@ func (d *dexService) SignVehiclePrivilegePayload(ctx context.Context, req Vehicl
 	}
 	defer conn.Close()
 
-	args := &dgrpc.GetVehiclePrivilegeTokenReq{
+	args := &dgrpc.GetPrivilegeTokenReq{
 		UserEthAddress: req.UserEthAddress,
 		VehicleTokenId: req.VehicleTokenID,
 		PrivilegeIds:   req.PrivilegeIDs,
 	}
 
-	resp, err := client.GetVehiclePrivilegeToken(ctx, args)
+	resp, err := client.GetPrivilegeToken(ctx, args)
 	if err != nil {
 		return "", err
 	}
