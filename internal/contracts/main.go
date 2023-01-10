@@ -4,6 +4,7 @@ import (
 	priv "github.com/DIMO-Network/token-exchange-api/internal/contracts/multi_privilege"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient"
 )
 
 type ContractsManager struct {
@@ -25,4 +26,16 @@ func NewContractsManager(addrs ContractsAddressBook, client bind.ContractBackend
 	return &ContractsManager{
 		MultiPrivilege: mp,
 	}, nil
+}
+
+func InitContractCall(nodeUrl, contract_address string) (*ethclient.Client, ContractsAddressBook, error) {
+	client, err := ethclient.Dial(nodeUrl)
+	if err != nil {
+		return nil, ContractsAddressBook{}, err
+	}
+	cadr := ContractsAddressBook{
+		MultiPrivilegeAddress: contract_address,
+	}
+
+	return client, cadr, nil
 }

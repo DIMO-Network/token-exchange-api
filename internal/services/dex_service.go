@@ -20,9 +20,10 @@ type dexService struct {
 }
 
 type DevicePrivilegeDTO struct {
-	UserEthAddress string
-	DeviceTokenID  string
-	PrivilegeIDs   []int64
+	UserEthAddress     string
+	DeviceTokenID      string
+	PrivilegeIDs       []int64
+	NFTContractAddress string
 }
 
 func NewDexService(log *zerolog.Logger, settings *config.Settings) *dexService {
@@ -49,9 +50,10 @@ func (d *dexService) SignPrivilegePayload(ctx context.Context, req DevicePrivile
 	defer conn.Close()
 
 	args := &dgrpc.GetPrivilegeTokenReq{
-		UserEthAddress: req.UserEthAddress,
-		DeviceTokenId:  req.DeviceTokenID,
-		PrivilegeIds:   req.PrivilegeIDs,
+		UserEthAddress:     req.UserEthAddress,
+		DeviceTokenId:      req.DeviceTokenID,
+		PrivilegeIds:       req.PrivilegeIDs,
+		NftContractAddress: req.NFTContractAddress,
 	}
 
 	resp, err := client.GetPrivilegeToken(ctx, args)

@@ -2,13 +2,13 @@ package controllers
 
 import (
 	"fmt"
+	"log"
 	"math/big"
 
 	"github.com/DIMO-Network/token-exchange-api/internal/config"
 	"github.com/DIMO-Network/token-exchange-api/internal/contracts"
 	"github.com/DIMO-Network/token-exchange-api/internal/services"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/gofiber/fiber/v2"
 	"github.com/rs/zerolog"
 	"google.golang.org/grpc/codes"
@@ -16,16 +16,16 @@ import (
 )
 
 type DeviceTokenExchangeController struct {
-	logger           *zerolog.Logger
-	contractsManager *contracts.ContractsManager
-	settings         *config.Settings
-	dexService       services.DexService
-	usersService     services.UsersService
+	logger       *zerolog.Logger
+	settings     *config.Settings
+	dexService   services.DexService
+	usersService services.UsersService
 }
 
 type DevicePermissionRequest struct {
-	DeviceTokenID *big.Int   `json:"deviceTokenId"`
-	Privileges    []*big.Int `json:"privileges"`
+	DeviceTokenID      *big.Int   `json:"deviceTokenId" validate:"required"`
+	Privileges         []*big.Int `json:"privileges"`
+	NFTContractAddress string     `json:"nftContractAddress"`
 }
 
 type DevicePermissionResponse struct {
@@ -33,24 +33,12 @@ type DevicePermissionResponse struct {
 }
 
 func NewDeviceTokenExchangeController(logger *zerolog.Logger, settings *config.Settings, dexService services.DexService, usersService services.UsersService) *DeviceTokenExchangeController {
-	client, err := ethclient.Dial(settings.BlockchainNodeURL)
-	if err != nil {
-		logger.Fatal().Err(err).Str("blockchainUrl", settings.BlockchainNodeURL).Msg("Failed to dial blockchain node.")
-	}
-	cadr := contracts.ContractsAddressBook{
-		MultiPrivilegeAddress: settings.VehicleNFTAddress,
-	}
-	ctmr, err := contracts.NewContractsManager(cadr, client)
-	if err != nil {
-		logger.Fatal().Err(err).Str("Contracts", settings.VehicleNFTAddress).Msg("Unable to initialize nft contract")
-	}
 
 	return &DeviceTokenExchangeController{
-		logger:           logger,
-		contractsManager: ctmr,
-		settings:         settings,
-		dexService:       dexService,
-		usersService:     usersService,
+		logger:       logger,
+		settings:     settings,
+		dexService:   dexService,
+		usersService: usersService,
 	}
 }
 
@@ -64,9 +52,22 @@ func (v *DeviceTokenExchangeController) GetDeviceCommandPermissionWithScope(c *f
 		return fiber.NewError(fiber.StatusBadRequest, "Please provide the privileges you need permission for.")
 	}
 
+	if vpr.NFTContractAddress == "" {
+		return fiber.NewError(fiber.StatusBadRequest, "Please provide NFT contract address you need permission for.")
+	}
+
+	client, cadr, err := contracts.InitContractCall(v.settings.BlockchainNodeURL, vpr.NFTContractAddress)
+	if err != nil {
+		v.logger.Fatal().Err(err).Str("blockchainUrl", v.settings.BlockchainNodeURL).Msg("Failed to dial blockchain node")
+	}
+
+	ctmr, err := contracts.NewContractsManager(cadr, client)
+	if err != nil {
+		v.logger.Fatal().Err(err).Str("Contracts", vpr.NFTContractAddress).Msg("Unable to initialize nft contract")
+	}
+
 	claims := services.GetJWTTokenClaims(c)
 	userID := claims["sub"].(string)
-
 	user, err := v.usersService.GetUserByID(c.Context(), userID)
 	if err != nil {
 		if s, ok := status.FromError(err); ok && s.Code() == codes.NotFound {
@@ -84,9 +85,10 @@ func (v *DeviceTokenExchangeController) GetDeviceCommandPermissionWithScope(c *f
 		return fiber.NewError(fiber.StatusForbidden, "Wallet address not found!")
 	}
 
-	m := v.contractsManager.MultiPrivilege
+	m := ctmr.MultiPrivilege
 
 	for _, p := range vpr.Privileges {
+		log.Println(vpr.DeviceTokenID, p, addr)
 		res, err := m.HasPrivilege(nil, vpr.DeviceTokenID, p, addr)
 		if err != nil {
 			return fiber.NewError(fiber.StatusInternalServerError, err.Error())
@@ -103,9 +105,10 @@ func (v *DeviceTokenExchangeController) GetDeviceCommandPermissionWithScope(c *f
 	}
 
 	tk, err := v.dexService.SignPrivilegePayload(c.Context(), services.DevicePrivilegeDTO{
-		UserEthAddress: userEthAddress,
-		DeviceTokenID:  vpr.DeviceTokenID.String(),
-		PrivilegeIDs:   privileges,
+		UserEthAddress:     userEthAddress,
+		DeviceTokenID:      vpr.DeviceTokenID.String(),
+		PrivilegeIDs:       privileges,
+		NFTContractAddress: vpr.NFTContractAddress,
 	})
 
 	if err != nil {
