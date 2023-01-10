@@ -15,7 +15,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-type VehicleTokenExchangeController struct {
+type DeviceTokenExchangeController struct {
 	logger           *zerolog.Logger
 	contractsManager *contracts.ContractsManager
 	settings         *config.Settings
@@ -23,16 +23,16 @@ type VehicleTokenExchangeController struct {
 	usersService     services.UsersService
 }
 
-type VehiclePermissionRequest struct {
-	VehicleTokenID *big.Int   `json:"vehicleTokenId"`
-	Privileges     []*big.Int `json:"privileges"`
+type DevicePermissionRequest struct {
+	DeviceTokenID *big.Int   `json:"deviceTokenId"`
+	Privileges    []*big.Int `json:"privileges"`
 }
 
-type VehiclePermissionResponse struct {
+type DevicePermissionResponse struct {
 	Token string `json:"token"`
 }
 
-func NewVehicleTokenExchangeController(logger *zerolog.Logger, settings *config.Settings, dexService services.DexService, usersService services.UsersService) *VehicleTokenExchangeController {
+func NewDeviceTokenExchangeController(logger *zerolog.Logger, settings *config.Settings, dexService services.DexService, usersService services.UsersService) *DeviceTokenExchangeController {
 	client, err := ethclient.Dial(settings.BlockchainNodeURL)
 	if err != nil {
 		logger.Fatal().Err(err).Str("blockchainUrl", settings.BlockchainNodeURL).Msg("Failed to dial blockchain node.")
@@ -42,10 +42,10 @@ func NewVehicleTokenExchangeController(logger *zerolog.Logger, settings *config.
 	}
 	ctmr, err := contracts.NewContractsManager(cadr, client)
 	if err != nil {
-		logger.Fatal().Err(err).Str("Contracts", settings.VehicleNFTAddress).Msg("Unable to initialize vehicle nft contract")
+		logger.Fatal().Err(err).Str("Contracts", settings.VehicleNFTAddress).Msg("Unable to initialize nft contract")
 	}
 
-	return &VehicleTokenExchangeController{
+	return &DeviceTokenExchangeController{
 		logger:           logger,
 		contractsManager: ctmr,
 		settings:         settings,
@@ -54,8 +54,8 @@ func NewVehicleTokenExchangeController(logger *zerolog.Logger, settings *config.
 	}
 }
 
-func (v *VehicleTokenExchangeController) GetVehicleCommandPermissionWithScope(c *fiber.Ctx) error {
-	vpr := &VehiclePermissionRequest{}
+func (v *DeviceTokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.Ctx) error {
+	vpr := &DevicePermissionRequest{}
 	if err := c.BodyParser(vpr); err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "Couldn't parse request body.")
 	}
@@ -87,7 +87,7 @@ func (v *VehicleTokenExchangeController) GetVehicleCommandPermissionWithScope(c 
 	m := v.contractsManager.MultiPrivilege
 
 	for _, p := range vpr.Privileges {
-		res, err := m.HasPrivilege(nil, vpr.VehicleTokenID, p, addr)
+		res, err := m.HasPrivilege(nil, vpr.DeviceTokenID, p, addr)
 		if err != nil {
 			return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 		}
@@ -102,9 +102,9 @@ func (v *VehicleTokenExchangeController) GetVehicleCommandPermissionWithScope(c 
 		privileges = append(privileges, v.Int64())
 	}
 
-	tk, err := v.dexService.SignVehiclePrivilegePayload(c.Context(), services.VehiclePrivilegeDTO{
-		UserID:         userEthAddress,
-		VehicleTokenID: vpr.VehicleTokenID.String(),
+	tk, err := v.dexService.SignPrivilegePayload(c.Context(), services.DevicePrivilegeDTO{
+		UserEthAddress: userEthAddress,
+		DeviceTokenID:  vpr.DeviceTokenID.String(),
 		PrivilegeIDs:   privileges,
 	})
 
@@ -112,7 +112,7 @@ func (v *VehicleTokenExchangeController) GetVehicleCommandPermissionWithScope(c 
 		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 	}
 
-	return c.JSON(VehiclePermissionResponse{
+	return c.JSON(DevicePermissionResponse{
 		Token: tk,
 	})
 }

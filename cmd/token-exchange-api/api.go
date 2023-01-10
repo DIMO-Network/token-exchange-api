@@ -26,7 +26,7 @@ func startWebAPI(ctx context.Context, logger zerolog.Logger, settings *config.Se
 
 	dxS := services.NewDexService(&logger, settings)
 	userService := services.NewUsersService(&logger, settings)
-	vtxController := vtx.NewVehicleTokenExchangeController(&logger, settings, dxS, userService)
+	vtxController := vtx.NewDeviceTokenExchangeController(&logger, settings, dxS, userService)
 
 	app := fiber.New(fiber.Config{
 		ErrorHandler: func(c *fiber.Ctx, err error) error {
@@ -70,7 +70,7 @@ func startWebAPI(ctx context.Context, logger zerolog.Logger, settings *config.Se
 	v1Route := app.Group("/v1")
 	// Token routes
 	tokenRoutes := v1Route.Group("/tokens", jwtAuth)
-	tokenRoutes.Post("/exchange", vtxController.GetVehicleCommandPermissionWithScope)
+	tokenRoutes.Post("/exchange", vtxController.GetDeviceCommandPermissionWithScope)
 
 	go serveMonitoring(settings.MonPort, &logger)
 
