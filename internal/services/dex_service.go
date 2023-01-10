@@ -11,7 +11,7 @@ import (
 )
 
 type DexService interface {
-	SignVehiclePrivilegePayload(ctx context.Context, req VehiclePrivilegeDTO) (string, error)
+	SignPrivilegePayload(ctx context.Context, req DevicePrivilegeDTO) (string, error)
 }
 
 type dexService struct {
@@ -19,9 +19,9 @@ type dexService struct {
 	dexGRPCAddr string
 }
 
-type VehiclePrivilegeDTO struct {
+type DevicePrivilegeDTO struct {
 	UserEthAddress string
-	VehicleTokenID string
+	DeviceTokenID  string
 	PrivilegeIDs   []int64
 }
 
@@ -41,7 +41,7 @@ func (d *dexService) getDexGrpcConnection() (dgrpc.DexClient, *grpc.ClientConn, 
 	return dexClient, conn, nil
 }
 
-func (d *dexService) SignVehiclePrivilegePayload(ctx context.Context, req VehiclePrivilegeDTO) (string, error) {
+func (d *dexService) SignPrivilegePayload(ctx context.Context, req DevicePrivilegeDTO) (string, error) {
 	client, conn, err := d.getDexGrpcConnection()
 	if err != nil {
 		return "", err
@@ -50,7 +50,7 @@ func (d *dexService) SignVehiclePrivilegePayload(ctx context.Context, req Vehicl
 
 	args := &dgrpc.GetPrivilegeTokenReq{
 		UserEthAddress: req.UserEthAddress,
-		VehicleTokenId: req.VehicleTokenID,
+		DeviceTokenId:  req.DeviceTokenID,
 		PrivilegeIds:   req.PrivilegeIDs,
 	}
 
