@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"fmt"
-	"log"
 	"math/big"
 
 	"github.com/DIMO-Network/token-exchange-api/internal/config"
@@ -15,26 +14,26 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-type DeviceTokenExchangeController struct {
+type TokenExchangeController struct {
 	logger       *zerolog.Logger
 	settings     *config.Settings
 	dexService   services.DexService
 	usersService services.UsersService
 }
 
-type DevicePermissionRequest struct {
-	DeviceTokenID      *big.Int   `json:"deviceTokenId" validate:"required"`
+type PermissionTokenRequest struct {
+	TokenID            *big.Int   `json:"tokenId" validate:"required"`
 	Privileges         []*big.Int `json:"privileges"`
 	NFTContractAddress string     `json:"nftContractAddress"`
 }
 
-type DevicePermissionResponse struct {
+type PermissionTokenResponse struct {
 	Token string `json:"token"`
 }
 
-func NewDeviceTokenExchangeController(logger *zerolog.Logger, settings *config.Settings, dexService services.DexService, usersService services.UsersService) *DeviceTokenExchangeController {
+func NewTokenExchangeController(logger *zerolog.Logger, settings *config.Settings, dexService services.DexService, usersService services.UsersService) *TokenExchangeController {
 
-	return &DeviceTokenExchangeController{
+	return &TokenExchangeController{
 		logger:       logger,
 		settings:     settings,
 		dexService:   dexService,
@@ -42,8 +41,8 @@ func NewDeviceTokenExchangeController(logger *zerolog.Logger, settings *config.S
 	}
 }
 
-func (v *DeviceTokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.Ctx) error {
-	vpr := &DevicePermissionRequest{}
+func (v *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.Ctx) error {
+	vpr := &PermissionTokenRequest{}
 	if err := c.BodyParser(vpr); err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "Couldn't parse request body.")
 	}
@@ -88,8 +87,7 @@ func (v *DeviceTokenExchangeController) GetDeviceCommandPermissionWithScope(c *f
 	m := ctmr.MultiPrivilege
 
 	for _, p := range vpr.Privileges {
-		log.Println(vpr.DeviceTokenID, p, addr)
-		res, err := m.HasPrivilege(nil, vpr.DeviceTokenID, p, addr)
+		res, err := m.HasPrivilege(nil, vpr.TokenID, p, addr)
 		if err != nil {
 			return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 		}
@@ -104,9 +102,9 @@ func (v *DeviceTokenExchangeController) GetDeviceCommandPermissionWithScope(c *f
 		privileges = append(privileges, v.Int64())
 	}
 
-	tk, err := v.dexService.SignPrivilegePayload(c.Context(), services.DevicePrivilegeDTO{
+	tk, err := v.dexService.SignPrivilegePayload(c.Context(), services.PrivilegeTokenDTO{
 		UserEthAddress:     userEthAddress,
-		DeviceTokenID:      vpr.DeviceTokenID.String(),
+		TokenID:            vpr.TokenID.String(),
 		PrivilegeIDs:       privileges,
 		NFTContractAddress: vpr.NFTContractAddress,
 	})
@@ -115,7 +113,7 @@ func (v *DeviceTokenExchangeController) GetDeviceCommandPermissionWithScope(c *f
 		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 	}
 
-	return c.JSON(DevicePermissionResponse{
+	return c.JSON(PermissionTokenResponse{
 		Token: tk,
 	})
 }

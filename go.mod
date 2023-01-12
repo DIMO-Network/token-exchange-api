@@ -54,12 +54,14 @@ require (
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasthttp v1.41.0 // indirect
 	github.com/valyala/tcplisten v1.0.0 // indirect
-	golang.org/x/crypto v0.3.0 // indirect
-	golang.org/x/net v0.2.0 // indirect
-	golang.org/x/sys v0.2.0 // indirect
-	golang.org/x/text v0.4.0 // indirect
+	golang.org/x/crypto v0.5.0 // indirect
+	golang.org/x/net v0.5.0 // indirect
+	golang.org/x/sys v0.4.0 // indirect
+	golang.org/x/text v0.6.0 // indirect
 	google.golang.org/genproto v0.0.0-20220602131408-e326c6e8e9c8 // indirect
-	google.golang.org/protobuf v1.28.1 // indirect
+	google.golang.org/protobuf v1.28.1
 	gopkg.in/natefinch/npipe.v2 v2.0.0-20160621034901-c1b8fa8bdcce // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+replace github.com/dexidp/dex/api/v2 => github.com/DIMO-Network/dex/api/v2 v2.0.1-0.20221123194538-5706160060c1
