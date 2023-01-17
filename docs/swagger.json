@@ -1,0 +1,133 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "title": "DIMO Token Exchange API",
+        "contact": {},
+        "version": "1.0"
+    },
+    "basePath": "/v1",
+    "paths": {
+        "/tokens/exchange": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns a signed token with the requested privileges.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "privileges on the correct token.",
+                "parameters": [
+                    {
+                        "description": "Requested privileges: must include address, token id, and privilege ids",
+                        "name": "tokenRequest",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_controllers.PermissionTokenRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/internal_controllers.PermissionTokenResponse"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "big.Int": {
+            "type": "object"
+        },
+        "github_com_DIMO-Network_token-exchange-api_internal_controllers.PermissionTokenRequest": {
+            "type": "object",
+            "required": [
+                "nftContractAddress",
+                "privileges",
+                "tokenId"
+            ],
+            "properties": {
+                "nftContractAddress": {
+                    "description": "NFTContractAddress is the address of the NFT contract. Privileges will be checked\non-chain at this address.",
+                    "type": "string"
+                },
+                "privileges": {
+                    "description": "Privileges is a list of the desired privileges. It must not be empty.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/big.Int"
+                    }
+                },
+                "tokenId": {
+                    "description": "TokenID is the NFT token id.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/big.Int"
+                        }
+                    ]
+                }
+            }
+        },
+        "github_com_DIMO-Network_token-exchange-api_internal_controllers.PermissionTokenResponse": {
+            "type": "object",
+            "properties": {
+                "token": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_controllers.PermissionTokenRequest": {
+            "type": "object",
+            "required": [
+                "nftContractAddress",
+                "privileges",
+                "tokenId"
+            ],
+            "properties": {
+                "nftContractAddress": {
+                    "description": "NFTContractAddress is the address of the NFT contract. Privileges will be checked\non-chain at this address.",
+                    "type": "string"
+                },
+                "privileges": {
+                    "description": "Privileges is a list of the desired privileges. It must not be empty.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/big.Int"
+                    }
+                },
+                "tokenId": {
+                    "description": "TokenID is the NFT token id.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/big.Int"
+                        }
+                    ]
+                }
+            }
+        },
+        "internal_controllers.PermissionTokenResponse": {
+            "type": "object",
+            "properties": {
+                "token": {
+                    "type": "string"
+                }
+            }
+        }
+    },
+    "securityDefinitions": {
+        "BearerAuth": {
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
+        }
+    }
+}
