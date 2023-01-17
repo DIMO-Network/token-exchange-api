@@ -21,6 +21,7 @@ definitions:
         description: TokenID is the NFT token id.
     required:
     - nftContractAddress
+    - privileges
     - tokenId
     type: object
   github_com_DIMO-Network_token-exchange-api_internal_controllers.PermissionTokenResponse:
@@ -47,6 +48,7 @@ definitions:
         description: TokenID is the NFT token id.
     required:
     - nftContractAddress
+    - privileges
     - tokenId
     type: object
   internal_controllers.PermissionTokenResponse:
@@ -71,14 +73,14 @@ paths:
         name: tokenRequest
         required: true
         schema:
-          $ref: '#/definitions/github_com_DIMO-Network_token-exchange-api_internal_controllers.PermissionTokenRequest'
+          $ref: '#/definitions/internal_controllers.PermissionTokenRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github_com_DIMO-Network_token-exchange-api_internal_controllers.PermissionTokenResponse'
+            $ref: '#/definitions/internal_controllers.PermissionTokenResponse'
       security:
       - BearerAuth: []
       summary: privileges on the correct token.

@@ -25,7 +25,7 @@ type PermissionTokenRequest struct {
 	// TokenID is the NFT token id.
 	TokenID *big.Int `json:"tokenId" validate:"required"`
 	// Privileges is a list of the desired privileges. It must not be empty.
-	Privileges []*big.Int `json:"privileges"`
+	Privileges []*big.Int `json:"privileges" validate:"required" minLength:"1"`
 	// NFTContractAddress is the address of the NFT contract. Privileges will be checked
 	// on-chain at this address.
 	NFTContractAddress string `json:"nftContractAddress" validate:"required"`

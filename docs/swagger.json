@@ -29,7 +29,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_DIMO-Network_token-exchange-api_internal_controllers.PermissionTokenRequest"
+                            "$ref": "#/definitions/internal_controllers.PermissionTokenRequest"
                         }
                     }
                 ],
@@ -37,7 +37,7 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_DIMO-Network_token-exchange-api_internal_controllers.PermissionTokenResponse"
+                            "$ref": "#/definitions/internal_controllers.PermissionTokenResponse"
                         }
                     }
                 }
@@ -52,6 +52,7 @@
             "type": "object",
             "required": [
                 "nftContractAddress",
+                "privileges",
                 "tokenId"
             ],
             "properties": {
@@ -88,6 +89,7 @@
             "type": "object",
             "required": [
                 "nftContractAddress",
+                "privileges",
                 "tokenId"
             ],
             "properties": {
