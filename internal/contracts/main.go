@@ -28,7 +28,7 @@ func NewContractsManager(addrs ContractsAddressBook, client bind.ContractBackend
 	}, nil
 }
 
-func InitContractCall(nodeUrl, contract_address string) (*ethclient.Client, ContractsAddressBook, error) {
+func InitContractCall(nodeUrl, contractAddress string) (*ethclient.Client, ContractsAddressBook, error) {
 	client, err := ethclient.Dial(nodeUrl)
 	if err != nil {
 		return nil, ContractsAddressBook{}, err
