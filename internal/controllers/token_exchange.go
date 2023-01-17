@@ -41,53 +41,55 @@ func NewTokenExchangeController(logger *zerolog.Logger, settings *config.Setting
 	}
 }
 
-func (v *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.Ctx) error {
-	vpr := &PermissionTokenRequest{}
-	if err := c.BodyParser(vpr); err != nil {
+func (t *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.Ctx) error {
+	pr := &PermissionTokenRequest{}
+	if err := c.BodyParser(pr); err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "Couldn't parse request body.")
 	}
 
-	if len(vpr.Privileges) == 0 {
+	if len(pr.Privileges) == 0 {
 		return fiber.NewError(fiber.StatusBadRequest, "Please provide the privileges you need permission for.")
 	}
 
-	if vpr.NFTContractAddress == "" {
+	if common.IsHexAddress(pr.NFTContractAddress) {
 		return fiber.NewError(fiber.StatusBadRequest, "Please provide NFT contract address you need permission for.")
 	}
 
-	client, cadr, err := contracts.InitContractCall(v.settings.BlockchainNodeURL, vpr.NFTContractAddress)
+	client, cadr, err := contracts.InitContractCall(t.settings.BlockchainNodeURL, pr.NFTContractAddress)
 	if err != nil {
-		v.logger.Fatal().Err(err).Str("blockchainUrl", v.settings.BlockchainNodeURL).Msg("Failed to dial blockchain node")
+		t.logger.Fatal().Err(err).Str("blockchainUrl", t.settings.BlockchainNodeURL).Msg("Failed to dial blockchain node")
+		return fiber.NewError(fiber.StatusInternalServerError, "Could not connect to blockchain node")
 	}
 
 	ctmr, err := contracts.NewContractsManager(cadr, client)
 	if err != nil {
-		v.logger.Fatal().Err(err).Str("Contracts", vpr.NFTContractAddress).Msg("Unable to initialize nft contract")
+		t.logger.Fatal().Err(err).Str("Contracts", pr.NFTContractAddress).Msg("Unable to initialize nft contract")
+		return fiber.NewError(fiber.StatusInternalServerError, "Could not connect to blockchain node")
 	}
 
 	claims := services.GetJWTTokenClaims(c)
 	userID := claims["sub"].(string)
-	user, err := v.usersService.GetUserByID(c.Context(), userID)
+	user, err := t.usersService.GetUserByID(c.Context(), userID)
 	if err != nil {
 		if s, ok := status.FromError(err); ok && s.Code() == codes.NotFound {
-			v.logger.Debug().Str("userId", userID).Msg("User not found.")
+			t.logger.Debug().Str("userId", userID).Msg("User not found.")
 			return fiber.NewError(fiber.StatusForbidden, "User not found!")
 		}
-		v.logger.Error().Str("userID", userID).Msg("Users api unavailable!")
+		t.logger.Error().Str("userID", userID).Msg("Users api unavailable!")
 		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 	}
 
 	userEthAddress := user.GetEthereumAddress()
 	addr := common.HexToAddress(userEthAddress)
 	if userEthAddress == "" {
-		v.logger.Debug().Str("userID", userID).Msg("Ethereum address not found!")
+		t.logger.Debug().Str("userID", userID).Msg("Ethereum address not found!")
 		return fiber.NewError(fiber.StatusForbidden, "Wallet address not found!")
 	}
 
 	m := ctmr.MultiPrivilege
 
-	for _, p := range vpr.Privileges {
-		res, err := m.HasPrivilege(nil, vpr.TokenID, p, addr)
+	for _, p := range pr.Privileges {
+		res, err := m.HasPrivilege(nil, pr.TokenID, p, addr)
 		if err != nil {
 			return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 		}
@@ -98,15 +100,15 @@ func (v *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.C
 	}
 
 	var privileges []int64
-	for _, v := range vpr.Privileges {
+	for _, v := range pr.Privileges {
 		privileges = append(privileges, v.Int64())
 	}
 
-	tk, err := v.dexService.SignPrivilegePayload(c.Context(), services.PrivilegeTokenDTO{
+	tk, err := t.dexService.SignPrivilegePayload(c.Context(), services.PrivilegeTokenDTO{
 		UserEthAddress:     userEthAddress,
-		TokenID:            vpr.TokenID.String(),
+		TokenID:            pr.TokenID.String(),
 		PrivilegeIDs:       privileges,
-		NFTContractAddress: vpr.NFTContractAddress,
+		NFTContractAddress: pr.NFTContractAddress,
 	})
 
 	if err != nil {

@@ -58,7 +58,7 @@ func (d *dexService) SignPrivilegePayload(ctx context.Context, req PrivilegeToke
 
 	ps, err := cc.Proto()
 	if err != nil {
-		panic(err)
+		return "", err
 	}
 
 	args := &dgrpc.SignTokenRequest{
