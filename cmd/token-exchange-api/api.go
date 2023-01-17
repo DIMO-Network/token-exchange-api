@@ -23,12 +23,6 @@ import (
 	"github.com/rs/zerolog"
 )
 
-// @title                       DIMO Token Exchange API
-// @version                     1.0
-// @BasePath                    /v1
-// @securityDefinitions.apikey  BearerAuth
-// @in                          header
-// @name                        Authorization
 func startWebAPI(ctx context.Context, logger zerolog.Logger, settings *config.Settings) {
 	dxS := services.NewDexService(&logger, settings)
 	userService := services.NewUsersService(&logger, settings)
@@ -56,10 +50,7 @@ func startWebAPI(ctx context.Context, logger zerolog.Logger, settings *config.Se
 
 	app.Get("/", healthCheck)
 
-	sc := swagger.Config{ // custom
-		// Expand ("list") or Collapse ("none") tag groups by default
-		//DocExpansion: "list",
-	}
+	sc := swagger.Config{}
 	app.Get("/v1/swagger/*", swagger.New(sc))
 
 	keyRefreshInterval := time.Hour
