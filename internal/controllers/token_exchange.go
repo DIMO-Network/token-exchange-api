@@ -3,6 +3,7 @@ package controllers
 import (
 	"fmt"
 	"math/big"
+	"strconv"
 
 	"github.com/DIMO-Network/token-exchange-api/internal/config"
 	"github.com/DIMO-Network/token-exchange-api/internal/contracts"
@@ -23,12 +24,12 @@ type TokenExchangeController struct {
 
 type PermissionTokenRequest struct {
 	// TokenID is the NFT token id.
-	TokenID *big.Int `json:"tokenId" validate:"required" example:"42"`
+	TokenID int64 `json:"tokenId"`
 	// Privileges is a list of the desired privileges. It must not be empty.
-	Privileges []*big.Int `json:"privileges" validate:"required" minLength:"1" example:"[1, 4]" swaggertype:"number"`
+	Privileges []int64 `json:"privileges"`
 	// NFTContractAddress is the address of the NFT contract. Privileges will be checked
 	// on-chain at this address.
-	NFTContractAddress string `json:"nftContractAddress" validate:"required" example:"0x1F98431c8aD98523631AE4a59f267346ea31F984" swaggertype:"number"`
+	NFTContractAddress string `json:"nftContractAddress"`
 }
 
 type PermissionTokenResponse struct {
@@ -36,7 +37,6 @@ type PermissionTokenResponse struct {
 }
 
 func NewTokenExchangeController(logger *zerolog.Logger, settings *config.Settings, dexService services.DexService, usersService services.UsersService) *TokenExchangeController {
-
 	return &TokenExchangeController{
 		logger:       logger,
 		settings:     settings,
@@ -103,7 +103,7 @@ func (t *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.C
 	m := ctmr.MultiPrivilege
 
 	for _, p := range pr.Privileges {
-		res, err := m.HasPrivilege(nil, pr.TokenID, p, addr)
+		res, err := m.HasPrivilege(nil, big.NewInt(pr.TokenID), big.NewInt(p), addr)
 		if err != nil {
 			return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 		}
@@ -113,15 +113,10 @@ func (t *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.C
 		}
 	}
 
-	var privileges []int64
-	for _, v := range pr.Privileges {
-		privileges = append(privileges, v.Int64())
-	}
-
 	tk, err := t.dexService.SignPrivilegePayload(c.Context(), services.PrivilegeTokenDTO{
 		UserEthAddress:     userEthAddress,
-		TokenID:            pr.TokenID.String(),
-		PrivilegeIDs:       privileges,
+		TokenID:            strconv.FormatInt(pr.TokenID, 10),
+		PrivilegeIDs:       pr.Privileges,
 		NFTContractAddress: pr.NFTContractAddress,
 	})
 
