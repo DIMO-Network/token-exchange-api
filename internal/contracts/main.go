@@ -34,7 +34,7 @@ func InitContractCall(nodeUrl, contractAddress string) (*ethclient.Client, Contr
 		return nil, ContractsAddressBook{}, err
 	}
 	cadr := ContractsAddressBook{
-		MultiPrivilegeAddress: contract_address,
+		MultiPrivilegeAddress: contractAddress,
 	}
 
 	return client, cadr, nil
