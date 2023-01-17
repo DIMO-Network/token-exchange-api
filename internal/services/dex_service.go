@@ -3,15 +3,19 @@ package services
 import (
 	"context"
 
+	pi "github.com/DIMO-Network/shared/middleware/privilegetoken"
 	"github.com/DIMO-Network/token-exchange-api/internal/config"
 	dgrpc "github.com/dexidp/dex/api/v2"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/gofiber/fiber/v2"
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/rs/zerolog"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
 
 type DexService interface {
-	SignPrivilegePayload(ctx context.Context, req DevicePrivilegeDTO) (string, error)
+	SignPrivilegePayload(ctx context.Context, req PrivilegeTokenDTO) (string, error)
 }
 
 type dexService struct {
@@ -19,10 +23,11 @@ type dexService struct {
 	dexGRPCAddr string
 }
 
-type DevicePrivilegeDTO struct {
-	UserEthAddress string
-	DeviceTokenID  string
-	PrivilegeIDs   []int64
+type PrivilegeTokenDTO struct {
+	UserEthAddress     string
+	TokenID            string
+	PrivilegeIDs       []int64
+	NFTContractAddress string
 }
 
 func NewDexService(log *zerolog.Logger, settings *config.Settings) *dexService {
@@ -41,23 +46,40 @@ func (d *dexService) getDexGrpcConnection() (dgrpc.DexClient, *grpc.ClientConn, 
 	return dexClient, conn, nil
 }
 
-func (d *dexService) SignPrivilegePayload(ctx context.Context, req DevicePrivilegeDTO) (string, error) {
+func (d *dexService) SignPrivilegePayload(ctx context.Context, req PrivilegeTokenDTO) (string, error) {
 	client, conn, err := d.getDexGrpcConnection()
 	if err != nil {
 		return "", err
 	}
 	defer conn.Close()
 
-	args := &dgrpc.GetPrivilegeTokenReq{
-		UserEthAddress: req.UserEthAddress,
-		DeviceTokenId:  req.DeviceTokenID,
-		PrivilegeIds:   req.PrivilegeIDs,
+	cc := pi.CustomClaims{
+		ContractAddress: common.HexToAddress(req.NFTContractAddress),
+		TokenID:         req.TokenID,
+		PrivilegeIDs:    req.PrivilegeIDs,
 	}
 
-	resp, err := client.GetPrivilegeToken(ctx, args)
+	ps, err := cc.Proto()
+	if err != nil {
+		return "", err
+	}
+
+	args := &dgrpc.SignTokenRequest{
+		Subject:      cc.Sub(),
+		CustomClaims: ps,
+	}
+
+	resp, err := client.GetCustomToken(ctx, args)
 	if err != nil {
 		return "", err
 	}
 
 	return resp.Token, nil
+}
+
+func GetJWTTokenClaims(c *fiber.Ctx) map[string]any {
+	token := c.Locals("user").(*jwt.Token)
+	claims := token.Claims.(jwt.MapClaims)
+
+	return claims
 }

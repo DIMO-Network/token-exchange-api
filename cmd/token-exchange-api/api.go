@@ -26,7 +26,7 @@ func startWebAPI(ctx context.Context, logger zerolog.Logger, settings *config.Se
 
 	dxS := services.NewDexService(&logger, settings)
 	userService := services.NewUsersService(&logger, settings)
-	vtxController := vtx.NewDeviceTokenExchangeController(&logger, settings, dxS, userService)
+	vtxController := vtx.NewTokenExchangeController(&logger, settings, dxS, userService)
 
 	app := fiber.New(fiber.Config{
 		ErrorHandler: func(c *fiber.Ctx, err error) error {
