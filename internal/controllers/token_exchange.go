@@ -55,13 +55,13 @@ func (t *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.C
 		return fiber.NewError(fiber.StatusBadRequest, "Please provide NFT contract address you need permission for.")
 	}
 
-	client, cadr, err := contracts.InitContractCall(t.settings.BlockchainNodeURL, pr.NFTContractAddress)
+	client, err := contracts.InitContractCall(t.settings.BlockchainNodeURL)
 	if err != nil {
 		t.logger.Fatal().Err(err).Str("blockchainUrl", t.settings.BlockchainNodeURL).Msg("Failed to dial blockchain node")
 		return fiber.NewError(fiber.StatusInternalServerError, "Could not connect to blockchain node")
 	}
 
-	ctmr, err := contracts.NewContractsManager(cadr, client)
+	ctmr, err := contracts.NewContractsManager(pr.NFTContractAddress, client)
 	if err != nil {
 		t.logger.Fatal().Err(err).Str("Contracts", pr.NFTContractAddress).Msg("Unable to initialize nft contract")
 		return fiber.NewError(fiber.StatusInternalServerError, "Could not connect to blockchain node")

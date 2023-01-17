@@ -11,12 +11,8 @@ type ContractsManager struct {
 	MultiPrivilege *priv.Multiprivilege
 }
 
-type ContractsAddressBook struct {
-	MultiPrivilegeAddress string
-}
-
-func NewContractsManager(addrs ContractsAddressBook, client bind.ContractBackend) (*ContractsManager, error) {
-	mpAdr := common.HexToAddress(addrs.MultiPrivilegeAddress)
+func NewContractsManager(nftAddress string, client bind.ContractBackend) (*ContractsManager, error) {
+	mpAdr := common.HexToAddress(nftAddress)
 
 	mp, err := priv.NewMultiprivilege(mpAdr, client)
 	if err != nil {
@@ -28,14 +24,11 @@ func NewContractsManager(addrs ContractsAddressBook, client bind.ContractBackend
 	}, nil
 }
 
-func InitContractCall(nodeUrl, contractAddress string) (*ethclient.Client, ContractsAddressBook, error) {
+func InitContractCall(nodeUrl string) (*ethclient.Client, error) {
 	client, err := ethclient.Dial(nodeUrl)
 	if err != nil {
-		return nil, ContractsAddressBook{}, err
-	}
-	cadr := ContractsAddressBook{
-		MultiPrivilegeAddress: contractAddress,
+		return nil, err
 	}
 
-	return client, cadr, nil
+	return client, nil
 }
