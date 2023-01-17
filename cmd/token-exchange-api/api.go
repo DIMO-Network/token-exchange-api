@@ -11,6 +11,7 @@ import (
 	"github.com/DIMO-Network/token-exchange-api/internal/config"
 	vtx "github.com/DIMO-Network/token-exchange-api/internal/controllers"
 	"github.com/DIMO-Network/token-exchange-api/internal/services"
+	swagger "github.com/arsmn/fiber-swagger/v2"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/gofiber/adaptor/v2"
@@ -22,8 +23,13 @@ import (
 	"github.com/rs/zerolog"
 )
 
+// @title                       DIMO Token Exchange API
+// @version                     1.0
+// @BasePath                    /v1
+// @securityDefinitions.apikey  BearerAuth
+// @in                          header
+// @name                        Authorization
 func startWebAPI(ctx context.Context, logger zerolog.Logger, settings *config.Settings) {
-
 	dxS := services.NewDexService(&logger, settings)
 	userService := services.NewUsersService(&logger, settings)
 	vtxController := vtx.NewTokenExchangeController(&logger, settings, dxS, userService)
@@ -49,6 +55,12 @@ func startWebAPI(ctx context.Context, logger zerolog.Logger, settings *config.Se
 	app.Use(log.New(log.ConfigDefault))
 
 	app.Get("/", healthCheck)
+
+	sc := swagger.Config{ // custom
+		// Expand ("list") or Collapse ("none") tag groups by default
+		//DocExpansion: "list",
+	}
+	app.Get("/v1/swagger/*", swagger.New(sc))
 
 	keyRefreshInterval := time.Hour
 	keyRefreshUnknownKID := true

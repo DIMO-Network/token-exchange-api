@@ -22,9 +22,13 @@ type TokenExchangeController struct {
 }
 
 type PermissionTokenRequest struct {
-	TokenID            *big.Int   `json:"tokenId" validate:"required"`
-	Privileges         []*big.Int `json:"privileges"`
-	NFTContractAddress string     `json:"nftContractAddress"`
+	// TokenID is the NFT token id.
+	TokenID *big.Int `json:"tokenId" validate:"required"`
+	// Privileges is a list of the desired privileges. It must not be empty.
+	Privileges []*big.Int `json:"privileges"`
+	// NFTContractAddress is the address of the NFT contract. Privileges will be checked
+	// on-chain at this address.
+	NFTContractAddress string `json:"nftContractAddress" validate:"required"`
 }
 
 type PermissionTokenResponse struct {
@@ -41,6 +45,16 @@ func NewTokenExchangeController(logger *zerolog.Logger, settings *config.Setting
 	}
 }
 
+// GetDeviceCommandPermissionWithScope godoc
+// @Description Returns a signed token with the requested privileges.
+// @Summary     The authenticated user must have a confirmed Ethereum address with those
+// @Summary     privileges on the correct token.
+// @Accept      json
+// @Param       tokenRequest body controllers.PermissionTokenRequest true "Requested privileges: must include address, token id, and privilege ids"
+// @Produce     json
+// @Success     200 {object} controllers.PermissionTokenResponse
+// @Security    BearerAuth
+// @Router      /tokens/exchange [post]
 func (t *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.Ctx) error {
 	pr := &PermissionTokenRequest{}
 	if err := c.BodyParser(pr); err != nil {

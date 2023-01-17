@@ -1,0 +1,90 @@
+basePath: /v1
+definitions:
+  big.Int:
+    type: object
+  github_com_DIMO-Network_token-exchange-api_internal_controllers.PermissionTokenRequest:
+    properties:
+      nftContractAddress:
+        description: |-
+          NFTContractAddress is the address of the NFT contract. Privileges will be checked
+          on-chain at this address.
+        type: string
+      privileges:
+        description: Privileges is a list of the desired privileges. It must not be
+          empty.
+        items:
+          $ref: '#/definitions/big.Int'
+        type: array
+      tokenId:
+        allOf:
+        - $ref: '#/definitions/big.Int'
+        description: TokenID is the NFT token id.
+    required:
+    - nftContractAddress
+    - tokenId
+    type: object
+  github_com_DIMO-Network_token-exchange-api_internal_controllers.PermissionTokenResponse:
+    properties:
+      token:
+        type: string
+    type: object
+  internal_controllers.PermissionTokenRequest:
+    properties:
+      nftContractAddress:
+        description: |-
+          NFTContractAddress is the address of the NFT contract. Privileges will be checked
+          on-chain at this address.
+        type: string
+      privileges:
+        description: Privileges is a list of the desired privileges. It must not be
+          empty.
+        items:
+          $ref: '#/definitions/big.Int'
+        type: array
+      tokenId:
+        allOf:
+        - $ref: '#/definitions/big.Int'
+        description: TokenID is the NFT token id.
+    required:
+    - nftContractAddress
+    - tokenId
+    type: object
+  internal_controllers.PermissionTokenResponse:
+    properties:
+      token:
+        type: string
+    type: object
+info:
+  contact: {}
+  title: DIMO Token Exchange API
+  version: "1.0"
+paths:
+  /tokens/exchange:
+    post:
+      consumes:
+      - application/json
+      description: Returns a signed token with the requested privileges.
+      parameters:
+      - description: 'Requested privileges: must include address, token id, and privilege
+          ids'
+        in: body
+        name: tokenRequest
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_DIMO-Network_token-exchange-api_internal_controllers.PermissionTokenRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_DIMO-Network_token-exchange-api_internal_controllers.PermissionTokenResponse'
+      security:
+      - BearerAuth: []
+      summary: privileges on the correct token.
+securityDefinitions:
+  BearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"
