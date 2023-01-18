@@ -61,6 +61,8 @@ func (t *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.C
 		return fiber.NewError(fiber.StatusBadRequest, "Couldn't parse request body.")
 	}
 
+	t.logger.Info().Interface("request", pr).Msg("Got request.")
+
 	if len(pr.Privileges) == 0 {
 		return fiber.NewError(fiber.StatusBadRequest, "Please provide the privileges you need permission for.")
 	}
