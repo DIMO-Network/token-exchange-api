@@ -64,12 +64,12 @@ func (d *dexService) SignPrivilegePayload(ctx context.Context, req PrivilegeToke
 		return "", err
 	}
 
-	args := &dgrpc.SignTokenRequest{
+	args := &dgrpc.SignTokenReq{
 		Subject:      cc.Sub(),
 		CustomClaims: ps,
 	}
 
-	resp, err := client.GetCustomToken(ctx, args)
+	resp, err := client.SignToken(ctx, args)
 	if err != nil {
 		return "", err
 	}
