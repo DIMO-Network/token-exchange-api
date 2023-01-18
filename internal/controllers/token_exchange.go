@@ -67,7 +67,7 @@ func (t *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.C
 		return fiber.NewError(fiber.StatusBadRequest, "Please provide the privileges you need permission for.")
 	}
 
-	if common.IsHexAddress(pr.NFTContractAddress) {
+	if !common.IsHexAddress(pr.NFTContractAddress) {
 		return fiber.NewError(fiber.StatusBadRequest, "Please provide NFT contract address you need permission for.")
 	}
 
