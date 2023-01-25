@@ -14,6 +14,7 @@ import (
 	swagger "github.com/arsmn/fiber-swagger/v2"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
+	mware "github.com/DIMO-Network/token-exchange-api/internal/middleware"
 	"github.com/gofiber/adaptor/v2"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
@@ -73,7 +74,9 @@ func startWebAPI(ctx context.Context, logger zerolog.Logger, settings *config.Se
 	v1Route := app.Group("/v1")
 	// Token routes
 	tokenRoutes := v1Route.Group("/tokens", jwtAuth)
-	tokenRoutes.Post("/exchange", vtxController.GetDeviceCommandPermissionWithScope)
+	adWhitelist := mware.NewContractWhiteList(settings, logger)
+
+	tokenRoutes.Post("/exchange", adWhitelist, vtxController.GetDeviceCommandPermissionWithScope)
 
 	go serveMonitoring(settings.MonPort, &logger)
 
