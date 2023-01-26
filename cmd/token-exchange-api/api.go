@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -12,6 +13,7 @@ import (
 	vtx "github.com/DIMO-Network/token-exchange-api/internal/controllers"
 	"github.com/DIMO-Network/token-exchange-api/internal/services"
 	swagger "github.com/arsmn/fiber-swagger/v2"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	mware "github.com/DIMO-Network/token-exchange-api/internal/middleware"
@@ -24,10 +26,32 @@ import (
 	"github.com/rs/zerolog"
 )
 
+func getContractWhitelistedAddresses(wAddrs string) []string {
+	if wAddrs == "" {
+		return []string{}
+	}
+
+	w := strings.Split(wAddrs, ",")
+
+	for _, v := range w {
+		if !common.IsHexAddress(v) {
+			return []string{}
+		}
+	}
+
+	return w
+}
+
 func startWebAPI(ctx context.Context, logger zerolog.Logger, settings *config.Settings) {
 	dxS := services.NewDexService(&logger, settings)
 	userService := services.NewUsersService(&logger, settings)
 	vtxController := vtx.NewTokenExchangeController(&logger, settings, dxS, userService)
+
+	ctrAddressesWhitelist := getContractWhitelistedAddresses(settings.ContractAddressWhitelist)
+	if len(ctrAddressesWhitelist) == 0 {
+		logger.Error().Str("settings.ContractAddressWhitelist", settings.ContractAddressWhitelist)
+		logger.Fatal().Msg("Error occurred, could not complete request.")
+	}
 
 	app := fiber.New(fiber.Config{
 		ErrorHandler: func(c *fiber.Ctx, err error) error {
@@ -74,9 +98,9 @@ func startWebAPI(ctx context.Context, logger zerolog.Logger, settings *config.Se
 	v1Route := app.Group("/v1")
 	// Token routes
 	tokenRoutes := v1Route.Group("/tokens", jwtAuth)
-	adWhitelist := mware.NewContractWhiteList(settings, logger)
+	ctrWhitelistWare := mware.NewContractWhiteList(settings, logger, ctrAddressesWhitelist)
 
-	tokenRoutes.Post("/exchange", adWhitelist, vtxController.GetDeviceCommandPermissionWithScope)
+	tokenRoutes.Post("/exchange", ctrWhitelistWare, vtxController.GetDeviceCommandPermissionWithScope)
 
 	go serveMonitoring(settings.MonPort, &logger)
 

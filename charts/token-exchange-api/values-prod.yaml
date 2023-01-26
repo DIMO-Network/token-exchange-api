@@ -9,6 +9,7 @@ cronJob:
 env:
   ENVIRONMENT: prod
   KAFKA_BROKERS: kafka-prod-dimo-kafka-kafka-brokers:9092
+  CONTRACT_ADDRESS_WHITELIST: '0xbA5738a18d83D41847dfFbDC6101d37C69c9B0cF'
 resources:
   limits:
     cpu: 1
