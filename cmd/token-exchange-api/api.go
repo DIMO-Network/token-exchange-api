@@ -28,7 +28,7 @@ import (
 
 func getContractWhitelistedAddresses(wAddrs string) []string {
 	if wAddrs == "" {
-		return []string{}
+		return nil
 	}
 
 	w := strings.Split(wAddrs, ",")
