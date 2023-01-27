@@ -67,10 +67,6 @@ func (t *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.C
 		return fiber.NewError(fiber.StatusBadRequest, "Please provide the privileges you need permission for.")
 	}
 
-	if !common.IsHexAddress(pr.NFTContractAddress) {
-		return fiber.NewError(fiber.StatusBadRequest, "Please provide NFT contract address you need permission for.")
-	}
-
 	client, err := contracts.InitContractCall(t.settings.BlockchainNodeURL)
 	if err != nil {
 		t.logger.Fatal().Err(err).Str("blockchainUrl", t.settings.BlockchainNodeURL).Msg("Failed to dial blockchain node")

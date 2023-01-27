@@ -13,7 +13,6 @@ import (
 	vtx "github.com/DIMO-Network/token-exchange-api/internal/controllers"
 	"github.com/DIMO-Network/token-exchange-api/internal/services"
 	swagger "github.com/arsmn/fiber-swagger/v2"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	mware "github.com/DIMO-Network/token-exchange-api/internal/middleware"
@@ -34,7 +33,7 @@ func getContractWhitelistedAddresses(wAddrs string) []string {
 	w := strings.Split(wAddrs, ",")
 
 	for _, v := range w {
-		if !common.IsHexAddress(v) {
+		if !mware.HashRegex.Match([]byte(v)) {
 			return []string{}
 		}
 	}
@@ -49,8 +48,9 @@ func startWebAPI(ctx context.Context, logger zerolog.Logger, settings *config.Se
 
 	ctrAddressesWhitelist := getContractWhitelistedAddresses(settings.ContractAddressWhitelist)
 	if len(ctrAddressesWhitelist) == 0 {
-		logger.Error().Str("settings.ContractAddressWhitelist", settings.ContractAddressWhitelist)
-		logger.Fatal().Msg("Error occurred, could not complete request.")
+		logger.Fatal().
+			Str("settings.ContractAddressWhitelist", settings.ContractAddressWhitelist).
+			Msg("Error occurred. Missing contract whitelist addresses")
 	}
 
 	app := fiber.New(fiber.Config{

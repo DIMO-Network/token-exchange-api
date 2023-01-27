@@ -1,6 +1,8 @@
 package middleware
 
 import (
+	"regexp"
+
 	"github.com/DIMO-Network/token-exchange-api/internal/config"
 	"github.com/gofiber/fiber/v2"
 	"github.com/rs/zerolog"
@@ -10,6 +12,8 @@ import (
 type ReqBody struct {
 	NFTContractAddress string `json:"nftContractAddress"`
 }
+
+var HashRegex = regexp.MustCompile("^0x([A-Fa-f0-9]{64})$")
 
 func NewContractWhiteList(settings *config.Settings, logger zerolog.Logger, ctrWhitelist []string) fiber.Handler {
 	l := logger.With().
@@ -21,6 +25,10 @@ func NewContractWhiteList(settings *config.Settings, logger zerolog.Logger, ctrW
 		body := &ReqBody{}
 		if err := c.BodyParser(body); err != nil {
 			return fiber.NewError(fiber.StatusBadRequest, "Couldn't parse request body.")
+		}
+
+		if HashRegex.Match([]byte(body.NFTContractAddress)) {
+			return fiber.NewError(fiber.StatusBadRequest, "Invalid contract address provided")
 		}
 
 		if !slices.Contains(ctrWhitelist, body.NFTContractAddress) {
