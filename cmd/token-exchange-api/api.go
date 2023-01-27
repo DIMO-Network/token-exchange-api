@@ -33,7 +33,7 @@ func getContractWhitelistedAddresses(wAddrs string) []string {
 	w := strings.Split(wAddrs, ",")
 
 	for _, v := range w {
-		if !mware.HashRegex.Match([]byte(v)) {
+		if !mware.HashRegex.MatchString(v) {
 			return []string{}
 		}
 	}
