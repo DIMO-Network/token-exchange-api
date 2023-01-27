@@ -27,7 +27,7 @@ func NewContractWhiteList(settings *config.Settings, logger zerolog.Logger, ctrW
 			return fiber.NewError(fiber.StatusBadRequest, "Couldn't parse request body.")
 		}
 
-		if HashRegex.MatchString(body.NFTContractAddress) {
+		if AddressRegex.MatchString(body.NFTContractAddress) {
 			return fiber.NewError(fiber.StatusBadRequest, "Invalid contract address provided")
 		}
 

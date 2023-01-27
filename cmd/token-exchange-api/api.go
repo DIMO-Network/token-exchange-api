@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"os"
 	"os/signal"
 	"strings"
@@ -25,20 +27,20 @@ import (
 	"github.com/rs/zerolog"
 )
 
-func getContractWhitelistedAddresses(wAddrs string) []string {
+func getContractWhitelistedAddresses(wAddrs string) ([]string, error) {
 	if wAddrs == "" {
-		return nil
+		return nil, errors.New("could not a contracts whitelist")
 	}
 
 	w := strings.Split(wAddrs, ",")
 
 	for _, v := range w {
-		if !mware.HashRegex.MatchString(v) {
-			return []string{}
+		if !mware.AddressRegex.MatchString(v) {
+			return nil, fmt.Errorf("invalid contract address %s", v)
 		}
 	}
 
-	return w
+	return w, nil
 }
 
 func startWebAPI(ctx context.Context, logger zerolog.Logger, settings *config.Settings) {
@@ -46,11 +48,12 @@ func startWebAPI(ctx context.Context, logger zerolog.Logger, settings *config.Se
 	userService := services.NewUsersService(&logger, settings)
 	vtxController := vtx.NewTokenExchangeController(&logger, settings, dxS, userService)
 
-	ctrAddressesWhitelist := getContractWhitelistedAddresses(settings.ContractAddressWhitelist)
+	ctrAddressesWhitelist, err := getContractWhitelistedAddresses(settings.ContractAddressWhitelist)
 	if len(ctrAddressesWhitelist) == 0 {
 		logger.Fatal().
+			Err(err).
 			Str("settings.ContractAddressWhitelist", settings.ContractAddressWhitelist).
-			Msg("Error occurred. Missing contract whitelist addresses")
+			Msg("Error occurred. Invalid contract whitelist addresses")
 	}
 
 	app := fiber.New(fiber.Config{
