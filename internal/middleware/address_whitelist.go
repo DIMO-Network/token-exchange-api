@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"regexp"
+	"strings"
 
 	"github.com/DIMO-Network/token-exchange-api/internal/config"
 	"github.com/gofiber/fiber/v2"
@@ -27,7 +28,8 @@ func NewContractWhiteList(settings *config.Settings, logger zerolog.Logger, ctrW
 			return fiber.NewError(fiber.StatusBadRequest, "Couldn't parse request body.")
 		}
 
-		if AddressRegex.MatchString(body.NFTContractAddress) {
+		nftContractAddress := strings.ToLower(body.NFTContractAddress)
+		if AddressRegex.MatchString(nftContractAddress) {
 			return fiber.NewError(fiber.StatusBadRequest, "Invalid contract address provided")
 		}
 

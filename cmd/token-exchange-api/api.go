@@ -29,14 +29,14 @@ import (
 
 func getContractWhitelistedAddresses(wAddrs string) ([]string, error) {
 	if wAddrs == "" {
-		return nil, errors.New("could not a contracts whitelist")
+		return nil, errors.New("empty whitelist")
 	}
 
 	w := strings.Split(wAddrs, ",")
 
 	for _, v := range w {
 		if !mware.AddressRegex.MatchString(v) {
-			return nil, fmt.Errorf("invalid contract address %s", v)
+			return nil, fmt.Errorf("invalid contract address %q", v)
 		}
 	}
 
@@ -49,7 +49,7 @@ func startWebAPI(ctx context.Context, logger zerolog.Logger, settings *config.Se
 	vtxController := vtx.NewTokenExchangeController(&logger, settings, dxS, userService)
 
 	ctrAddressesWhitelist, err := getContractWhitelistedAddresses(settings.ContractAddressWhitelist)
-	if len(ctrAddressesWhitelist) == 0 {
+	if err != nil {
 		logger.Fatal().
 			Err(err).
 			Str("settings.ContractAddressWhitelist", settings.ContractAddressWhitelist).
