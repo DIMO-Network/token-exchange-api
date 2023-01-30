@@ -2,7 +2,7 @@ replicaCount: 2
 image:
   repository: dimozone/token-exchange-api
   pullPolicy: IfNotPresent
-  tag: b44bf48
+  tag: 0.1.0
 cronJob:
   enabled: false
   schedule: 0 0 * * 0
