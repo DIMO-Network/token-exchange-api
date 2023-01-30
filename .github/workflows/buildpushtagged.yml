@@ -1,14 +1,14 @@
-name: buildpushdev
+name: buildpushprod
 on:
   push:
-    branches:
-      - main
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+    tags:
+      - v*
+
 jobs:
   build_test:
     # The type of runner that the job will run on
-    name: buildpushdev
-    runs-on: self-hosted
+    name: buildpush
+    runs-on: ubuntu-latest
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v3
@@ -18,11 +18,13 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      
-      - name: Get short SHA
-        id: slug
-        run: echo "::set-output name=sha7::$(echo ${GITHUB_SHA} | cut -c1-7)"
-        
+
+      - name: Get tag
+        id: tag
+        uses: dawidd6/action-get-tag@v1
+        with:
+          strip_v: true
+
       - name: Build and push
         uses: docker/build-push-action@v3
         with:
@@ -30,13 +32,13 @@ jobs:
           platforms: linux/amd64
           file: ./resources/docker/Dockerfile
           push: true
-          tags: dimozone/token-exchange-api:${{ steps.slug.outputs.sha7 }}, dimozone/token-exchange-api:latest
+          tags: dimozone/token-exchange-api:${{steps.tag.outputs.tag}}
 
       - name: Update Image Version in the related HelmChart values.yaml
-        uses: fjogeleit/yaml-update-action@v0.11.1
+        uses: fjogeleit/yaml-update-action@master
         with:
-          valueFile: 'charts/token-exchange-api/values.yaml'
+          valueFile: 'charts/token-exchange-api/values-prod.yaml'
           propertyPath: 'image.tag'
-          value: ${{ steps.slug.outputs.sha7 }}
+          value: ${{steps.tag.outputs.tag}}
           branch: main
-          message: 'Update Image Version to ${{ steps.slug.outputs.sha7 }}'
+          message: 'Update Image Version to ${{steps.tag.outputs.tag}}'
