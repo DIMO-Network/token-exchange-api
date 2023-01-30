@@ -27,6 +27,7 @@ jobs:
         uses: docker/build-push-action@v3
         with:
           context: .
+          platforms: linux/amd64
           file: ./resources/docker/Dockerfile
           push: true
           tags: dimozone/token-exchange-api:${{ steps.slug.outputs.sha7 }}, dimozone/token-exchange-api:latest
