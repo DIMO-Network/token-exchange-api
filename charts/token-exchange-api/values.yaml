@@ -29,7 +29,6 @@ env:
   MON_PORT: '8888'
   DEX_GRPC_ADDRESS: dex-roles-rights:5557
   USERS_API_GRPC_ADDRESS: users-api-dev:8086
-  VEHICLE_NFT_ADDRESS: '0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144'
 service:
   type: ClusterIP
   ports:
