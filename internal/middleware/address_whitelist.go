@@ -16,7 +16,7 @@ type ReqBody struct {
 	NFTContractAddress string `json:"nftContractAddress"`
 }
 
-var AddressRegex = regexp.MustCompile("^0x[a-f0-9]{20}$")
+var AddressRegex = regexp.MustCompile("^0x[a-f0-9]{40}$")
 
 func NewContractWhiteList(settings *config.Settings, logger zerolog.Logger, ctrWhitelist []string) fiber.Handler {
 	l := logger.With().
