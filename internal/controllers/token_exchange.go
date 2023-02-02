@@ -29,7 +29,8 @@ type PermissionTokenRequest struct {
 	// Privileges is a list of the desired privileges. It must not be empty.
 	Privileges []int64 `json:"privileges"`
 	// NFTContractAddress is the address of the NFT contract. Privileges will be checked
-	// on-chain at this address. Address must be in the 0x format e.g. 0x5FbDB2315678afecb367f032d93F642f64180aa3
+	// on-chain at this address. Address must be in the 0x format e.g. 0x5FbDB2315678afecb367f032d93F642f64180aa3.
+	// Varying case is okay.
 	NFTContractAddress string `json:"nftContractAddress"`
 }
 

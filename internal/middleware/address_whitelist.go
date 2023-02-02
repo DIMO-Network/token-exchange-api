@@ -10,6 +10,8 @@ import (
 	"golang.org/x/exp/slices"
 )
 
+// ReqBody is controllers.PermissionTokenRequest with the only field
+// we care about.
 type ReqBody struct {
 	NFTContractAddress string `json:"nftContractAddress"`
 }
@@ -29,7 +31,8 @@ func NewContractWhiteList(settings *config.Settings, logger zerolog.Logger, ctrW
 		}
 
 		nftContractAddress := strings.ToLower(body.NFTContractAddress)
-		if AddressRegex.MatchString(nftContractAddress) {
+
+		if !AddressRegex.MatchString(nftContractAddress) {
 			return fiber.NewError(fiber.StatusBadRequest, "Invalid contract address provided")
 		}
 
