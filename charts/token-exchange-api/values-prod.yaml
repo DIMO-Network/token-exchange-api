@@ -11,6 +11,7 @@ env:
   JWT_KEY_SET_URL: https://auth.dimo.zone/keys
   DEX_GRPC_ADDRESS: dex-roles-rights-prod:5557
   USERS_API_GRPC_ADDRESS: users-api-prod:8086
+  CONTRACT_ADDRESS_WHITELIST: "0xba5738a18d83d41847dffbdc6101d37c69c9b0cf"
 resources:
   limits:
     cpu: 1
@@ -34,10 +35,10 @@ ingress:
   className: nginx
   annotations:
     nginx.ingress.kubernetes.io/auth-tls-secret: ingress/cf-origin-ca
-    nginx.ingress.kubernetes.io/auth-tls-verify-client: 'on'
-    nginx.ingress.kubernetes.io/enable-cors: 'true'
+    nginx.ingress.kubernetes.io/auth-tls-verify-client: "on"
+    nginx.ingress.kubernetes.io/enable-cors: "true"
     nginx.ingress.kubernetes.io/cors-allow-origin: https://app.dimo.zone
-    nginx.ingress.kubernetes.io/limit-rps: '9'
+    nginx.ingress.kubernetes.io/limit-rps: "9"
     external-dns.alpha.kubernetes.io/hostname: token-exchange-api.dimo.zone
   hosts:
     - host: token-exchange-api.dimo.zone

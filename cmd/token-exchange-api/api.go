@@ -2,8 +2,11 @@ package main
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -14,6 +17,7 @@ import (
 	swagger "github.com/arsmn/fiber-swagger/v2"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
+	mware "github.com/DIMO-Network/token-exchange-api/internal/middleware"
 	"github.com/gofiber/adaptor/v2"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
@@ -23,10 +27,34 @@ import (
 	"github.com/rs/zerolog"
 )
 
+func getContractWhitelistedAddresses(wAddrs string) ([]string, error) {
+	if wAddrs == "" {
+		return nil, errors.New("empty whitelist")
+	}
+
+	w := strings.Split(wAddrs, ",")
+
+	for _, v := range w {
+		if !mware.AddressRegex.MatchString(v) {
+			return nil, fmt.Errorf("invalid contract address %q", v)
+		}
+	}
+
+	return w, nil
+}
+
 func startWebAPI(ctx context.Context, logger zerolog.Logger, settings *config.Settings) {
 	dxS := services.NewDexService(&logger, settings)
 	userService := services.NewUsersService(&logger, settings)
 	vtxController := vtx.NewTokenExchangeController(&logger, settings, dxS, userService)
+
+	ctrAddressesWhitelist, err := getContractWhitelistedAddresses(settings.ContractAddressWhitelist)
+	if err != nil {
+		logger.Fatal().
+			Err(err).
+			Str("settings.ContractAddressWhitelist", settings.ContractAddressWhitelist).
+			Msg("Error occurred. Invalid contract whitelist addresses")
+	}
 
 	app := fiber.New(fiber.Config{
 		ErrorHandler: func(c *fiber.Ctx, err error) error {
@@ -73,7 +101,9 @@ func startWebAPI(ctx context.Context, logger zerolog.Logger, settings *config.Se
 	v1Route := app.Group("/v1")
 	// Token routes
 	tokenRoutes := v1Route.Group("/tokens", jwtAuth)
-	tokenRoutes.Post("/exchange", vtxController.GetDeviceCommandPermissionWithScope)
+	ctrWhitelistWare := mware.NewContractWhiteList(settings, logger, ctrAddressesWhitelist)
+
+	tokenRoutes.Post("/exchange", ctrWhitelistWare, vtxController.GetDeviceCommandPermissionWithScope)
 
 	go serveMonitoring(settings.MonPort, &logger)
 

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math/big"
 	"strconv"
+	"strings"
 
 	"github.com/DIMO-Network/token-exchange-api/internal/config"
 	"github.com/DIMO-Network/token-exchange-api/internal/contracts"
@@ -28,7 +29,8 @@ type PermissionTokenRequest struct {
 	// Privileges is a list of the desired privileges. It must not be empty.
 	Privileges []int64 `json:"privileges"`
 	// NFTContractAddress is the address of the NFT contract. Privileges will be checked
-	// on-chain at this address.
+	// on-chain at this address. Address must be in the 0x format e.g. 0x5FbDB2315678afecb367f032d93F642f64180aa3.
+	// Varying case is okay.
 	NFTContractAddress string `json:"nftContractAddress"`
 }
 
@@ -61,16 +63,15 @@ func (t *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.C
 		return fiber.NewError(fiber.StatusBadRequest, "Couldn't parse request body.")
 	}
 
+	pr.NFTContractAddress = strings.ToLower(pr.NFTContractAddress)
+
 	t.logger.Info().Interface("request", pr).Msg("Got request.")
 
 	if len(pr.Privileges) == 0 {
 		return fiber.NewError(fiber.StatusBadRequest, "Please provide the privileges you need permission for.")
 	}
 
-	if !common.IsHexAddress(pr.NFTContractAddress) {
-		return fiber.NewError(fiber.StatusBadRequest, "Please provide NFT contract address you need permission for.")
-	}
-
+	// Contract address has been validated in the middleware
 	client, err := contracts.InitContractCall(t.settings.BlockchainNodeURL)
 	if err != nil {
 		t.logger.Fatal().Err(err).Str("blockchainUrl", t.settings.BlockchainNodeURL).Msg("Failed to dial blockchain node")
