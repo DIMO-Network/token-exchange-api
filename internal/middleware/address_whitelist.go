@@ -2,9 +2,9 @@ package middleware
 
 import (
 	"regexp"
-	"strings"
 
 	"github.com/DIMO-Network/token-exchange-api/internal/config"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/gofiber/fiber/v2"
 	"github.com/rs/zerolog"
 	"golang.org/x/exp/slices"
@@ -24,24 +24,29 @@ func NewContractWhiteList(settings *config.Settings, logger zerolog.Logger, ctrW
 		Str("name", "address_whitelist").
 		Logger()
 
+	wl := make([]common.Address, len(ctrWhitelist))
+	for i, s := range ctrWhitelist {
+		wl[i] = common.HexToAddress(s)
+	}
+
 	return func(c *fiber.Ctx) error {
-		body := &ReqBody{}
-		if err := c.BodyParser(body); err != nil {
+		var body ReqBody
+		if err := c.BodyParser(&body); err != nil {
 			return fiber.NewError(fiber.StatusBadRequest, "Couldn't parse request body.")
 		}
 
-		nftContractAddress := strings.ToLower(body.NFTContractAddress)
-
-		if !AddressRegex.MatchString(nftContractAddress) {
-			return fiber.NewError(fiber.StatusBadRequest, "Invalid contract address provided")
+		if !common.IsHexAddress(body.NFTContractAddress) {
+			return fiber.NewError(fiber.StatusBadRequest, "Invalid contract address.")
 		}
 
-		if !slices.Contains(ctrWhitelist, body.NFTContractAddress) {
+		contract := common.HexToAddress(body.NFTContractAddress)
+
+		if !slices.Contains(wl, contract) {
 			l.Info().
 				Str("settings.ContractAddressWhitelist", settings.ContractAddressWhitelist).
 				Str("requestContract", body.NFTContractAddress).
 				Msg("Invalid contract address")
-			return fiber.NewError(fiber.StatusUnauthorized, "Contract Address is not authorized!")
+			return fiber.NewError(fiber.StatusForbidden, "Contract address not whitelisted.")
 		}
 
 		return c.Next()
