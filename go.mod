@@ -7,6 +7,7 @@ require (
 	github.com/dexidp/dex/api/v2 v2.35.3
 	github.com/ethereum/go-ethereum v1.12.0
 	github.com/gofiber/fiber/v2 v2.47.0
+	github.com/gofiber/swagger v0.1.12
 	github.com/golang-jwt/jwt/v5 v5.0.0
 	github.com/rs/zerolog v1.29.1
 	github.com/swaggo/swag v1.16.1
@@ -38,7 +39,7 @@ require (
 	github.com/prometheus/procfs v0.10.1 // indirect
 	github.com/savsgio/dictpool v0.0.0-20221023140959-7bf2e61cea94 // indirect
 	github.com/savsgio/gotils v0.0.0-20230208104028-c358bd845dee // indirect
-	github.com/swaggo/files v0.0.0-20210815190702-a29dd2bc99b2 // indirect
+	github.com/swaggo/files/v2 v2.0.0 // indirect
 	github.com/tinylib/msgp v1.1.8 // indirect
 	golang.org/x/tools v0.7.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
@@ -47,7 +48,6 @@ require (
 require (
 	github.com/StackExchange/wmi v0.0.0-20180116203802-5d049714c4a6 // indirect
 	github.com/andybalholm/brotli v1.0.5 // indirect
-	github.com/arsmn/fiber-swagger/v2 v2.31.1
 	github.com/avast/retry-go/v4 v4.0.3 // indirect
 	github.com/aws/aws-sdk-go-v2 v1.17.1 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/configsources v1.1.25 // indirect
@@ -58,7 +58,6 @@ require (
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.1.0 // indirect
 	github.com/go-ole/go-ole v1.2.1 // indirect
 	github.com/go-stack/stack v1.8.1 // indirect
-	github.com/gofiber/adaptor/v2 v2.1.30
 	github.com/gofiber/contrib/jwt v1.0.3
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/google/uuid v1.3.0 // indirect

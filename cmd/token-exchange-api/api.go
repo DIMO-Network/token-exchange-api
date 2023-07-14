@@ -13,15 +13,13 @@ import (
 	"github.com/DIMO-Network/token-exchange-api/internal/config"
 	vtx "github.com/DIMO-Network/token-exchange-api/internal/controllers"
 	"github.com/DIMO-Network/token-exchange-api/internal/services"
-	swagger "github.com/arsmn/fiber-swagger/v2"
+	"github.com/gofiber/swagger"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	mware "github.com/DIMO-Network/token-exchange-api/internal/middleware"
-	"github.com/gofiber/adaptor/v2"
 	jwtware "github.com/gofiber/contrib/jwt"
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/cors"
-	log "github.com/gofiber/fiber/v2/middleware/logger"
+	"github.com/gofiber/fiber/v2/middleware/adaptor"
 	fiberrecover "github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/rs/zerolog"
 )
@@ -70,10 +68,6 @@ func startWebAPI(ctx context.Context, logger zerolog.Logger, settings *config.Se
 		EnableStackTrace:  true,
 		StackTraceHandler: nil,
 	}))
-	//cors
-	app.Use(cors.New())
-	// request logging
-	app.Use(log.New(log.ConfigDefault))
 
 	app.Get("/", healthCheck)
 
