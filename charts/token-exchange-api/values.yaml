@@ -2,7 +2,7 @@ replicaCount: 1
 image:
   repository: dimozone/token-exchange-api
   pullPolicy: IfNotPresent
-  tag: d08f656
+  tag: ae1943d
 imagePullSecrets: []
 serviceAccount:
   create: true
