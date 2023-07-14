@@ -1,6 +1,6 @@
 module github.com/DIMO-Network/token-exchange-api
 
-go 1.19
+go 1.20
 
 require (
 	github.com/DIMO-Network/shared v0.7.0
