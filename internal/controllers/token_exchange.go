@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/DIMO-Network/token-exchange-api/internal/api"
 	"github.com/DIMO-Network/token-exchange-api/internal/config"
 	"github.com/DIMO-Network/token-exchange-api/internal/contracts"
 	"github.com/DIMO-Network/token-exchange-api/internal/services"
@@ -84,8 +85,7 @@ func (t *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.C
 		return fiber.NewError(fiber.StatusInternalServerError, "Could not connect to blockchain node")
 	}
 
-	claims := services.GetJWTTokenClaims(c)
-	userID := claims["sub"].(string)
+	userID := api.GetUserID(c)
 	user, err := t.usersService.GetUserByID(c.Context(), userID)
 	if err != nil {
 		if s, ok := status.FromError(err); ok && s.Code() == codes.NotFound {

@@ -7,8 +7,6 @@ import (
 	"github.com/DIMO-Network/token-exchange-api/internal/config"
 	dgrpc "github.com/dexidp/dex/api/v2"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/gofiber/fiber/v2"
-	"github.com/golang-jwt/jwt/v4"
 	"github.com/rs/zerolog"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -75,11 +73,4 @@ func (d *dexService) SignPrivilegePayload(ctx context.Context, req PrivilegeToke
 	}
 
 	return resp.Token, nil
-}
-
-func GetJWTTokenClaims(c *fiber.Ctx) map[string]any {
-	token := c.Locals("user").(*jwt.Token)
-	claims := token.Claims.(jwt.MapClaims)
-
-	return claims
 }

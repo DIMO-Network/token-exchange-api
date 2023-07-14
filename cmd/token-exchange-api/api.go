@@ -8,7 +8,6 @@ import (
 	"os/signal"
 	"strings"
 	"syscall"
-	"time"
 
 	"github.com/DIMO-Network/token-exchange-api/internal/api"
 	"github.com/DIMO-Network/token-exchange-api/internal/config"
@@ -19,11 +18,11 @@ import (
 
 	mware "github.com/DIMO-Network/token-exchange-api/internal/middleware"
 	"github.com/gofiber/adaptor/v2"
+	jwtware "github.com/gofiber/contrib/jwt"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	log "github.com/gofiber/fiber/v2/middleware/logger"
 	fiberrecover "github.com/gofiber/fiber/v2/middleware/recover"
-	jwtWare "github.com/gofiber/jwt/v3"
 	"github.com/rs/zerolog"
 )
 
@@ -81,20 +80,8 @@ func startWebAPI(ctx context.Context, logger zerolog.Logger, settings *config.Se
 	sc := swagger.Config{}
 	app.Get("/v1/swagger/*", swagger.New(sc))
 
-	keyRefreshInterval := time.Hour
-	keyRefreshUnknownKID := true
-	jwtAuth := jwtWare.New(jwtWare.Config{
-		KeySetURL:            settings.JWKKeySetURL,
-		KeyRefreshInterval:   &keyRefreshInterval,
-		KeyRefreshUnknownKID: &keyRefreshUnknownKID,
-		KeyRefreshErrorHandler: func(j *jwtWare.KeySet, err error) {
-			logger.Error().Err(err).Msg("Key refresh error")
-		},
-		ErrorHandler: func(c *fiber.Ctx, err error) error {
-			return c.Status(fiber.StatusUnauthorized).JSON(struct {
-				Message string `json:"message"`
-			}{"Invalid or expired JWT"})
-		},
+	jwtAuth := jwtware.New(jwtware.Config{
+		JWKSetURLs: []string{settings.JWKKeySetURL},
 	})
 
 	// All api routes should be under v1
