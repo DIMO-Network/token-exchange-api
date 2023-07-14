@@ -1,6 +1,6 @@
 module github.com/DIMO-Network/token-exchange-api
 
-go 1.18
+go 1.20
 
 require (
 	github.com/DIMO-Network/shared v0.7.0
@@ -11,6 +11,7 @@ require (
 	github.com/golang-jwt/jwt/v4 v4.4.3
 	github.com/rs/zerolog v1.28.0
 	github.com/swaggo/swag v1.8.1
+	golang.org/x/exp v0.0.0-20230105000112-eab7a2c85304
 	google.golang.org/grpc v1.49.0
 )
 
@@ -31,7 +32,6 @@ require (
 	github.com/prometheus/common v0.37.0 // indirect
 	github.com/prometheus/procfs v0.8.0 // indirect
 	github.com/swaggo/files v0.0.0-20210815190702-a29dd2bc99b2 // indirect
-	golang.org/x/exp v0.0.0-20230105000112-eab7a2c85304 // indirect
 	golang.org/x/tools v0.2.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
