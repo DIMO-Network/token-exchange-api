@@ -26,6 +26,13 @@ func GetUserID(c *fiber.Ctx) string {
 	return userID
 }
 
+func GetUserEthAddr(c *fiber.Ctx) string {
+	token := c.Locals("user").(*jwt.Token)
+	claims := token.Claims.(jwt.MapClaims)
+	ethAddr := claims["ethereum_address"].(string)
+	return ethAddr
+}
+
 // CreateResponse is a generic response with an ID of the created entity
 type CreateResponse struct {
 	ID string `json:"id"`

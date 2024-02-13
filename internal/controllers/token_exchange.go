@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"fmt"
+	"github.com/ethereum/go-ethereum/common"
 	"math/big"
 	"strconv"
 	"strings"
@@ -10,7 +11,6 @@ import (
 	"github.com/DIMO-Network/token-exchange-api/internal/config"
 	"github.com/DIMO-Network/token-exchange-api/internal/contracts"
 	"github.com/DIMO-Network/token-exchange-api/internal/services"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/gofiber/fiber/v2"
 	"github.com/rs/zerolog"
 	"google.golang.org/grpc/codes"
@@ -85,28 +85,23 @@ func (t *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.C
 		return fiber.NewError(fiber.StatusInternalServerError, "Could not connect to blockchain node")
 	}
 
-	userID := api.GetUserID(c)
-	user, err := t.usersService.GetUserByID(c.Context(), userID)
+	e := api.GetUserEthAddr(c)
+	ethAddrString := common.BytesToAddress([]byte(e)).Hex()
+	ethAddr := common.HexToAddress(ethAddrString)
+
 	if err != nil {
 		if s, ok := status.FromError(err); ok && s.Code() == codes.NotFound {
-			t.logger.Debug().Str("userId", userID).Msg("User not found.")
-			return fiber.NewError(fiber.StatusForbidden, "User not found!")
+			t.logger.Debug().Str("ethAddr", ethAddrString).Msg("Eth addr not found.")
+			return fiber.NewError(fiber.StatusForbidden, "Eth addr not found!")
 		}
-		t.logger.Error().Str("userID", userID).Msg("Users api unavailable!")
+		t.logger.Error().Str("ethAddr", ethAddrString).Msg("Users api unavailable!")
 		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
-	}
-
-	userEthAddress := user.GetEthereumAddress()
-	addr := common.HexToAddress(userEthAddress)
-	if userEthAddress == "" {
-		t.logger.Debug().Str("userID", userID).Msg("Ethereum address not found!")
-		return fiber.NewError(fiber.StatusForbidden, "Wallet address not found!")
 	}
 
 	m := ctmr.MultiPrivilege
 
 	for _, p := range pr.Privileges {
-		res, err := m.HasPrivilege(nil, big.NewInt(pr.TokenID), big.NewInt(p), addr)
+		res, err := m.HasPrivilege(nil, big.NewInt(pr.TokenID), big.NewInt(p), ethAddr)
 		if err != nil {
 			return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 		}
@@ -117,7 +112,7 @@ func (t *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.C
 	}
 
 	tk, err := t.dexService.SignPrivilegePayload(c.Context(), services.PrivilegeTokenDTO{
-		UserEthAddress:     userEthAddress,
+		UserEthAddress:     ethAddrString,
 		TokenID:            strconv.FormatInt(pr.TokenID, 10),
 		PrivilegeIDs:       pr.Privileges,
 		NFTContractAddress: pr.NFTContractAddress,

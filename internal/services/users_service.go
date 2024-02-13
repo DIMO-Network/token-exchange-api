@@ -12,6 +12,7 @@ import (
 
 type UsersService interface {
 	GetUserByID(ctx context.Context, userID string) (*pb.User, error)
+	GetUserByEthAddr(ctx context.Context, ethAddr string) (*pb.User, error)
 }
 
 type usersService struct {
@@ -44,5 +45,17 @@ func (u *usersService) GetUserByID(ctx context.Context, userID string) (*pb.User
 
 	return client.GetUser(ctx, &pb.GetUserRequest{
 		Id: userID,
+	})
+}
+
+func (u *usersService) GetUserByEthAddr(ctx context.Context, ethAddr string) (*pb.User, error) {
+	client, conn, err := u.getUsersServiceGrpcConnection()
+	if err != nil {
+		return nil, err
+	}
+	defer conn.Close()
+
+	return client.GetUser(ctx, &pb.GetUserByEthRequest{
+		EthAddr: ethAddr,
 	})
 }
