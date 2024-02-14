@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/DIMO-Network/token-exchange-api/internal/config"
 	pb "github.com/DIMO-Network/users-api/pkg/grpc"
@@ -48,7 +49,7 @@ func (u *usersService) GetUserByID(ctx context.Context, userID string) (*pb.User
 	})
 }
 
-func (u *usersService) GetUserByEthAddr(ctx context.Context, ethAddr string) (*pb.User, error) {
+func (u *usersService) GetUserByEthAddr(ctx context.Context, ethAddr common.Address) (*pb.User, error) {
 	client, conn, err := u.getUsersServiceGrpcConnection()
 	if err != nil {
 		return nil, err
@@ -56,6 +57,6 @@ func (u *usersService) GetUserByEthAddr(ctx context.Context, ethAddr string) (*p
 	defer conn.Close()
 
 	return client.GetUserByEthAddr(ctx, &pb.GetUserByEthRequest{
-		EthAddr: []byte(ethAddr),
+		EthAddr: ethAddr.Bytes(),
 	})
 }

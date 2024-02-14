@@ -86,7 +86,21 @@ func (t *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.C
 	}
 
 	e := api.GetUserEthAddr(c)
-	ethAddrString := common.BytesToAddress([]byte(e)).Hex()
+	var ethAddrString string
+	if e == "" {
+		// If eth addr not in JWT, use userID to fetch user
+		userID := api.GetUserID(c)
+		user, err := t.usersService.GetUserByID(c.Context(), userID)
+		if err != nil {
+			return fiber.NewError(fiber.StatusInternalServerError, "Failed to get user by ID")
+		}
+		if user.EthereumAddress == nil {
+			return fiber.NewError(fiber.StatusInternalServerError, "User Ethereum address is not set")
+		}
+		ethAddrString = *user.EthereumAddress
+	} else {
+		ethAddrString = common.BytesToAddress([]byte(e)).Hex()
+	}
 	ethAddr := common.HexToAddress(ethAddrString)
 
 	if err != nil {
