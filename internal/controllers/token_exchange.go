@@ -85,9 +85,8 @@ func (t *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.C
 		return fiber.NewError(fiber.StatusInternalServerError, "Could not connect to blockchain node")
 	}
 
-	e := api.GetUserEthAddr(c)
-	var ethAddrString string
-	if e == "" {
+	ethAddr := api.GetUserEthAddr(c)
+	if ethAddr == nil {
 		// If eth addr not in JWT, use userID to fetch user
 		userID := api.GetUserID(c)
 		user, err := t.usersService.GetUserByID(c.Context(), userID)
@@ -97,25 +96,23 @@ func (t *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.C
 		if user.EthereumAddress == nil {
 			return fiber.NewError(fiber.StatusInternalServerError, "User Ethereum address is not set")
 		}
-		ethAddrString = *user.EthereumAddress
-	} else {
-		ethAddrString = common.BytesToAddress([]byte(e)).Hex()
+		e := common.HexToAddress(*user.EthereumAddress)
+		ethAddr = &e
 	}
-	ethAddr := common.HexToAddress(ethAddrString)
 
 	if err != nil {
 		if s, ok := status.FromError(err); ok && s.Code() == codes.NotFound {
-			t.logger.Debug().Str("ethAddr", ethAddrString).Msg("Ethereum address not found.")
+			t.logger.Debug().Str("ethAddr", ethAddr.Hex()).Msg("Ethereum address not found.")
 			return fiber.NewError(fiber.StatusForbidden, "Ethereum address not found!")
 		}
-		t.logger.Error().Str("ethAddr", ethAddrString).Msg("Users api unavailable!")
+		t.logger.Error().Str("ethAddr", ethAddr.Hex()).Msg("Users api unavailable!")
 		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 	}
 
 	m := ctmr.MultiPrivilege
 
 	for _, p := range pr.Privileges {
-		res, err := m.HasPrivilege(nil, big.NewInt(pr.TokenID), big.NewInt(p), ethAddr)
+		res, err := m.HasPrivilege(nil, big.NewInt(pr.TokenID), big.NewInt(p), *ethAddr)
 		if err != nil {
 			return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 		}
@@ -126,7 +123,7 @@ func (t *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.C
 	}
 
 	tk, err := t.dexService.SignPrivilegePayload(c.Context(), services.PrivilegeTokenDTO{
-		UserEthAddress:     ethAddrString,
+		UserEthAddress:     ethAddr.Hex(),
 		TokenID:            strconv.FormatInt(pr.TokenID, 10),
 		PrivilegeIDs:       pr.Privileges,
 		NFTContractAddress: pr.NFTContractAddress,
