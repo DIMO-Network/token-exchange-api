@@ -3,8 +3,8 @@ package services
 import (
 	"context"
 
-	pb "github.com/DIMO-Network/shared/api/users"
 	"github.com/DIMO-Network/token-exchange-api/internal/config"
+	pb "github.com/DIMO-Network/users-api/pkg/grpc"
 	"github.com/rs/zerolog"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -55,7 +55,7 @@ func (u *usersService) GetUserByEthAddr(ctx context.Context, ethAddr string) (*p
 	}
 	defer conn.Close()
 
-	return client.GetUser(ctx, &pb.GetUserByEthRequest{
-		EthAddr: ethAddr,
+	return client.GetUserByEthAddr(ctx, &pb.GetUserByEthRequest{
+		EthAddr: []byte(ethAddr),
 	})
 }
