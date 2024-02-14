@@ -91,8 +91,8 @@ func (t *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.C
 
 	if err != nil {
 		if s, ok := status.FromError(err); ok && s.Code() == codes.NotFound {
-			t.logger.Debug().Str("ethAddr", ethAddrString).Msg("Eth addr not found.")
-			return fiber.NewError(fiber.StatusForbidden, "Eth addr not found!")
+			t.logger.Debug().Str("ethAddr", ethAddrString).Msg("Ethereum address not found.")
+			return fiber.NewError(fiber.StatusForbidden, "Ethereum address not found!")
 		}
 		t.logger.Error().Str("ethAddr", ethAddrString).Msg("Users api unavailable!")
 		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
