@@ -13,8 +13,6 @@ import (
 	"github.com/DIMO-Network/token-exchange-api/internal/services"
 	"github.com/gofiber/fiber/v2"
 	"github.com/rs/zerolog"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 type TokenExchangeController struct {
@@ -98,15 +96,6 @@ func (t *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.C
 		}
 		e := common.HexToAddress(*user.EthereumAddress)
 		ethAddr = &e
-	}
-
-	if err != nil {
-		if s, ok := status.FromError(err); ok && s.Code() == codes.NotFound {
-			t.logger.Debug().Str("ethAddr", ethAddr.Hex()).Msg("Ethereum address not found.")
-			return fiber.NewError(fiber.StatusForbidden, "Ethereum address not found!")
-		}
-		t.logger.Error().Str("ethAddr", ethAddr.Hex()).Msg("Users api unavailable!")
-		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 	}
 
 	m := ctmr.MultiPrivilege
