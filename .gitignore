@@ -23,3 +23,5 @@ go.work
 settings.yaml
 
 .vscode
+
+.idea/

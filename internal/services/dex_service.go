@@ -12,6 +12,7 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
+//go:generate mockgen -source dex_service.go -destination mocks/dex_service_mock.go
 type DexService interface {
 	SignPrivilegePayload(ctx context.Context, req PrivilegeTokenDTO) (string, error)
 }
@@ -28,7 +29,7 @@ type PrivilegeTokenDTO struct {
 	NFTContractAddress string
 }
 
-func NewDexService(log *zerolog.Logger, settings *config.Settings) *dexService {
+func NewDexService(log *zerolog.Logger, settings *config.Settings) DexService {
 	return &dexService{
 		log:         log,
 		dexGRPCAddr: settings.DexGRPCAdddress,

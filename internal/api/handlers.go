@@ -1,6 +1,7 @@
 package api
 
 import (
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/rs/zerolog"
@@ -24,6 +25,17 @@ func GetUserID(c *fiber.Ctx) string {
 	claims := token.Claims.(jwt.MapClaims)
 	userID := claims["sub"].(string)
 	return userID
+}
+
+func GetUserEthAddr(c *fiber.Ctx) *common.Address {
+	token := c.Locals("user").(*jwt.Token)
+	claims := token.Claims.(jwt.MapClaims)
+	ethAddr, ok := claims["ethereum_address"].(string)
+	if !ok {
+		return nil
+	}
+	e := common.HexToAddress(ethAddr)
+	return &e
 }
 
 // CreateResponse is a generic response with an ID of the created entity

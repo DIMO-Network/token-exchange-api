@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/DIMO-Network/token-exchange-api/internal/contracts"
 	"os"
 	"os/signal"
 	"strings"
@@ -43,7 +44,9 @@ func getContractWhitelistedAddresses(wAddrs string) ([]string, error) {
 func startWebAPI(ctx context.Context, logger zerolog.Logger, settings *config.Settings) {
 	dxS := services.NewDexService(&logger, settings)
 	userService := services.NewUsersService(&logger, settings)
-	vtxController := vtx.NewTokenExchangeController(&logger, settings, dxS, userService)
+	contractsMgr := contracts.NewContractsManager()
+	contractsInit := contracts.NewContractsCallInitializer()
+	vtxController := vtx.NewTokenExchangeController(&logger, settings, dxS, userService, contractsMgr, contractsInit)
 
 	ctrAddressesWhitelist, err := getContractWhitelistedAddresses(settings.ContractAddressWhitelist)
 	if err != nil {
@@ -86,7 +89,7 @@ func startWebAPI(ctx context.Context, logger zerolog.Logger, settings *config.Se
 
 	tokenRoutes.Post("/exchange", ctrWhitelistWare, vtxController.GetDeviceCommandPermissionWithScope)
 
-	go serveMonitoring(settings.MonPort, &logger)
+	go serveMonitoring(settings.MonPort, &logger) //nolint
 
 	logger.Info().Msg(settings.ServiceName + " - Server started on port " + settings.Port)
 	// Start Server from a different go routine

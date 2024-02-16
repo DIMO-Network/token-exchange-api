@@ -4,14 +4,22 @@ import (
 	priv "github.com/DIMO-Network/token-exchange-api/internal/contracts/multi_privilege"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/ethclient"
+	"math/big"
 )
 
-type ContractsManager struct {
-	MultiPrivilege *priv.Multiprivilege
+//go:generate mockgen -source main.go -destination mocks/contracts_manager_mock.go
+type ContractsManager interface {
+	GetMultiPrivilege(nftAddress string, client bind.ContractBackend) (MultiPriv, error)
 }
 
-func NewContractsManager(nftAddress string, client bind.ContractBackend) (*ContractsManager, error) {
+type contractsManager struct {
+}
+
+func NewContractsManager() ContractsManager {
+	return &contractsManager{}
+}
+
+func (cm *contractsManager) GetMultiPrivilege(nftAddress string, client bind.ContractBackend) (MultiPriv, error) {
 	mpAdr := common.HexToAddress(nftAddress)
 
 	mp, err := priv.NewMultiprivilege(mpAdr, client)
@@ -19,16 +27,10 @@ func NewContractsManager(nftAddress string, client bind.ContractBackend) (*Contr
 		return nil, err
 	}
 
-	return &ContractsManager{
-		MultiPrivilege: mp,
-	}, nil
+	return mp, nil
 }
 
-func InitContractCall(nodeUrl string) (*ethclient.Client, error) {
-	client, err := ethclient.Dial(nodeUrl)
-	if err != nil {
-		return nil, err
-	}
-
-	return client, nil
+// MultiPriv this is done for mocking purposes
+type MultiPriv interface {
+	HasPrivilege(opts *bind.CallOpts, tokenId *big.Int, privId *big.Int, user common.Address) (bool, error)
 }

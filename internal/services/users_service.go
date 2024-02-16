@@ -2,16 +2,19 @@ package services
 
 import (
 	"context"
+	"github.com/ethereum/go-ethereum/common"
 
-	pb "github.com/DIMO-Network/shared/api/users"
 	"github.com/DIMO-Network/token-exchange-api/internal/config"
+	pb "github.com/DIMO-Network/users-api/pkg/grpc"
 	"github.com/rs/zerolog"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
 
+//go:generate mockgen -source users_service.go -destination mocks/users_service_mock.go
 type UsersService interface {
 	GetUserByID(ctx context.Context, userID string) (*pb.User, error)
+	GetUserByEthAddr(ctx context.Context, ethAddr common.Address) (*pb.User, error)
 }
 
 type usersService struct {
@@ -19,7 +22,7 @@ type usersService struct {
 	usersGRPCAddr string
 }
 
-func NewUsersService(log *zerolog.Logger, settings *config.Settings) *usersService {
+func NewUsersService(log *zerolog.Logger, settings *config.Settings) UsersService {
 	return &usersService{
 		log:           log,
 		usersGRPCAddr: settings.UsersAPIGRPCAddress,
@@ -44,5 +47,17 @@ func (u *usersService) GetUserByID(ctx context.Context, userID string) (*pb.User
 
 	return client.GetUser(ctx, &pb.GetUserRequest{
 		Id: userID,
+	})
+}
+
+func (u *usersService) GetUserByEthAddr(ctx context.Context, ethAddr common.Address) (*pb.User, error) {
+	client, conn, err := u.getUsersServiceGrpcConnection()
+	if err != nil {
+		return nil, err
+	}
+	defer conn.Close()
+
+	return client.GetUserByEthAddr(ctx, &pb.GetUserByEthRequest{
+		EthAddr: ethAddr.Bytes(),
 	})
 }
