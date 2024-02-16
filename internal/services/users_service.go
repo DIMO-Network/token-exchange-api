@@ -11,9 +11,10 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
+//go:generate mockgen -source users_service.go -destination mocks/users_service_mock.go
 type UsersService interface {
 	GetUserByID(ctx context.Context, userID string) (*pb.User, error)
-	GetUserByEthAddr(ctx context.Context, ethAddr string) (*pb.User, error)
+	GetUserByEthAddr(ctx context.Context, ethAddr common.Address) (*pb.User, error)
 }
 
 type usersService struct {
@@ -21,7 +22,7 @@ type usersService struct {
 	usersGRPCAddr string
 }
 
-func NewUsersService(log *zerolog.Logger, settings *config.Settings) *usersService {
+func NewUsersService(log *zerolog.Logger, settings *config.Settings) UsersService {
 	return &usersService{
 		log:           log,
 		usersGRPCAddr: settings.UsersAPIGRPCAddress,
