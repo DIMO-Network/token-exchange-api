@@ -29,13 +29,13 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 	dexService := mock_services.NewMockDexService(mockCtrl)
 	usersSvc := mock_services.NewMockUsersService(mockCtrl)
 	contractsMgr := mock_contracts.NewMockContractsManager(mockCtrl)
-	// todo need a way to mock contracts.InitContractCall(t.settings.BlockchainNodeURL) it currently is not mockable, needs an interface
+	contractsInit := mock_contracts.NewMockContractCallInitializer(mockCtrl)
 
 	// setup app and route req
 	c := NewTokenExchangeController(&logger, &config.Settings{
 		BlockchainNodeURL:        "http://testurl.com/mock",
 		ContractAddressWhitelist: "",
-	}, dexService, usersSvc, contractsMgr)
+	}, dexService, usersSvc, contractsMgr, contractsInit)
 	app := fiber.New()
 
 	// todo will probably need a middleware here to set the c.Locals("user", token) with a test token

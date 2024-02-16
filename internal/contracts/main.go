@@ -4,7 +4,6 @@ import (
 	priv "github.com/DIMO-Network/token-exchange-api/internal/contracts/multi_privilege"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/ethclient"
 )
 
 //go:generate mockgen -source main.go -destination mocks/contracts_manager_mock.go
@@ -28,13 +27,4 @@ func (cm *contractsManager) GetMultiPrivilege(nftAddress string, client bind.Con
 	}
 
 	return mp, nil
-}
-
-func InitContractCall(nodeUrl string) (*ethclient.Client, error) {
-	client, err := ethclient.Dial(nodeUrl)
-	if err != nil {
-		return nil, err
-	}
-
-	return client, nil
 }

@@ -45,7 +45,8 @@ func startWebAPI(ctx context.Context, logger zerolog.Logger, settings *config.Se
 	dxS := services.NewDexService(&logger, settings)
 	userService := services.NewUsersService(&logger, settings)
 	contractsMgr := contracts.NewContractsManager()
-	vtxController := vtx.NewTokenExchangeController(&logger, settings, dxS, userService, contractsMgr)
+	contractsInit := contracts.NewContractsCallInitializer()
+	vtxController := vtx.NewTokenExchangeController(&logger, settings, dxS, userService, contractsMgr, contractsInit)
 
 	ctrAddressesWhitelist, err := getContractWhitelistedAddresses(settings.ContractAddressWhitelist)
 	if err != nil {
@@ -88,7 +89,7 @@ func startWebAPI(ctx context.Context, logger zerolog.Logger, settings *config.Se
 
 	tokenRoutes.Post("/exchange", ctrWhitelistWare, vtxController.GetDeviceCommandPermissionWithScope)
 
-	go serveMonitoring(settings.MonPort, &logger)
+	go serveMonitoring(settings.MonPort, &logger) //nolint
 
 	logger.Info().Msg(settings.ServiceName + " - Server started on port " + settings.Port)
 	// Start Server from a different go routine

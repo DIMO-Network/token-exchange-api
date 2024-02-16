@@ -21,6 +21,7 @@ type TokenExchangeController struct {
 	dexService   services.DexService
 	usersService services.UsersService
 	ctmr         contracts.ContractsManager
+	ctinit       contracts.ContractCallInitializer
 }
 
 type PermissionTokenRequest struct {
@@ -39,13 +40,14 @@ type PermissionTokenResponse struct {
 }
 
 func NewTokenExchangeController(logger *zerolog.Logger, settings *config.Settings, dexService services.DexService,
-	usersService services.UsersService, contractsMgr contracts.ContractsManager) *TokenExchangeController {
+	usersService services.UsersService, contractsMgr contracts.ContractsManager, contractsInit contracts.ContractCallInitializer) *TokenExchangeController {
 	return &TokenExchangeController{
 		logger:       logger,
 		settings:     settings,
 		dexService:   dexService,
 		usersService: usersService,
 		ctmr:         contractsMgr,
+		ctinit:       contractsInit,
 	}
 }
 
@@ -74,7 +76,7 @@ func (t *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.C
 	}
 
 	// Contract address has been validated in the middleware
-	client, err := contracts.InitContractCall(t.settings.BlockchainNodeURL)
+	client, err := t.ctinit.InitContractCall(t.settings.BlockchainNodeURL)
 	if err != nil {
 		t.logger.Fatal().Err(err).Str("blockchainUrl", t.settings.BlockchainNodeURL).Msg("Failed to dial blockchain node")
 		return fiber.NewError(fiber.StatusInternalServerError, "Could not connect to blockchain node")
