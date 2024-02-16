@@ -13,6 +13,8 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"github.com/tidwall/gjson"
 	"go.uber.org/mock/gomock"
 	"io"
 	"math/big"
@@ -66,15 +68,17 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 		PrivilegeIDs:       pt.Privileges,
 		NFTContractAddress: pt.NFTContractAddress,
 	}).Return("jwt", nil)
-	mockMultiPriv.EXPECT().HasPrivilege(nil, big.NewInt(pt.TokenID), big.NewInt(pt.Privileges[0]), &userEthAddr).Return(true, nil)
+	mockMultiPriv.EXPECT().HasPrivilege(nil, big.NewInt(pt.TokenID), big.NewInt(pt.Privileges[0]), userEthAddr).Return(true, nil)
 
 	request := buildRequest("POST", "/tokens/exchange", string(jsonBytes))
 
-	response, _ := app.Test(request)
+	response, err := app.Test(request)
+	require.NoError(t, err)
+
 	body, _ := io.ReadAll(response.Body)
 	fmt.Println("response body: " + string(body))
 	assert.Equal(t, fiber.StatusOK, response.StatusCode, "expected success")
-
+	assert.Equal(t, "jwt", gjson.GetBytes(body, "token").Str)
 }
 
 func buildRequest(method, url, body string) *http.Request {
