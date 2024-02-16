@@ -3,6 +3,8 @@ package services
 import (
 	"context"
 
+	"github.com/DIMO-Network/shared/privileges"
+
 	pi "github.com/DIMO-Network/shared/middleware/privilegetoken"
 	"github.com/DIMO-Network/token-exchange-api/internal/config"
 	dgrpc "github.com/dexidp/dex/api/v2"
@@ -51,11 +53,15 @@ func (d *dexService) SignPrivilegePayload(ctx context.Context, req PrivilegeToke
 		return "", err
 	}
 	defer conn.Close()
+	privs := make([]privileges.Privilege, len(req.PrivilegeIDs))
+	for i, iD := range req.PrivilegeIDs {
+		privs[i] = privileges.Privilege(iD)
+	}
 
 	cc := pi.CustomClaims{
 		ContractAddress: common.HexToAddress(req.NFTContractAddress),
 		TokenID:         req.TokenID,
-		PrivilegeIDs:    req.PrivilegeIDs,
+		PrivilegeIDs:    privs,
 	}
 
 	ps, err := cc.Proto()

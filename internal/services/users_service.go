@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+
 	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/DIMO-Network/token-exchange-api/internal/config"
