@@ -5,16 +5,23 @@ import (
 	"fmt"
 	"github.com/DIMO-Network/token-exchange-api/internal/config"
 	mock_contracts "github.com/DIMO-Network/token-exchange-api/internal/contracts/mocks"
+	priv "github.com/DIMO-Network/token-exchange-api/internal/contracts/multi_privilege"
+	"github.com/DIMO-Network/token-exchange-api/internal/services"
 	mock_services "github.com/DIMO-Network/token-exchange-api/internal/services/mocks"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/gofiber/fiber/v2"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
 	"io"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.T) {
@@ -37,10 +44,7 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 		ContractAddressWhitelist: "",
 	}, dexService, usersSvc, contractsMgr, contractsInit)
 	app := fiber.New()
-
-	// todo will probably need a middleware here to set the c.Locals("user", token) with a test token
-	app.Post("/tokens/exchange", c.GetDeviceCommandPermissionWithScope)
-	// todo: setup mock expectations
+	userEthAddr := common.HexToAddress("0x20Ca3bE69a8B95D3093383375F0473A8c6341727")
 
 	// todo: test just happy path with ethereum address
 	pt := &PermissionTokenRequest{
@@ -50,7 +54,18 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 	}
 	jsonBytes, _ := json.Marshal(pt)
 
-	request := buildRequest("GET", "/tokens/exchange", string(jsonBytes))
+	app.Post("/tokens/exchange", authInjectorTestHandler(userEthAddr), c.GetDeviceCommandPermissionWithScope)
+	// todo: setup mock expectations
+	client := ethclient.Client{}
+	contractsInit.EXPECT().InitContractCall("http://testurl.com/mock").Return(&client, nil)
+	contractsMgr.EXPECT().GetMultiPrivilege(pt.NFTContractAddress, &client).Return(&priv.Multiprivilege{}, nil)
+	dexService.EXPECT().SignPrivilegePayload(gomock.Any(), services.PrivilegeTokenDTO{
+		UserEthAddress:     userEthAddr.Hex(),
+		TokenID:            strconv.FormatInt(pt.TokenID, 10),
+		PrivilegeIDs:       pt.Privileges,
+		NFTContractAddress: pt.NFTContractAddress,
+	}).Return("jwt", nil)
+	request := buildRequest("POST", "/tokens/exchange", string(jsonBytes))
 
 	response, _ := app.Test(request)
 	body, _ := io.ReadAll(response.Body)
@@ -68,4 +83,17 @@ func buildRequest(method, url, body string) *http.Request {
 	req.Header.Set("Content-Type", "application/json")
 
 	return req
+}
+
+// authInjectorTestHandler injects fake jwt with sub
+func authInjectorTestHandler(ethAddr common.Address) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+			"ethereum_address": ethAddr.Hex(),
+			"nbf":              time.Now().Unix(),
+		})
+
+		c.Locals("user", token)
+		return c.Next()
+	}
 }
