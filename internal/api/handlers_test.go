@@ -1,10 +1,11 @@
 package api
 
 import (
-	"github.com/rs/zerolog"
-	"github.com/valyala/fasthttp"
 	"os"
 	"testing"
+
+	"github.com/rs/zerolog"
+	"github.com/valyala/fasthttp"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/gofiber/fiber/v2"

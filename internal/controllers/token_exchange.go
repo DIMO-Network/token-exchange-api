@@ -2,10 +2,11 @@ package controllers
 
 import (
 	"fmt"
-	"github.com/ethereum/go-ethereum/common"
 	"math/big"
 	"strconv"
 	"strings"
+
+	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/DIMO-Network/token-exchange-api/internal/api"
 	"github.com/DIMO-Network/token-exchange-api/internal/config"
@@ -20,7 +21,7 @@ type TokenExchangeController struct {
 	settings     *config.Settings
 	dexService   services.DexService
 	usersService services.UsersService
-	ctmr         contracts.ContractsManager
+	ctmr         contracts.Manager
 	ctinit       contracts.ContractCallInitializer
 }
 
@@ -40,7 +41,7 @@ type PermissionTokenResponse struct {
 }
 
 func NewTokenExchangeController(logger *zerolog.Logger, settings *config.Settings, dexService services.DexService,
-	usersService services.UsersService, contractsMgr contracts.ContractsManager, contractsInit contracts.ContractCallInitializer) *TokenExchangeController {
+	usersService services.UsersService, contractsMgr contracts.Manager, contractsInit contracts.ContractCallInitializer) *TokenExchangeController {
 	return &TokenExchangeController{
 		logger:       logger,
 		settings:     settings,

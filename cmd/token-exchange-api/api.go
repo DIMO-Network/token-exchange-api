@@ -4,11 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/DIMO-Network/token-exchange-api/internal/contracts"
 	"os"
 	"os/signal"
 	"strings"
 	"syscall"
+
+	"github.com/DIMO-Network/token-exchange-api/internal/contracts"
 
 	"github.com/DIMO-Network/token-exchange-api/internal/api"
 	"github.com/DIMO-Network/token-exchange-api/internal/config"
@@ -95,7 +96,7 @@ func startWebAPI(ctx context.Context, logger zerolog.Logger, settings *config.Se
 	// Start Server from a different go routine
 	go func() {
 		if err := app.Listen(":" + settings.Port); err != nil {
-			logger.Fatal().Err(err)
+			logger.Fatal().Err(err).Send()
 		}
 	}()
 

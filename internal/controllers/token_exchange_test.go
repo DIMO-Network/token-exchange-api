@@ -3,6 +3,15 @@ package controllers
 import (
 	"encoding/json"
 	"fmt"
+	"io"
+	"math/big"
+	"net/http"
+	"os"
+	"strconv"
+	"strings"
+	"testing"
+	"time"
+
 	"github.com/DIMO-Network/token-exchange-api/internal/config"
 	mock_contracts "github.com/DIMO-Network/token-exchange-api/internal/contracts/mocks"
 	"github.com/DIMO-Network/token-exchange-api/internal/services"
@@ -17,14 +26,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/tidwall/gjson"
 	"go.uber.org/mock/gomock"
-	"io"
-	"math/big"
-	"net/http"
-	"os"
-	"strconv"
-	"strings"
-	"testing"
-	"time"
 )
 
 func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.T) {
@@ -38,7 +39,7 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 
 	dexService := mock_services.NewMockDexService(mockCtrl)
 	usersSvc := mock_services.NewMockUsersService(mockCtrl)
-	contractsMgr := mock_contracts.NewMockContractsManager(mockCtrl)
+	contractsMgr := mock_contracts.NewMockManager(mockCtrl)
 	contractsInit := mock_contracts.NewMockContractCallInitializer(mockCtrl)
 	mockMultiPriv := mock_contracts.NewMockMultiPriv(mockCtrl)
 
