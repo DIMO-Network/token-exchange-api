@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/DIMO-Network/token-exchange-api/internal/config"
 	mock_contracts "github.com/DIMO-Network/token-exchange-api/internal/contracts/mocks"
-	priv "github.com/DIMO-Network/token-exchange-api/internal/contracts/multi_privilege"
 	"github.com/DIMO-Network/token-exchange-api/internal/services"
 	mock_services "github.com/DIMO-Network/token-exchange-api/internal/services/mocks"
 	"github.com/ethereum/go-ethereum/common"
@@ -16,6 +15,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
 	"io"
+	"math/big"
 	"net/http"
 	"os"
 	"strconv"
@@ -46,7 +46,7 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 	app := fiber.New()
 	userEthAddr := common.HexToAddress("0x20Ca3bE69a8B95D3093383375F0473A8c6341727")
 
-	// todo: test just happy path with ethereum address
+	// just happy path with ethereum address
 	pt := &PermissionTokenRequest{
 		TokenID:            123,
 		Privileges:         []int64{4},
@@ -58,13 +58,16 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 	// todo: setup mock expectations
 	client := ethclient.Client{}
 	contractsInit.EXPECT().InitContractCall("http://testurl.com/mock").Return(&client, nil)
-	contractsMgr.EXPECT().GetMultiPrivilege(pt.NFTContractAddress, &client).Return(&priv.Multiprivilege{}, nil)
+	mockMultiPriv := mock_contracts.NewMockMultiPriv(mockCtrl)
+	contractsMgr.EXPECT().GetMultiPrivilege(pt.NFTContractAddress, &client).Return(mockMultiPriv, nil)
 	dexService.EXPECT().SignPrivilegePayload(gomock.Any(), services.PrivilegeTokenDTO{
 		UserEthAddress:     userEthAddr.Hex(),
 		TokenID:            strconv.FormatInt(pt.TokenID, 10),
 		PrivilegeIDs:       pt.Privileges,
 		NFTContractAddress: pt.NFTContractAddress,
 	}).Return("jwt", nil)
+	mockMultiPriv.EXPECT().HasPrivilege(nil, big.NewInt(pt.TokenID), big.NewInt(pt.Privileges[0]), &userEthAddr).Return(true, nil)
+
 	request := buildRequest("POST", "/tokens/exchange", string(jsonBytes))
 
 	response, _ := app.Test(request)

@@ -9,10 +9,12 @@
 package mock_contracts
 
 import (
+	big "math/big"
 	reflect "reflect"
 
-	multiprivilege "github.com/DIMO-Network/token-exchange-api/internal/contracts/multi_privilege"
+	contracts "github.com/DIMO-Network/token-exchange-api/internal/contracts"
 	bind "github.com/ethereum/go-ethereum/accounts/abi/bind"
+	common "github.com/ethereum/go-ethereum/common"
 	gomock "go.uber.org/mock/gomock"
 )
 
@@ -40,10 +42,10 @@ func (m *MockContractsManager) EXPECT() *MockContractsManagerMockRecorder {
 }
 
 // GetMultiPrivilege mocks base method.
-func (m *MockContractsManager) GetMultiPrivilege(nftAddress string, client bind.ContractBackend) (*multiprivilege.Multiprivilege, error) {
+func (m *MockContractsManager) GetMultiPrivilege(nftAddress string, client bind.ContractBackend) (contracts.MultiPriv, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetMultiPrivilege", nftAddress, client)
-	ret0, _ := ret[0].(*multiprivilege.Multiprivilege)
+	ret0, _ := ret[0].(contracts.MultiPriv)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -52,4 +54,42 @@ func (m *MockContractsManager) GetMultiPrivilege(nftAddress string, client bind.
 func (mr *MockContractsManagerMockRecorder) GetMultiPrivilege(nftAddress, client any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMultiPrivilege", reflect.TypeOf((*MockContractsManager)(nil).GetMultiPrivilege), nftAddress, client)
+}
+
+// MockMultiPriv is a mock of MultiPriv interface.
+type MockMultiPriv struct {
+	ctrl     *gomock.Controller
+	recorder *MockMultiPrivMockRecorder
+}
+
+// MockMultiPrivMockRecorder is the mock recorder for MockMultiPriv.
+type MockMultiPrivMockRecorder struct {
+	mock *MockMultiPriv
+}
+
+// NewMockMultiPriv creates a new mock instance.
+func NewMockMultiPriv(ctrl *gomock.Controller) *MockMultiPriv {
+	mock := &MockMultiPriv{ctrl: ctrl}
+	mock.recorder = &MockMultiPrivMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockMultiPriv) EXPECT() *MockMultiPrivMockRecorder {
+	return m.recorder
+}
+
+// HasPrivilege mocks base method.
+func (m *MockMultiPriv) HasPrivilege(opts *bind.CallOpts, tokenId, privId *big.Int, user common.Address) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "HasPrivilege", opts, tokenId, privId, user)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// HasPrivilege indicates an expected call of HasPrivilege.
+func (mr *MockMultiPrivMockRecorder) HasPrivilege(opts, tokenId, privId, user any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HasPrivilege", reflect.TypeOf((*MockMultiPriv)(nil).HasPrivilege), opts, tokenId, privId, user)
 }
