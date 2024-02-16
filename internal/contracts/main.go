@@ -7,11 +7,19 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 )
 
-type ContractsManager struct {
-	MultiPrivilege *priv.Multiprivilege
+//go:generate mockgen -source main.go -destination mocks/contracts_manager_mock.go
+type ContractsManager interface {
+	GetMultiPrivilege(nftAddress string, client bind.ContractBackend) (*priv.Multiprivilege, error)
 }
 
-func NewContractsManager(nftAddress string, client bind.ContractBackend) (*ContractsManager, error) {
+type contractsManager struct {
+}
+
+func NewContractsManager() ContractsManager {
+	return &contractsManager{}
+}
+
+func (cm *contractsManager) GetMultiPrivilege(nftAddress string, client bind.ContractBackend) (*priv.Multiprivilege, error) {
 	mpAdr := common.HexToAddress(nftAddress)
 
 	mp, err := priv.NewMultiprivilege(mpAdr, client)
@@ -19,9 +27,7 @@ func NewContractsManager(nftAddress string, client bind.ContractBackend) (*Contr
 		return nil, err
 	}
 
-	return &ContractsManager{
-		MultiPrivilege: mp,
-	}, nil
+	return mp, nil
 }
 
 func InitContractCall(nodeUrl string) (*ethclient.Client, error) {

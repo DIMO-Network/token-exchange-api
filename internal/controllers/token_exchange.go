@@ -20,6 +20,7 @@ type TokenExchangeController struct {
 	settings     *config.Settings
 	dexService   services.DexService
 	usersService services.UsersService
+	ctmr         contracts.ContractsManager
 }
 
 type PermissionTokenRequest struct {
@@ -37,12 +38,14 @@ type PermissionTokenResponse struct {
 	Token string `json:"token"`
 }
 
-func NewTokenExchangeController(logger *zerolog.Logger, settings *config.Settings, dexService services.DexService, usersService services.UsersService) *TokenExchangeController {
+func NewTokenExchangeController(logger *zerolog.Logger, settings *config.Settings, dexService services.DexService,
+	usersService services.UsersService, contractsMgr contracts.ContractsManager) *TokenExchangeController {
 	return &TokenExchangeController{
 		logger:       logger,
 		settings:     settings,
 		dexService:   dexService,
 		usersService: usersService,
+		ctmr:         contractsMgr,
 	}
 }
 
@@ -77,7 +80,7 @@ func (t *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.C
 		return fiber.NewError(fiber.StatusInternalServerError, "Could not connect to blockchain node")
 	}
 
-	ctmr, err := contracts.NewContractsManager(pr.NFTContractAddress, client)
+	m, err := t.ctmr.GetMultiPrivilege(pr.NFTContractAddress, client)
 	if err != nil {
 		t.logger.Fatal().Err(err).Str("Contracts", pr.NFTContractAddress).Msg("Unable to initialize nft contract")
 		return fiber.NewError(fiber.StatusInternalServerError, "Could not connect to blockchain node")
@@ -97,8 +100,6 @@ func (t *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.C
 		e := common.HexToAddress(*user.EthereumAddress)
 		ethAddr = &e
 	}
-
-	m := ctmr.MultiPrivilege
 
 	for _, p := range pr.Privileges {
 		res, err := m.HasPrivilege(nil, big.NewInt(pr.TokenID), big.NewInt(p), *ethAddr)

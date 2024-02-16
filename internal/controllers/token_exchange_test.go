@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/DIMO-Network/token-exchange-api/internal/config"
+	mock_contracts "github.com/DIMO-Network/token-exchange-api/internal/contracts/mocks"
 	mock_services "github.com/DIMO-Network/token-exchange-api/internal/services/mocks"
 	"github.com/gofiber/fiber/v2"
 	"github.com/rs/zerolog"
@@ -27,19 +28,21 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 
 	dexService := mock_services.NewMockDexService(mockCtrl)
 	usersSvc := mock_services.NewMockUsersService(mockCtrl)
+	contractsMgr := mock_contracts.NewMockContractsManager(mockCtrl)
 	// todo need a way to mock contracts.InitContractCall(t.settings.BlockchainNodeURL) it currently is not mockable, needs an interface
 
 	// setup app and route req
 	c := NewTokenExchangeController(&logger, &config.Settings{
 		BlockchainNodeURL:        "http://testurl.com/mock",
 		ContractAddressWhitelist: "",
-	}, dexService, usersSvc)
+	}, dexService, usersSvc, contractsMgr)
 	app := fiber.New()
 
+	// todo will probably need a middleware here to set the c.Locals("user", token) with a test token
 	app.Post("/tokens/exchange", c.GetDeviceCommandPermissionWithScope)
-	// todo: setup mocks
+	// todo: setup mock expectations
 
-	// todo: test path? maybe just happy path with ethereum address
+	// todo: test just happy path with ethereum address
 	pt := &PermissionTokenRequest{
 		TokenID:            123,
 		Privileges:         []int64{4},
