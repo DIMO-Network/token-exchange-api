@@ -34,7 +34,7 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 
 	logger := zerolog.New(os.Stdout).With().
 		Timestamp().
-		Str("app", "devices-api").
+		Str("app", "token-exchange-api").
 		Logger()
 
 	dexService := mock_services.NewMockDexService(mockCtrl)

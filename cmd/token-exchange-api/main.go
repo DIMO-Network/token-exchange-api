@@ -21,7 +21,7 @@ func main() {
 	ctx := context.Background()
 	logger := zerolog.New(os.Stdout).With().
 		Timestamp().
-		Str("app", "devices-api").
+		Str("app", "token-exchange-api").
 		Str("git-sha1", gitSha1).
 		Logger()
 

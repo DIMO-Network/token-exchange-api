@@ -1,7 +1,7 @@
 ENVIRONMENT: local
 PORT: 3000
 LOG_LEVEL: info
-SERVICE_NAME: devices-api
+SERVICE_NAME: token-exchange-api
 JWT_KEY_SET_URL: http://127.0.0.1:5556/dex/keys
 BLOCKCHAIN_NODE_URL: http://127.0.0.1:8545
 DEX_GRPC_ADDRESS: localhost:5557
