@@ -11,5 +11,5 @@ jobs:
       - name: helm-check
         uses: igabaydulin/helm-check-action@0.2.0
         env:
-          CHART_LOCATION: ./charts/device-data-api
-          CHART_VALUES: ./charts/device-data-api/values.yaml
+          CHART_LOCATION: ./charts/token-exchange-api
+          CHART_VALUES: ./charts/token-exchange-api/values.yaml
