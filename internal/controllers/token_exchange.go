@@ -70,7 +70,7 @@ func (t *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.C
 
 	pr.NFTContractAddress = strings.ToLower(pr.NFTContractAddress)
 
-	t.logger.Info().Interface("request", pr).Msg("Got request.")
+	t.logger.Debug().Interface("request", pr).Msg("Got request.")
 
 	if len(pr.Privileges) == 0 {
 		return fiber.NewError(fiber.StatusBadRequest, "Please provide the privileges you need permission for.")
