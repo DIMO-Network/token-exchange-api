@@ -1,5 +1,7 @@
 github.com/DIMO-Network/dex/api/v2 v2.0.1-0.20230118013243-85d095814719 h1:nW5nD6UqKWjIgPcPaPfaKELvHinxBwCFVQfIcEs2WcU=
 github.com/DIMO-Network/dex/api/v2 v2.0.1-0.20230118013243-85d095814719/go.mod h1:stsSU0Wz5ZJxSf8abOiON6h1IcGK+fRr3JuEP7w95ds=
+github.com/DIMO-Network/shared v0.10.8-go121 h1:pideS33XW7ch93IAXEYmDIsFJSkYbFz0BJns0QWIlyo=
+github.com/DIMO-Network/shared v0.10.8-go121/go.mod h1:fWNbnrltsVtj63LsecOkdIY3AGpn04StrFNUq39eTHk=
 github.com/DIMO-Network/shared v0.10.8 h1:cXbb/YcAxKjmq6UJMNxaTdVdECBN8UXOzos7XjZdTFs=
 github.com/DIMO-Network/shared v0.10.8/go.mod h1:sfeTTaAf4Y5aU15yGTksdZejJP+X6M2n2M70Qm5+Rqk=
 github.com/DIMO-Network/users-api v0.7.1 h1:VxTvBy4FC83Zi6gh+iYG3Gm0phPFtP3SOyjyjSeOaUY=
