@@ -3,7 +3,7 @@ module github.com/DIMO-Network/token-exchange-api
 go 1.21
 
 require (
-	github.com/DIMO-Network/shared v0.10.8-go121
+	github.com/DIMO-Network/shared v0.10.9-go121
 	github.com/DIMO-Network/users-api v0.7.1
 	github.com/dexidp/dex/api/v2 v2.35.3
 	github.com/ethereum/go-ethereum v1.13.12

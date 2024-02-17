@@ -5,7 +5,7 @@ import (
 
 	"github.com/DIMO-Network/shared/privileges"
 
-	pi "github.com/DIMO-Network/shared/middleware/privilegetoken"
+	"github.com/DIMO-Network/shared/middleware/privilegetoken"
 	"github.com/DIMO-Network/token-exchange-api/internal/config"
 	dgrpc "github.com/dexidp/dex/api/v2"
 	"github.com/ethereum/go-ethereum/common"
@@ -58,7 +58,7 @@ func (d *dexService) SignPrivilegePayload(ctx context.Context, req PrivilegeToke
 		privs[i] = privileges.Privilege(iD)
 	}
 
-	cc := pi.CustomClaims{
+	cc := privilegetoken.CustomClaims{
 		ContractAddress: common.HexToAddress(req.NFTContractAddress),
 		TokenID:         req.TokenID,
 		PrivilegeIDs:    privs,
