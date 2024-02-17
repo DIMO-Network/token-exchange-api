@@ -1,9 +1,7 @@
 github.com/DIMO-Network/dex/api/v2 v2.0.1-0.20230118013243-85d095814719 h1:nW5nD6UqKWjIgPcPaPfaKELvHinxBwCFVQfIcEs2WcU=
 github.com/DIMO-Network/dex/api/v2 v2.0.1-0.20230118013243-85d095814719/go.mod h1:stsSU0Wz5ZJxSf8abOiON6h1IcGK+fRr3JuEP7w95ds=
-github.com/DIMO-Network/shared v0.10.8-go121 h1:pideS33XW7ch93IAXEYmDIsFJSkYbFz0BJns0QWIlyo=
-github.com/DIMO-Network/shared v0.10.8-go121/go.mod h1:fWNbnrltsVtj63LsecOkdIY3AGpn04StrFNUq39eTHk=
-github.com/DIMO-Network/shared v0.10.8 h1:cXbb/YcAxKjmq6UJMNxaTdVdECBN8UXOzos7XjZdTFs=
-github.com/DIMO-Network/shared v0.10.8/go.mod h1:sfeTTaAf4Y5aU15yGTksdZejJP+X6M2n2M70Qm5+Rqk=
+github.com/DIMO-Network/shared v0.10.9-go121 h1:Xeud6Jkg8t4LLFxX4AJAJLjSWdc7SN3O9fA5ugDaRFE=
+github.com/DIMO-Network/shared v0.10.9-go121/go.mod h1:fWNbnrltsVtj63LsecOkdIY3AGpn04StrFNUq39eTHk=
 github.com/DIMO-Network/users-api v0.7.1 h1:VxTvBy4FC83Zi6gh+iYG3Gm0phPFtP3SOyjyjSeOaUY=
 github.com/DIMO-Network/users-api v0.7.1/go.mod h1:Yf3GbL8jmMCYxpEAoZnxG7bH+LS4B0bdb8Hd7yv3tiA=
 github.com/DataDog/zstd v1.4.5 h1:EndNeuB0l9syBZhut0wns3gV1hL8zX8LIu6ZiVHWLIQ=
