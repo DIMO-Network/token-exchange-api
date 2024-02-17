@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"github.com/pkg/errors"
 
 	"github.com/DIMO-Network/shared/privileges"
 
@@ -50,7 +51,7 @@ func (d *dexService) getDexGrpcConnection() (dgrpc.DexClient, *grpc.ClientConn, 
 func (d *dexService) SignPrivilegePayload(ctx context.Context, req PrivilegeTokenDTO) (string, error) {
 	client, conn, err := d.getDexGrpcConnection()
 	if err != nil {
-		return "", err
+		return "", errors.Wrap(err, "unable to get dex grpc connection")
 	}
 	defer conn.Close()
 	privs := make([]privileges.Privilege, len(req.PrivilegeIDs))
@@ -66,7 +67,7 @@ func (d *dexService) SignPrivilegePayload(ctx context.Context, req PrivilegeToke
 
 	ps, err := cc.Proto()
 	if err != nil {
-		return "", err
+		return "", errors.Wrap(err, "unable to convert custom claims to .Proto()")
 	}
 
 	args := &dgrpc.SignTokenReq{
@@ -76,7 +77,7 @@ func (d *dexService) SignPrivilegePayload(ctx context.Context, req PrivilegeToke
 
 	resp, err := client.SignToken(ctx, args)
 	if err != nil {
-		return "", err
+		return "", errors.Wrap(err, "unable to sign token")
 	}
 
 	return resp.Token, nil
