@@ -7,7 +7,7 @@ require (
 	github.com/DIMO-Network/users-api v0.7.1
 	github.com/dexidp/dex/api/v2 v2.35.3
 	github.com/ethereum/go-ethereum v1.13.12
-	github.com/gofiber/fiber/v2 v2.52.0
+	github.com/gofiber/fiber/v2 v2.52.1
 	github.com/gofiber/swagger v1.0.0
 	github.com/golang-jwt/jwt/v5 v5.2.0
 	github.com/rs/zerolog v1.32.0
@@ -77,7 +77,7 @@ require (
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-runewidth v0.0.15 // indirect
-	github.com/pkg/errors v0.9.1 // indirect
+	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.18.0
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/shirou/gopsutil v3.21.11+incompatible // indirect
