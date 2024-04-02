@@ -53,41 +53,6 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "github_com_DIMO-Network_token-exchange-api_internal_controllers.PermissionTokenRequest": {
-            "type": "object",
-            "properties": {
-                "audience": {
-                    "description": "Audience is the intended audience for the token.",
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "nftContractAddress": {
-                    "description": "NFTContractAddress is the address of the NFT contract. Privileges will be checked\non-chain at this address. Address must be in the 0x format e.g. 0x5FbDB2315678afecb367f032d93F642f64180aa3.\nVarying case is okay.",
-                    "type": "string"
-                },
-                "privileges": {
-                    "description": "Privileges is a list of the desired privileges. It must not be empty.",
-                    "type": "array",
-                    "items": {
-                        "type": "integer"
-                    }
-                },
-                "tokenId": {
-                    "description": "TokenID is the NFT token id.",
-                    "type": "integer"
-                }
-            }
-        },
-        "github_com_DIMO-Network_token-exchange-api_internal_controllers.PermissionTokenResponse": {
-            "type": "object",
-            "properties": {
-                "token": {
-                    "type": "string"
-                }
-            }
-        },
         "internal_controllers.PermissionTokenRequest": {
             "type": "object",
             "properties": {
