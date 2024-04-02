@@ -2,14 +2,13 @@ package services
 
 import (
 	"context"
-	"github.com/pkg/errors"
-
-	"github.com/DIMO-Network/shared/privileges"
 
 	"github.com/DIMO-Network/shared/middleware/privilegetoken"
+	"github.com/DIMO-Network/shared/privileges"
 	"github.com/DIMO-Network/token-exchange-api/internal/config"
 	dgrpc "github.com/dexidp/dex/api/v2"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -30,6 +29,7 @@ type PrivilegeTokenDTO struct {
 	TokenID            string
 	PrivilegeIDs       []int64
 	NFTContractAddress string
+	Audience           []string
 }
 
 func NewDexService(log *zerolog.Logger, settings *config.Settings) DexService {
@@ -73,6 +73,7 @@ func (d *dexService) SignPrivilegePayload(ctx context.Context, req PrivilegeToke
 	args := &dgrpc.SignTokenReq{
 		Subject:      cc.Sub(),
 		CustomClaims: ps,
+		Audience:     req.Audience,
 	}
 
 	resp, err := client.SignToken(ctx, args)
