@@ -113,7 +113,7 @@ func serveMonitoring(port string, logger *zerolog.Logger) (*fiber.App, error) {
 
 	monApp := fiber.New(fiber.Config{DisableStartupMessage: true})
 
-	monApp.Get("/", func(c *fiber.Ctx) error { return nil })
+	monApp.Get("/", func(*fiber.Ctx) error { return nil })
 	monApp.Get("/metrics", adaptor.HTTPHandler(promhttp.Handler()))
 
 	go func() {
