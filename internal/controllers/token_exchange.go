@@ -16,6 +16,8 @@ import (
 	"github.com/rs/zerolog"
 )
 
+var defaultAudience = []string{"dimo.zone"}
+
 type TokenExchangeController struct {
 	logger       *zerolog.Logger
 	settings     *config.Settings
@@ -34,6 +36,8 @@ type PermissionTokenRequest struct {
 	// on-chain at this address. Address must be in the 0x format e.g. 0x5FbDB2315678afecb367f032d93F642f64180aa3.
 	// Varying case is okay.
 	NFTContractAddress string `json:"nftContractAddress"`
+	// Audience is the intended audience for the token.
+	Audience []string `json:"audience"`
 }
 
 type PermissionTokenResponse struct {
@@ -114,12 +118,17 @@ func (t *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.C
 			return fiber.NewError(fiber.StatusForbidden, fmt.Sprintf("Address lacks privilege %d.", p))
 		}
 	}
+	aud := pr.Audience
+	if len(aud) == 0 {
+		aud = defaultAudience
+	}
 
 	tk, err := t.dexService.SignPrivilegePayload(c.Context(), services.PrivilegeTokenDTO{
 		UserEthAddress:     ethAddr.Hex(),
 		TokenID:            strconv.FormatInt(pr.TokenID, 10),
 		PrivilegeIDs:       pr.Privileges,
 		NFTContractAddress: pr.NFTContractAddress,
+		Audience:           aud,
 	})
 
 	if err != nil {

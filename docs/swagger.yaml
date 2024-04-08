@@ -2,6 +2,11 @@ basePath: /v1
 definitions:
   internal_controllers.PermissionTokenRequest:
     properties:
+      audience:
+        description: Audience is the intended audience for the token.
+        items:
+          type: string
+        type: array
       nftContractAddress:
         description: |-
           NFTContractAddress is the address of the NFT contract. Privileges will be checked

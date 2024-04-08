@@ -2,6 +2,8 @@ module github.com/DIMO-Network/token-exchange-api
 
 go 1.21
 
+replace github.com/dexidp/dex/api/v2 => github.com/DIMO-Network/dex/api/v2 v2.0.1-0.20240402140037-3b70843c1bed
+
 require (
 	github.com/DIMO-Network/shared v0.10.9-go121
 	github.com/DIMO-Network/users-api v0.7.1
@@ -10,6 +12,7 @@ require (
 	github.com/gofiber/fiber/v2 v2.52.0
 	github.com/gofiber/swagger v1.0.0
 	github.com/golang-jwt/jwt/v5 v5.2.0
+	github.com/pkg/errors v0.9.1
 	github.com/rs/zerolog v1.32.0
 	github.com/stretchr/testify v1.8.4
 	github.com/swaggo/swag v1.16.3
@@ -77,7 +80,6 @@ require (
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-runewidth v0.0.15 // indirect
-	github.com/pkg/errors v0.9.1 // indirect
 	github.com/prometheus/client_golang v1.18.0
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/shirou/gopsutil v3.21.11+incompatible // indirect
@@ -93,5 +95,3 @@ require (
 	google.golang.org/protobuf v1.32.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
-
-replace github.com/dexidp/dex/api/v2 => github.com/DIMO-Network/dex/api/v2 v2.0.1-0.20230118013243-85d095814719

@@ -76,6 +76,7 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 					TokenID:            strconv.FormatInt(123, 10),
 					PrivilegeIDs:       []int64{4},
 					NFTContractAddress: "0x90c4d6113ec88dd4bdf12f26db2b3998fd13a144",
+					Audience:           defaultAudience,
 				}).Return("jwt", nil)
 				mockMultiPriv.EXPECT().HasPrivilege(nil, big.NewInt(123), big.NewInt(4), userEthAddr).
 					Return(true, nil)
@@ -100,6 +101,7 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 					TokenID:            strconv.FormatInt(123, 10),
 					PrivilegeIDs:       []int64{4},
 					NFTContractAddress: "0x90c4d6113ec88dd4bdf12f26db2b3998fd13a144",
+					Audience:           defaultAudience,
 				}).Return("jwt", nil)
 				mockMultiPriv.EXPECT().HasPrivilege(nil, big.NewInt(123), big.NewInt(4), userEthAddr).
 					Return(true, nil)
@@ -107,6 +109,33 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 				usersSvc.EXPECT().GetUserByID(gomock.Any(), "user-id-123").Return(&grpc.User{
 					EthereumAddress: &e,
 				}, nil)
+			},
+			expectedCode: fiber.StatusOK,
+		},
+		{
+			name: "auth jwt with audience",
+			tokenClaims: jwt.MapClaims{
+				"ethereum_address": userEthAddr.Hex(),
+				"nbf":              time.Now().Unix(),
+				"aud":              []string{"dimo.zone"},
+			},
+			userEthAddr: &userEthAddr,
+			permissionTokenRequest: &PermissionTokenRequest{
+				TokenID:            123,
+				Privileges:         []int64{4},
+				NFTContractAddress: "0x90c4d6113ec88dd4bdf12f26db2b3998fd13a144",
+				Audience:           []string{"my-app", "foo"},
+			},
+			mockSetup: func() {
+				dexService.EXPECT().SignPrivilegePayload(gomock.Any(), services.PrivilegeTokenDTO{
+					UserEthAddress:     userEthAddr.Hex(),
+					TokenID:            strconv.FormatInt(123, 10),
+					PrivilegeIDs:       []int64{4},
+					NFTContractAddress: "0x90c4d6113ec88dd4bdf12f26db2b3998fd13a144",
+					Audience:           []string{"my-app", "foo"},
+				}).Return("jwt", nil)
+				mockMultiPriv.EXPECT().HasPrivilege(nil, big.NewInt(123), big.NewInt(4), userEthAddr).
+					Return(true, nil)
 			},
 			expectedCode: fiber.StatusOK,
 		},
@@ -146,7 +175,6 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 			require.NoError(t, err)
 
 			body, _ := io.ReadAll(response.Body)
-			fmt.Println(tc.name + " response body: " + string(body))
 			assert.Equal(t, tc.expectedCode, response.StatusCode, "expected success")
 			if tc.expectedCode == fiber.StatusOK {
 				assert.Equal(t, "jwt", gjson.GetBytes(body, "token").Str)
