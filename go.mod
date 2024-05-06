@@ -8,7 +8,7 @@ require (
 	github.com/DIMO-Network/shared v0.10.9-go121
 	github.com/DIMO-Network/users-api v0.7.1
 	github.com/dexidp/dex/api/v2 v2.35.3
-	github.com/ethereum/go-ethereum v1.13.12
+	github.com/ethereum/go-ethereum v1.13.15
 	github.com/gofiber/fiber/v2 v2.52.0
 	github.com/gofiber/swagger v1.0.0
 	github.com/golang-jwt/jwt/v5 v5.2.0
