@@ -12,16 +12,27 @@ definitions:
           NFTContractAddress is the address of the NFT contract. Privileges will be checked
           on-chain at this address. Address must be in the 0x format e.g. 0x5FbDB2315678afecb367f032d93F642f64180aa3.
           Varying case is okay.
+        example: 0xbA5738a18d83D41847dfFbDC6101d37C69c9B0cF
         type: string
       privileges:
         description: Privileges is a list of the desired privileges. It must not be
           empty.
+        example:
+        - 1
+        - 2
+        - 3
+        - 4
         items:
           type: integer
         type: array
       tokenId:
         description: TokenID is the NFT token id.
+        example: 7
         type: integer
+    required:
+    - nftContractAddress
+    - privileges
+    - tokenId
     type: object
   internal_controllers.PermissionTokenResponse:
     properties:

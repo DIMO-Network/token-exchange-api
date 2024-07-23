@@ -47,6 +47,11 @@
     "definitions": {
         "internal_controllers.PermissionTokenRequest": {
             "type": "object",
+            "required": [
+                "nftContractAddress",
+                "privileges",
+                "tokenId"
+            ],
             "properties": {
                 "audience": {
                     "description": "Audience is the intended audience for the token.",
@@ -57,18 +62,26 @@
                 },
                 "nftContractAddress": {
                     "description": "NFTContractAddress is the address of the NFT contract. Privileges will be checked\non-chain at this address. Address must be in the 0x format e.g. 0x5FbDB2315678afecb367f032d93F642f64180aa3.\nVarying case is okay.",
-                    "type": "string"
+                    "type": "string",
+                    "example": "0xbA5738a18d83D41847dfFbDC6101d37C69c9B0cF"
                 },
                 "privileges": {
                     "description": "Privileges is a list of the desired privileges. It must not be empty.",
                     "type": "array",
                     "items": {
                         "type": "integer"
-                    }
+                    },
+                    "example": [
+                        1,
+                        2,
+                        3,
+                        4
+                    ]
                 },
                 "tokenId": {
                     "description": "TokenID is the NFT token id.",
-                    "type": "integer"
+                    "type": "integer",
+                    "example": 7
                 }
             }
         },

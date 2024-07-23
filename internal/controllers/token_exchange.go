@@ -29,15 +29,15 @@ type TokenExchangeController struct {
 
 type PermissionTokenRequest struct {
 	// TokenID is the NFT token id.
-	TokenID int64 `json:"tokenId"`
+	TokenID int64 `json:"tokenId" example:"7" validate:"required"`
 	// Privileges is a list of the desired privileges. It must not be empty.
-	Privileges []int64 `json:"privileges"`
+	Privileges []int64 `json:"privileges" example:"1,2,3,4" validate:"required"`
 	// NFTContractAddress is the address of the NFT contract. Privileges will be checked
 	// on-chain at this address. Address must be in the 0x format e.g. 0x5FbDB2315678afecb367f032d93F642f64180aa3.
 	// Varying case is okay.
-	NFTContractAddress string `json:"nftContractAddress"`
+	NFTContractAddress string `json:"nftContractAddress" example:"0xbA5738a18d83D41847dfFbDC6101d37C69c9B0cF" validate:"required"`
 	// Audience is the intended audience for the token.
-	Audience []string `json:"audience"`
+	Audience []string `json:"audience" validate:"optional"`
 }
 
 type PermissionTokenResponse struct {
