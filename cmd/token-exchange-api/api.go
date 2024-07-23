@@ -10,19 +10,19 @@ import (
 	"syscall"
 
 	"github.com/DIMO-Network/token-exchange-api/internal/contracts"
+	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/DIMO-Network/token-exchange-api/internal/api"
 	"github.com/DIMO-Network/token-exchange-api/internal/config"
 	vtx "github.com/DIMO-Network/token-exchange-api/internal/controllers"
-	"github.com/DIMO-Network/token-exchange-api/internal/services"
-	"github.com/gofiber/swagger"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
-
 	mware "github.com/DIMO-Network/token-exchange-api/internal/middleware"
+	"github.com/DIMO-Network/token-exchange-api/internal/services"
 	jwtware "github.com/gofiber/contrib/jwt"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/adaptor"
 	fiberrecover "github.com/gofiber/fiber/v2/middleware/recover"
+	"github.com/gofiber/swagger"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog"
 )
 
@@ -34,7 +34,7 @@ func getContractWhitelistedAddresses(wAddrs string) ([]string, error) {
 	w := strings.Split(wAddrs, ",")
 
 	for _, v := range w {
-		if !mware.AddressRegex.MatchString(v) {
+		if !common.IsHexAddress(v) {
 			return nil, fmt.Errorf("invalid contract address %q", v)
 		}
 	}
