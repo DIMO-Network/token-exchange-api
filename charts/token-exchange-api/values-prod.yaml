@@ -11,7 +11,7 @@ env:
   JWT_KEY_SET_URL: https://auth.dimo.zone/keys
   DEX_GRPC_ADDRESS: dex-roles-rights-prod:5557
   USERS_API_GRPC_ADDRESS: users-api-prod:8086
-  CONTRACT_ADDRESS_WHITELIST: '0xba5738a18d83d41847dffbdc6101d37c69c9b0cf'
+  CONTRACT_ADDRESS_WHITELIST: '0xba5738a18d83d41847dffbdc6101d37c69c9b0cf,0x3b07e2A2ABdd0A9B8F7878bdE6487c502164B9dd'
 resources:
   limits:
     cpu: 1
