@@ -92,6 +92,12 @@ func (t *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.C
 		t.logger.Fatal().Err(err).Str("Contracts", pr.NFTContractAddress).Msg("Unable to initialize nft contract")
 		return fiber.NewError(fiber.StatusInternalServerError, "Could not connect to blockchain node")
 	}
+	s, err := t.ctmr.GetSacd(t.settings.ContractAddressSacdFactory, client)
+	if err != nil {
+		t.logger.Fatal().Err(err).Str("Contracts", pr.NFTContractAddress).Msg("Unable to initialize nft contract")
+		return fiber.NewError(fiber.StatusInternalServerError, "Could not connect to blockchain node")
+	}
+	fmt.Println(s)
 
 	ethAddr := api.GetUserEthAddr(c)
 	if ethAddr == nil {
@@ -118,6 +124,15 @@ func (t *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.C
 			return fiber.NewError(fiber.StatusForbidden, fmt.Sprintf("Address lacks privilege %d.", p))
 		}
 	}
+
+	res, err := s.HasPermissions(nil, common.HexToAddress(pr.NFTContractAddress), big.NewInt(pr.TokenID), *ethAddr, intArrayToBitArray(pr.Privileges, 256))
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+	}
+	if !res {
+		return fiber.NewError(fiber.StatusForbidden, fmt.Sprintf("Address lacks permissions %v.", pr.Privileges))
+	}
+
 	aud := pr.Audience
 	if len(aud) == 0 {
 		aud = defaultAudience
@@ -138,4 +153,17 @@ func (t *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.C
 	return c.JSON(PermissionTokenResponse{
 		Token: tk,
 	})
+}
+
+func intArrayToBitArray(indices []int64, length int) *big.Int {
+	bitArray := big.NewInt(0)
+
+	for _, index := range indices {
+		if index >= 1 && index <= int64(length) {
+			bitArray.SetBit(bitArray, int(index*2), 1)
+			bitArray.SetBit(bitArray, int(index*2+1), 1)
+		}
+	}
+
+	return bitArray
 }
