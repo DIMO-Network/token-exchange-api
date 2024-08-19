@@ -92,7 +92,7 @@ func (t *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.C
 		t.logger.Fatal().Err(err).Str("Contracts", pr.NFTContractAddress).Msg("Unable to initialize nft contract")
 		return fiber.NewError(fiber.StatusInternalServerError, "Could not connect to blockchain node")
 	}
-	s, err := t.ctmr.GetSacd(t.settings.ContractAddressSacdFactory, client)
+	s, err := t.ctmr.GetSacd(t.settings.ContractAddressSacd, client)
 	if err != nil {
 		t.logger.Fatal().Err(err).Str("Contracts", pr.NFTContractAddress).Msg("Unable to initialize nft contract")
 		return fiber.NewError(fiber.StatusInternalServerError, "Could not connect to blockchain node")
