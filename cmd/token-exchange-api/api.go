@@ -9,13 +9,11 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/DIMO-Network/token-exchange-api/internal/contracts"
 	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/DIMO-Network/token-exchange-api/internal/api"
 	"github.com/DIMO-Network/token-exchange-api/internal/config"
 	vtx "github.com/DIMO-Network/token-exchange-api/internal/controllers"
-	mware "github.com/DIMO-Network/token-exchange-api/internal/middleware"
 	"github.com/DIMO-Network/token-exchange-api/internal/services"
 	jwtware "github.com/gofiber/contrib/jwt"
 	"github.com/gofiber/fiber/v2"
@@ -26,36 +24,38 @@ import (
 	"github.com/rs/zerolog"
 )
 
-func getContractWhitelistedAddresses(wAddrs string) ([]string, error) {
-	if wAddrs == "" {
+func parseContractWhitelist(rawAddrs string) ([]common.Address, error) {
+	if rawAddrs == "" {
 		return nil, errors.New("empty whitelist")
 	}
 
-	w := strings.Split(wAddrs, ",")
+	out := make([]common.Address, len(rawAddrs))
 
-	for _, v := range w {
-		if !common.IsHexAddress(v) {
-			return nil, fmt.Errorf("invalid contract address %q", v)
+	for i, raw := range strings.Split(rawAddrs, ",") {
+		if !common.IsHexAddress(raw) {
+			return nil, fmt.Errorf("invalid contract address %q", raw)
 		}
+		out[i] = common.HexToAddress(raw)
 	}
 
-	return w, nil
+	return out, nil
 }
 
 func startWebAPI(ctx context.Context, logger zerolog.Logger, settings *config.Settings) {
-	dxS := services.NewDexService(&logger, settings)
-	userService := services.NewUsersService(&logger, settings)
-	contractsMgr := contracts.NewContractsManager()
-	contractsInit := contracts.NewContractsCallInitializer()
-	vtxController := vtx.NewTokenExchangeController(&logger, settings, dxS, userService, contractsMgr, contractsInit)
-
-	ctrAddressesWhitelist, err := getContractWhitelistedAddresses(settings.ContractAddressWhitelist)
+	ctrAddressesWhitelist, err := parseContractWhitelist(settings.ContractAddressWhitelist)
 	if err != nil {
 		logger.Fatal().
 			Err(err).
 			Str("settings.ContractAddressWhitelist", settings.ContractAddressWhitelist).
 			Msg("Error occurred. Invalid contract whitelist addresses")
 	}
+
+	dxS, err := services.NewDexService(&logger, settings.DexGRPCAdddress)
+	if err != nil {
+		logger.Fatal().Err(err).Msg("Failed to construct Dex client.")
+	}
+	userService := services.NewUsersService(&logger, settings)
+	vtxController := vtx.NewTokenExchangeController(&logger, dxS, userService, ctrAddressesWhitelist)
 
 	app := fiber.New(fiber.Config{
 		ErrorHandler: func(c *fiber.Ctx, err error) error {
@@ -86,9 +86,8 @@ func startWebAPI(ctx context.Context, logger zerolog.Logger, settings *config.Se
 	v1Route := app.Group("/v1")
 	// Token routes
 	tokenRoutes := v1Route.Group("/tokens", jwtAuth)
-	ctrWhitelistWare := mware.NewContractWhiteList(settings, logger, ctrAddressesWhitelist)
 
-	tokenRoutes.Post("/exchange", ctrWhitelistWare, vtxController.GetDeviceCommandPermissionWithScope)
+	tokenRoutes.Post("/exchange", vtxController.GetDeviceCommandPermissionWithScope)
 
 	go serveMonitoring(settings.MonPort, &logger) //nolint
 
