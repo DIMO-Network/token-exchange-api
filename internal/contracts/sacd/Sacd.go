@@ -1,7 +1,7 @@
 // Code generated - DO NOT EDIT.
 // This file is a generated binding and any manual changes will be lost.
 
-package contracts
+package sacd
 
 import (
 	"errors"
@@ -31,7 +31,7 @@ var (
 
 // SacdMetaData contains all meta data concerning the Sacd contract.
 var SacdMetaData = &bind.MetaData{
-	ABI: "[{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_sacdTemplate\",\"type\":\"address\"}],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"inputs\":[],\"name\":\"ERC1167FailedCreateClone\",\"type\":\"error\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"asset\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"tokenId\",\"type\":\"uint256\"}],\"name\":\"InvalidTokenId\",\"type\":\"error\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"addr\",\"type\":\"address\"}],\"name\":\"Unauthorized\",\"type\":\"error\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"sacd\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"asset\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"uint256\",\"name\":\"tokenId\",\"type\":\"uint256\"}],\"name\":\"SacdCreated\",\"type\":\"event\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"asset\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"tokenId\",\"type\":\"uint256\"}],\"name\":\"createSacd\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"sacd\",\"type\":\"address\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"asset\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"tokenId\",\"type\":\"uint256\"},{\"internalType\":\"address\",\"name\":\"grantee\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"permissions\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"expiration\",\"type\":\"uint256\"},{\"internalType\":\"string\",\"name\":\"source\",\"type\":\"string\"}],\"name\":\"createSacd\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"sacd\",\"type\":\"address\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"asset\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"tokenId\",\"type\":\"uint256\"},{\"internalType\":\"address\",\"name\":\"grantee\",\"type\":\"address\"},{\"internalType\":\"uint8\",\"name\":\"permissionIndex\",\"type\":\"uint8\"}],\"name\":\"hasPermission\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"asset\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"tokenId\",\"type\":\"uint256\"},{\"internalType\":\"address\",\"name\":\"grantee\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"permissions\",\"type\":\"uint256\"}],\"name\":\"hasPermissions\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"asset\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"tokenId\",\"type\":\"uint256\"}],\"name\":\"onTransfer\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"sacdTemplate\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"asset\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"tokenId\",\"type\":\"uint256\"}],\"name\":\"sacds\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"sacd\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"}]",
+	ABI: "[{\"inputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"asset\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"tokenId\",\"type\":\"uint256\"}],\"name\":\"InvalidTokenId\",\"type\":\"error\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"addr\",\"type\":\"address\"}],\"name\":\"Unauthorized\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"ZeroAddress\",\"type\":\"error\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"asset\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"uint256\",\"name\":\"tokenId\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"permissions\",\"type\":\"uint256\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"grantee\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"expiration\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"string\",\"name\":\"source\",\"type\":\"string\"}],\"name\":\"PermissionsSet\",\"type\":\"event\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"asset\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"tokenId\",\"type\":\"uint256\"},{\"internalType\":\"address\",\"name\":\"grantee\",\"type\":\"address\"},{\"internalType\":\"uint8\",\"name\":\"permissionIndex\",\"type\":\"uint8\"}],\"name\":\"hasPermission\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"asset\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"tokenId\",\"type\":\"uint256\"},{\"internalType\":\"address\",\"name\":\"grantee\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"permissions\",\"type\":\"uint256\"}],\"name\":\"hasPermissions\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"asset\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"tokenId\",\"type\":\"uint256\"}],\"name\":\"onTransfer\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"asset\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"tokenId\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"version\",\"type\":\"uint256\"},{\"internalType\":\"address\",\"name\":\"grantee\",\"type\":\"address\"}],\"name\":\"permissionRecords\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"permissions\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"expiration\",\"type\":\"uint256\"},{\"internalType\":\"string\",\"name\":\"source\",\"type\":\"string\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"asset\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"tokenId\",\"type\":\"uint256\"}],\"name\":\"sacds\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"sacd\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"asset\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"tokenId\",\"type\":\"uint256\"},{\"internalType\":\"address\",\"name\":\"grantee\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"permissions\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"expiration\",\"type\":\"uint256\"},{\"internalType\":\"string\",\"name\":\"source\",\"type\":\"string\"}],\"name\":\"setPermissions\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"asset\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"tokenId\",\"type\":\"uint256\"}],\"name\":\"tokenIdToVersion\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"version\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"}]",
 }
 
 // SacdABI is the input ABI used to generate the binding from.
@@ -242,35 +242,54 @@ func (_Sacd *SacdCallerSession) HasPermissions(asset common.Address, tokenId *bi
 	return _Sacd.Contract.HasPermissions(&_Sacd.CallOpts, asset, tokenId, grantee, permissions)
 }
 
-// SacdTemplate is a free data retrieval call binding the contract method 0x794a7dc0.
+// PermissionRecords is a free data retrieval call binding the contract method 0x15e7d96b.
 //
-// Solidity: function sacdTemplate() view returns(address)
-func (_Sacd *SacdCaller) SacdTemplate(opts *bind.CallOpts) (common.Address, error) {
+// Solidity: function permissionRecords(address asset, uint256 tokenId, uint256 version, address grantee) view returns(uint256 permissions, uint256 expiration, string source)
+func (_Sacd *SacdCaller) PermissionRecords(opts *bind.CallOpts, asset common.Address, tokenId *big.Int, version *big.Int, grantee common.Address) (struct {
+	Permissions *big.Int
+	Expiration  *big.Int
+	Source      string
+}, error) {
 	var out []interface{}
-	err := _Sacd.contract.Call(opts, &out, "sacdTemplate")
+	err := _Sacd.contract.Call(opts, &out, "permissionRecords", asset, tokenId, version, grantee)
 
+	outstruct := new(struct {
+		Permissions *big.Int
+		Expiration  *big.Int
+		Source      string
+	})
 	if err != nil {
-		return *new(common.Address), err
+		return *outstruct, err
 	}
 
-	out0 := *abi.ConvertType(out[0], new(common.Address)).(*common.Address)
+	outstruct.Permissions = *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
+	outstruct.Expiration = *abi.ConvertType(out[1], new(*big.Int)).(**big.Int)
+	outstruct.Source = *abi.ConvertType(out[2], new(string)).(*string)
 
-	return out0, err
+	return *outstruct, err
 
 }
 
-// SacdTemplate is a free data retrieval call binding the contract method 0x794a7dc0.
+// PermissionRecords is a free data retrieval call binding the contract method 0x15e7d96b.
 //
-// Solidity: function sacdTemplate() view returns(address)
-func (_Sacd *SacdSession) SacdTemplate() (common.Address, error) {
-	return _Sacd.Contract.SacdTemplate(&_Sacd.CallOpts)
+// Solidity: function permissionRecords(address asset, uint256 tokenId, uint256 version, address grantee) view returns(uint256 permissions, uint256 expiration, string source)
+func (_Sacd *SacdSession) PermissionRecords(asset common.Address, tokenId *big.Int, version *big.Int, grantee common.Address) (struct {
+	Permissions *big.Int
+	Expiration  *big.Int
+	Source      string
+}, error) {
+	return _Sacd.Contract.PermissionRecords(&_Sacd.CallOpts, asset, tokenId, version, grantee)
 }
 
-// SacdTemplate is a free data retrieval call binding the contract method 0x794a7dc0.
+// PermissionRecords is a free data retrieval call binding the contract method 0x15e7d96b.
 //
-// Solidity: function sacdTemplate() view returns(address)
-func (_Sacd *SacdCallerSession) SacdTemplate() (common.Address, error) {
-	return _Sacd.Contract.SacdTemplate(&_Sacd.CallOpts)
+// Solidity: function permissionRecords(address asset, uint256 tokenId, uint256 version, address grantee) view returns(uint256 permissions, uint256 expiration, string source)
+func (_Sacd *SacdCallerSession) PermissionRecords(asset common.Address, tokenId *big.Int, version *big.Int, grantee common.Address) (struct {
+	Permissions *big.Int
+	Expiration  *big.Int
+	Source      string
+}, error) {
+	return _Sacd.Contract.PermissionRecords(&_Sacd.CallOpts, asset, tokenId, version, grantee)
 }
 
 // Sacds is a free data retrieval call binding the contract method 0x65cb60ee.
@@ -304,46 +323,35 @@ func (_Sacd *SacdCallerSession) Sacds(asset common.Address, tokenId *big.Int) (c
 	return _Sacd.Contract.Sacds(&_Sacd.CallOpts, asset, tokenId)
 }
 
-// CreateSacd is a paid mutator transaction binding the contract method 0x29daf0bc.
+// TokenIdToVersion is a free data retrieval call binding the contract method 0xeba57928.
 //
-// Solidity: function createSacd(address asset, uint256 tokenId) returns(address sacd)
-func (_Sacd *SacdTransactor) CreateSacd(opts *bind.TransactOpts, asset common.Address, tokenId *big.Int) (*types.Transaction, error) {
-	return _Sacd.contract.Transact(opts, "createSacd", asset, tokenId)
+// Solidity: function tokenIdToVersion(address asset, uint256 tokenId) view returns(uint256 version)
+func (_Sacd *SacdCaller) TokenIdToVersion(opts *bind.CallOpts, asset common.Address, tokenId *big.Int) (*big.Int, error) {
+	var out []interface{}
+	err := _Sacd.contract.Call(opts, &out, "tokenIdToVersion", asset, tokenId)
+
+	if err != nil {
+		return *new(*big.Int), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
+
+	return out0, err
+
 }
 
-// CreateSacd is a paid mutator transaction binding the contract method 0x29daf0bc.
+// TokenIdToVersion is a free data retrieval call binding the contract method 0xeba57928.
 //
-// Solidity: function createSacd(address asset, uint256 tokenId) returns(address sacd)
-func (_Sacd *SacdSession) CreateSacd(asset common.Address, tokenId *big.Int) (*types.Transaction, error) {
-	return _Sacd.Contract.CreateSacd(&_Sacd.TransactOpts, asset, tokenId)
+// Solidity: function tokenIdToVersion(address asset, uint256 tokenId) view returns(uint256 version)
+func (_Sacd *SacdSession) TokenIdToVersion(asset common.Address, tokenId *big.Int) (*big.Int, error) {
+	return _Sacd.Contract.TokenIdToVersion(&_Sacd.CallOpts, asset, tokenId)
 }
 
-// CreateSacd is a paid mutator transaction binding the contract method 0x29daf0bc.
+// TokenIdToVersion is a free data retrieval call binding the contract method 0xeba57928.
 //
-// Solidity: function createSacd(address asset, uint256 tokenId) returns(address sacd)
-func (_Sacd *SacdTransactorSession) CreateSacd(asset common.Address, tokenId *big.Int) (*types.Transaction, error) {
-	return _Sacd.Contract.CreateSacd(&_Sacd.TransactOpts, asset, tokenId)
-}
-
-// CreateSacd0 is a paid mutator transaction binding the contract method 0x4fbdd199.
-//
-// Solidity: function createSacd(address asset, uint256 tokenId, address grantee, uint256 permissions, uint256 expiration, string source) returns(address sacd)
-func (_Sacd *SacdTransactor) CreateSacd0(opts *bind.TransactOpts, asset common.Address, tokenId *big.Int, grantee common.Address, permissions *big.Int, expiration *big.Int, source string) (*types.Transaction, error) {
-	return _Sacd.contract.Transact(opts, "createSacd0", asset, tokenId, grantee, permissions, expiration, source)
-}
-
-// CreateSacd0 is a paid mutator transaction binding the contract method 0x4fbdd199.
-//
-// Solidity: function createSacd(address asset, uint256 tokenId, address grantee, uint256 permissions, uint256 expiration, string source) returns(address sacd)
-func (_Sacd *SacdSession) CreateSacd0(asset common.Address, tokenId *big.Int, grantee common.Address, permissions *big.Int, expiration *big.Int, source string) (*types.Transaction, error) {
-	return _Sacd.Contract.CreateSacd0(&_Sacd.TransactOpts, asset, tokenId, grantee, permissions, expiration, source)
-}
-
-// CreateSacd0 is a paid mutator transaction binding the contract method 0x4fbdd199.
-//
-// Solidity: function createSacd(address asset, uint256 tokenId, address grantee, uint256 permissions, uint256 expiration, string source) returns(address sacd)
-func (_Sacd *SacdTransactorSession) CreateSacd0(asset common.Address, tokenId *big.Int, grantee common.Address, permissions *big.Int, expiration *big.Int, source string) (*types.Transaction, error) {
-	return _Sacd.Contract.CreateSacd0(&_Sacd.TransactOpts, asset, tokenId, grantee, permissions, expiration, source)
+// Solidity: function tokenIdToVersion(address asset, uint256 tokenId) view returns(uint256 version)
+func (_Sacd *SacdCallerSession) TokenIdToVersion(asset common.Address, tokenId *big.Int) (*big.Int, error) {
+	return _Sacd.Contract.TokenIdToVersion(&_Sacd.CallOpts, asset, tokenId)
 }
 
 // OnTransfer is a paid mutator transaction binding the contract method 0xe81e9b64.
@@ -367,9 +375,30 @@ func (_Sacd *SacdTransactorSession) OnTransfer(asset common.Address, tokenId *bi
 	return _Sacd.Contract.OnTransfer(&_Sacd.TransactOpts, asset, tokenId)
 }
 
-// SacdSacdCreatedIterator is returned from FilterSacdCreated and is used to iterate over the raw logs and unpacked data for SacdCreated events raised by the Sacd contract.
-type SacdSacdCreatedIterator struct {
-	Event *SacdSacdCreated // Event containing the contract specifics and raw log
+// SetPermissions is a paid mutator transaction binding the contract method 0xe711f339.
+//
+// Solidity: function setPermissions(address asset, uint256 tokenId, address grantee, uint256 permissions, uint256 expiration, string source) returns()
+func (_Sacd *SacdTransactor) SetPermissions(opts *bind.TransactOpts, asset common.Address, tokenId *big.Int, grantee common.Address, permissions *big.Int, expiration *big.Int, source string) (*types.Transaction, error) {
+	return _Sacd.contract.Transact(opts, "setPermissions", asset, tokenId, grantee, permissions, expiration, source)
+}
+
+// SetPermissions is a paid mutator transaction binding the contract method 0xe711f339.
+//
+// Solidity: function setPermissions(address asset, uint256 tokenId, address grantee, uint256 permissions, uint256 expiration, string source) returns()
+func (_Sacd *SacdSession) SetPermissions(asset common.Address, tokenId *big.Int, grantee common.Address, permissions *big.Int, expiration *big.Int, source string) (*types.Transaction, error) {
+	return _Sacd.Contract.SetPermissions(&_Sacd.TransactOpts, asset, tokenId, grantee, permissions, expiration, source)
+}
+
+// SetPermissions is a paid mutator transaction binding the contract method 0xe711f339.
+//
+// Solidity: function setPermissions(address asset, uint256 tokenId, address grantee, uint256 permissions, uint256 expiration, string source) returns()
+func (_Sacd *SacdTransactorSession) SetPermissions(asset common.Address, tokenId *big.Int, grantee common.Address, permissions *big.Int, expiration *big.Int, source string) (*types.Transaction, error) {
+	return _Sacd.Contract.SetPermissions(&_Sacd.TransactOpts, asset, tokenId, grantee, permissions, expiration, source)
+}
+
+// SacdPermissionsSetIterator is returned from FilterPermissionsSet and is used to iterate over the raw logs and unpacked data for PermissionsSet events raised by the Sacd contract.
+type SacdPermissionsSetIterator struct {
+	Event *SacdPermissionsSet // Event containing the contract specifics and raw log
 
 	contract *bind.BoundContract // Generic contract to use for unpacking event data
 	event    string              // Event name to use for unpacking event data
@@ -383,7 +412,7 @@ type SacdSacdCreatedIterator struct {
 // Next advances the iterator to the subsequent event, returning whether there
 // are any more events found. In case of a retrieval or parsing error, false is
 // returned and Error() can be queried for the exact failure.
-func (it *SacdSacdCreatedIterator) Next() bool {
+func (it *SacdPermissionsSetIterator) Next() bool {
 	// If the iterator failed, stop iterating
 	if it.fail != nil {
 		return false
@@ -392,7 +421,7 @@ func (it *SacdSacdCreatedIterator) Next() bool {
 	if it.done {
 		select {
 		case log := <-it.logs:
-			it.Event = new(SacdSacdCreated)
+			it.Event = new(SacdPermissionsSet)
 			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
 				it.fail = err
 				return false
@@ -407,7 +436,7 @@ func (it *SacdSacdCreatedIterator) Next() bool {
 	// Iterator still in progress, wait for either a data or an error event
 	select {
 	case log := <-it.logs:
-		it.Event = new(SacdSacdCreated)
+		it.Event = new(SacdPermissionsSet)
 		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
 			it.fail = err
 			return false
@@ -423,34 +452,33 @@ func (it *SacdSacdCreatedIterator) Next() bool {
 }
 
 // Error returns any retrieval or parsing error occurred during filtering.
-func (it *SacdSacdCreatedIterator) Error() error {
+func (it *SacdPermissionsSetIterator) Error() error {
 	return it.fail
 }
 
 // Close terminates the iteration process, releasing any pending underlying
 // resources.
-func (it *SacdSacdCreatedIterator) Close() error {
+func (it *SacdPermissionsSetIterator) Close() error {
 	it.sub.Unsubscribe()
 	return nil
 }
 
-// SacdSacdCreated represents a SacdCreated event raised by the Sacd contract.
-type SacdSacdCreated struct {
-	Sacd    common.Address
-	Asset   common.Address
-	TokenId *big.Int
-	Raw     types.Log // Blockchain specific contextual infos
+// SacdPermissionsSet represents a PermissionsSet event raised by the Sacd contract.
+type SacdPermissionsSet struct {
+	Asset       common.Address
+	TokenId     *big.Int
+	Permissions *big.Int
+	Grantee     common.Address
+	Expiration  *big.Int
+	Source      string
+	Raw         types.Log // Blockchain specific contextual infos
 }
 
-// FilterSacdCreated is a free log retrieval operation binding the contract event 0x041313a76158b9a9ea3a4f6312744b931caaaf999992d20d23d44f27fa93f382.
+// FilterPermissionsSet is a free log retrieval operation binding the contract event 0x948fe417941bab89f81888f9039015a1da93ff8cbe034f5615f7bf35679de7db.
 //
-// Solidity: event SacdCreated(address indexed sacd, address indexed asset, uint256 indexed tokenId)
-func (_Sacd *SacdFilterer) FilterSacdCreated(opts *bind.FilterOpts, sacd []common.Address, asset []common.Address, tokenId []*big.Int) (*SacdSacdCreatedIterator, error) {
+// Solidity: event PermissionsSet(address indexed asset, uint256 indexed tokenId, uint256 permissions, address indexed grantee, uint256 expiration, string source)
+func (_Sacd *SacdFilterer) FilterPermissionsSet(opts *bind.FilterOpts, asset []common.Address, tokenId []*big.Int, grantee []common.Address) (*SacdPermissionsSetIterator, error) {
 
-	var sacdRule []interface{}
-	for _, sacdItem := range sacd {
-		sacdRule = append(sacdRule, sacdItem)
-	}
 	var assetRule []interface{}
 	for _, assetItem := range asset {
 		assetRule = append(assetRule, assetItem)
@@ -460,22 +488,23 @@ func (_Sacd *SacdFilterer) FilterSacdCreated(opts *bind.FilterOpts, sacd []commo
 		tokenIdRule = append(tokenIdRule, tokenIdItem)
 	}
 
-	logs, sub, err := _Sacd.contract.FilterLogs(opts, "SacdCreated", sacdRule, assetRule, tokenIdRule)
+	var granteeRule []interface{}
+	for _, granteeItem := range grantee {
+		granteeRule = append(granteeRule, granteeItem)
+	}
+
+	logs, sub, err := _Sacd.contract.FilterLogs(opts, "PermissionsSet", assetRule, tokenIdRule, granteeRule)
 	if err != nil {
 		return nil, err
 	}
-	return &SacdSacdCreatedIterator{contract: _Sacd.contract, event: "SacdCreated", logs: logs, sub: sub}, nil
+	return &SacdPermissionsSetIterator{contract: _Sacd.contract, event: "PermissionsSet", logs: logs, sub: sub}, nil
 }
 
-// WatchSacdCreated is a free log subscription operation binding the contract event 0x041313a76158b9a9ea3a4f6312744b931caaaf999992d20d23d44f27fa93f382.
+// WatchPermissionsSet is a free log subscription operation binding the contract event 0x948fe417941bab89f81888f9039015a1da93ff8cbe034f5615f7bf35679de7db.
 //
-// Solidity: event SacdCreated(address indexed sacd, address indexed asset, uint256 indexed tokenId)
-func (_Sacd *SacdFilterer) WatchSacdCreated(opts *bind.WatchOpts, sink chan<- *SacdSacdCreated, sacd []common.Address, asset []common.Address, tokenId []*big.Int) (event.Subscription, error) {
+// Solidity: event PermissionsSet(address indexed asset, uint256 indexed tokenId, uint256 permissions, address indexed grantee, uint256 expiration, string source)
+func (_Sacd *SacdFilterer) WatchPermissionsSet(opts *bind.WatchOpts, sink chan<- *SacdPermissionsSet, asset []common.Address, tokenId []*big.Int, grantee []common.Address) (event.Subscription, error) {
 
-	var sacdRule []interface{}
-	for _, sacdItem := range sacd {
-		sacdRule = append(sacdRule, sacdItem)
-	}
 	var assetRule []interface{}
 	for _, assetItem := range asset {
 		assetRule = append(assetRule, assetItem)
@@ -485,7 +514,12 @@ func (_Sacd *SacdFilterer) WatchSacdCreated(opts *bind.WatchOpts, sink chan<- *S
 		tokenIdRule = append(tokenIdRule, tokenIdItem)
 	}
 
-	logs, sub, err := _Sacd.contract.WatchLogs(opts, "SacdCreated", sacdRule, assetRule, tokenIdRule)
+	var granteeRule []interface{}
+	for _, granteeItem := range grantee {
+		granteeRule = append(granteeRule, granteeItem)
+	}
+
+	logs, sub, err := _Sacd.contract.WatchLogs(opts, "PermissionsSet", assetRule, tokenIdRule, granteeRule)
 	if err != nil {
 		return nil, err
 	}
@@ -495,8 +529,8 @@ func (_Sacd *SacdFilterer) WatchSacdCreated(opts *bind.WatchOpts, sink chan<- *S
 			select {
 			case log := <-logs:
 				// New log arrived, parse the event and forward to the user
-				event := new(SacdSacdCreated)
-				if err := _Sacd.contract.UnpackLog(event, "SacdCreated", log); err != nil {
+				event := new(SacdPermissionsSet)
+				if err := _Sacd.contract.UnpackLog(event, "PermissionsSet", log); err != nil {
 					return err
 				}
 				event.Raw = log
@@ -517,12 +551,12 @@ func (_Sacd *SacdFilterer) WatchSacdCreated(opts *bind.WatchOpts, sink chan<- *S
 	}), nil
 }
 
-// ParseSacdCreated is a log parse operation binding the contract event 0x041313a76158b9a9ea3a4f6312744b931caaaf999992d20d23d44f27fa93f382.
+// ParsePermissionsSet is a log parse operation binding the contract event 0x948fe417941bab89f81888f9039015a1da93ff8cbe034f5615f7bf35679de7db.
 //
-// Solidity: event SacdCreated(address indexed sacd, address indexed asset, uint256 indexed tokenId)
-func (_Sacd *SacdFilterer) ParseSacdCreated(log types.Log) (*SacdSacdCreated, error) {
-	event := new(SacdSacdCreated)
-	if err := _Sacd.contract.UnpackLog(event, "SacdCreated", log); err != nil {
+// Solidity: event PermissionsSet(address indexed asset, uint256 indexed tokenId, uint256 permissions, address indexed grantee, uint256 expiration, string source)
+func (_Sacd *SacdFilterer) ParsePermissionsSet(log types.Log) (*SacdPermissionsSet, error) {
+	event := new(SacdPermissionsSet)
+	if err := _Sacd.contract.UnpackLog(event, "PermissionsSet", log); err != nil {
 		return nil, err
 	}
 	event.Raw = log

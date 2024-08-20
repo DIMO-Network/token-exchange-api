@@ -89,12 +89,10 @@ func (t *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.C
 
 	m, err := t.ctmr.GetMultiPrivilege(pr.NFTContractAddress, client)
 	if err != nil {
-		t.logger.Fatal().Err(err).Str("Contracts", pr.NFTContractAddress).Msg("Unable to initialize nft contract")
 		return fiber.NewError(fiber.StatusInternalServerError, "Could not connect to blockchain node")
 	}
 	s, err := t.ctmr.GetSacd(t.settings.ContractAddressSacd, client)
 	if err != nil {
-		t.logger.Fatal().Err(err).Str("Contracts", pr.NFTContractAddress).Msg("Unable to initialize nft contract")
 		return fiber.NewError(fiber.StatusInternalServerError, "Could not connect to blockchain node")
 	}
 	fmt.Println(s)
@@ -115,22 +113,19 @@ func (t *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.C
 	}
 
 	for _, p := range pr.Privileges {
-		res, err := m.HasPrivilege(nil, big.NewInt(pr.TokenID), big.NewInt(p), *ethAddr)
+		resMulti, err := m.HasPrivilege(nil, big.NewInt(pr.TokenID), big.NewInt(p), *ethAddr)
 		if err != nil {
 			return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 		}
 
-		if !res {
+		resSacd, err := s.HasPermission(nil, common.HexToAddress(pr.NFTContractAddress), big.NewInt(pr.TokenID), *ethAddr, uint8(p))
+		if err != nil {
+			return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+		}
+
+		if !resMulti && !resSacd {
 			return fiber.NewError(fiber.StatusForbidden, fmt.Sprintf("Address lacks privilege %d.", p))
 		}
-	}
-
-	res, err := s.HasPermissions(nil, common.HexToAddress(pr.NFTContractAddress), big.NewInt(pr.TokenID), *ethAddr, intArrayToBitArray(pr.Privileges, 256))
-	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
-	}
-	if !res {
-		return fiber.NewError(fiber.StatusForbidden, fmt.Sprintf("Address lacks permissions %v.", pr.Privileges))
 	}
 
 	aud := pr.Audience
@@ -153,17 +148,4 @@ func (t *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.C
 	return c.JSON(PermissionTokenResponse{
 		Token: tk,
 	})
-}
-
-func intArrayToBitArray(indices []int64, length int) *big.Int {
-	bitArray := big.NewInt(0)
-
-	for _, index := range indices {
-		if index >= 1 && index <= int64(length) {
-			bitArray.SetBit(bitArray, int(index*2), 1)
-			bitArray.SetBit(bitArray, int(index*2+1), 1)
-		}
-	}
-
-	return bitArray
 }
