@@ -94,7 +94,6 @@ func (t *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.C
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Could not connect to blockchain node")
 	}
-	fmt.Println(s)
 
 	ethAddr := api.GetUserEthAddr(c)
 	if ethAddr == nil {
