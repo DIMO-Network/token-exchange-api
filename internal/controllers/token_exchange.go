@@ -83,7 +83,6 @@ func (t *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.C
 	// Contract address has been validated in the middleware
 	client, err := t.ctinit.InitContractCall(t.settings.BlockchainNodeURL)
 	if err != nil {
-		t.logger.Fatal().Err(err).Str("blockchainUrl", t.settings.BlockchainNodeURL).Msg("Failed to dial blockchain node")
 		return fiber.NewError(fiber.StatusInternalServerError, "Could not connect to blockchain node")
 	}
 
@@ -118,12 +117,16 @@ func (t *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.C
 			return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 		}
 
+		if resMulti {
+			continue
+		}
+
 		resSacd, err := s.HasPermission(nil, common.HexToAddress(pr.NFTContractAddress), big.NewInt(pr.TokenID), *ethAddr, uint8(p))
 		if err != nil {
 			return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 		}
 
-		if !resMulti && !resSacd {
+		if !resSacd {
 			return fiber.NewError(fiber.StatusForbidden, fmt.Sprintf("Address lacks privilege %d.", p))
 		}
 	}
