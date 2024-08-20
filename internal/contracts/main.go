@@ -50,5 +50,5 @@ type MultiPriv interface {
 }
 
 type Sacd interface {
-	HasPermission(opts *bind.CallOpts, asset common.Address, tokenId *big.Int, grantee common.Address, permissionIndex uint8) (bool, error)
+	HasPermission(opts *bind.CallOpts, asset common.Address, tokenID *big.Int, grantee common.Address, permissionIndex uint8) (bool, error)
 }

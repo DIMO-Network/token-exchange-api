@@ -142,7 +142,6 @@ func (t *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.C
 		NFTContractAddress: pr.NFTContractAddress,
 		Audience:           aud,
 	})
-
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 	}
