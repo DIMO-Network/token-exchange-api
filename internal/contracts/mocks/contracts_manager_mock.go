@@ -134,16 +134,16 @@ func (m *MockSacd) EXPECT() *MockSacdMockRecorder {
 }
 
 // HasPermission mocks base method.
-func (m *MockSacd) HasPermission(opts *bind.CallOpts, asset common.Address, tokenId *big.Int, grantee common.Address, permissionIndex uint8) (bool, error) {
+func (m *MockSacd) HasPermission(opts *bind.CallOpts, asset common.Address, tokenID *big.Int, grantee common.Address, permissionIndex uint8) (bool, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "HasPermission", opts, asset, tokenId, grantee, permissionIndex)
+	ret := m.ctrl.Call(m, "HasPermission", opts, asset, tokenID, grantee, permissionIndex)
 	ret0, _ := ret[0].(bool)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // HasPermission indicates an expected call of HasPermission.
-func (mr *MockSacdMockRecorder) HasPermission(opts, asset, tokenId, grantee, permissionIndex any) *gomock.Call {
+func (mr *MockSacdMockRecorder) HasPermission(opts, asset, tokenID, grantee, permissionIndex any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HasPermission", reflect.TypeOf((*MockSacd)(nil).HasPermission), opts, asset, tokenId, grantee, permissionIndex)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HasPermission", reflect.TypeOf((*MockSacd)(nil).HasPermission), opts, asset, tokenID, grantee, permissionIndex)
 }
