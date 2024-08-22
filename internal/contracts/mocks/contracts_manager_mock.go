@@ -57,6 +57,21 @@ func (mr *MockManagerMockRecorder) GetMultiPrivilege(nftAddress, client any) *go
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMultiPrivilege", reflect.TypeOf((*MockManager)(nil).GetMultiPrivilege), nftAddress, client)
 }
 
+// GetSacd mocks base method.
+func (m *MockManager) GetSacd(sacdAddress string, client bind.ContractBackend) (contracts.Sacd, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetSacd", sacdAddress, client)
+	ret0, _ := ret[0].(contracts.Sacd)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetSacd indicates an expected call of GetSacd.
+func (mr *MockManagerMockRecorder) GetSacd(sacdAddress, client any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSacd", reflect.TypeOf((*MockManager)(nil).GetSacd), sacdAddress, client)
+}
+
 // MockMultiPriv is a mock of MultiPriv interface.
 type MockMultiPriv struct {
 	ctrl     *gomock.Controller
@@ -93,4 +108,42 @@ func (m *MockMultiPriv) HasPrivilege(opts *bind.CallOpts, tokenID, privID *big.I
 func (mr *MockMultiPrivMockRecorder) HasPrivilege(opts, tokenID, privID, user any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HasPrivilege", reflect.TypeOf((*MockMultiPriv)(nil).HasPrivilege), opts, tokenID, privID, user)
+}
+
+// MockSacd is a mock of Sacd interface.
+type MockSacd struct {
+	ctrl     *gomock.Controller
+	recorder *MockSacdMockRecorder
+}
+
+// MockSacdMockRecorder is the mock recorder for MockSacd.
+type MockSacdMockRecorder struct {
+	mock *MockSacd
+}
+
+// NewMockSacd creates a new mock instance.
+func NewMockSacd(ctrl *gomock.Controller) *MockSacd {
+	mock := &MockSacd{ctrl: ctrl}
+	mock.recorder = &MockSacdMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockSacd) EXPECT() *MockSacdMockRecorder {
+	return m.recorder
+}
+
+// HasPermission mocks base method.
+func (m *MockSacd) HasPermission(opts *bind.CallOpts, asset common.Address, tokenID *big.Int, grantee common.Address, permissionIndex uint8) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "HasPermission", opts, asset, tokenID, grantee, permissionIndex)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// HasPermission indicates an expected call of HasPermission.
+func (mr *MockSacdMockRecorder) HasPermission(opts, asset, tokenID, grantee, permissionIndex any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HasPermission", reflect.TypeOf((*MockSacd)(nil).HasPermission), opts, asset, tokenID, grantee, permissionIndex)
 }

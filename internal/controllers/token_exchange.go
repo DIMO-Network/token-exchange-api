@@ -83,13 +83,15 @@ func (t *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.C
 	// Contract address has been validated in the middleware
 	client, err := t.ctinit.InitContractCall(t.settings.BlockchainNodeURL)
 	if err != nil {
-		t.logger.Fatal().Err(err).Str("blockchainUrl", t.settings.BlockchainNodeURL).Msg("Failed to dial blockchain node")
 		return fiber.NewError(fiber.StatusInternalServerError, "Could not connect to blockchain node")
 	}
 
 	m, err := t.ctmr.GetMultiPrivilege(pr.NFTContractAddress, client)
 	if err != nil {
-		t.logger.Fatal().Err(err).Str("Contracts", pr.NFTContractAddress).Msg("Unable to initialize nft contract")
+		return fiber.NewError(fiber.StatusInternalServerError, "Could not connect to blockchain node")
+	}
+	s, err := t.ctmr.GetSacd(t.settings.ContractAddressSacd, client)
+	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Could not connect to blockchain node")
 	}
 
@@ -109,15 +111,25 @@ func (t *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.C
 	}
 
 	for _, p := range pr.Privileges {
-		res, err := m.HasPrivilege(nil, big.NewInt(pr.TokenID), big.NewInt(p), *ethAddr)
+		resMulti, err := m.HasPrivilege(nil, big.NewInt(pr.TokenID), big.NewInt(p), *ethAddr)
 		if err != nil {
 			return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 		}
 
-		if !res {
+		if resMulti {
+			continue
+		}
+
+		resSacd, err := s.HasPermission(nil, common.HexToAddress(pr.NFTContractAddress), big.NewInt(pr.TokenID), *ethAddr, uint8(p))
+		if err != nil {
+			return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+		}
+
+		if !resSacd {
 			return fiber.NewError(fiber.StatusForbidden, fmt.Sprintf("Address lacks privilege %d.", p))
 		}
 	}
+
 	aud := pr.Audience
 	if len(aud) == 0 {
 		aud = defaultAudience
@@ -130,7 +142,6 @@ func (t *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.C
 		NFTContractAddress: pr.NFTContractAddress,
 		Audience:           aud,
 	})
-
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 	}

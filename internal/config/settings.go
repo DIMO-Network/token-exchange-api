@@ -12,4 +12,5 @@ type Settings struct {
 	DexGRPCAdddress          string `yaml:"DEX_GRPC_ADDRESS"`
 	UsersAPIGRPCAddress      string `yaml:"USERS_API_GRPC_ADDRESS"`
 	ContractAddressWhitelist string `yaml:"CONTRACT_ADDRESS_WHITELIST"`
+	ContractAddressSacd      string `yaml:"CONTRACT_ADDRESS_SACD"`
 }
