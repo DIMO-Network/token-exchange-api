@@ -4,7 +4,7 @@ import (
 	"math/big"
 
 	priv "github.com/DIMO-Network/token-exchange-api/internal/contracts/multi_privilege"
-	sacd "github.com/DIMO-Network/token-exchange-api/internal/contracts/sacd"
+	"github.com/DIMO-Network/token-exchange-api/internal/contracts/sacd"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 )
