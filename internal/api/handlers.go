@@ -31,7 +31,7 @@ func GetUserEthAddr(c *fiber.Ctx) *common.Address {
 	token := c.Locals("user").(*jwt.Token)
 	claims := token.Claims.(jwt.MapClaims)
 	ethAddr, ok := claims["ethereum_address"].(string)
-	if !ok || common.IsHexAddress(ethAddr) {
+	if !ok || !common.IsHexAddress(ethAddr) {
 		return nil
 	}
 	e := common.HexToAddress(ethAddr)
