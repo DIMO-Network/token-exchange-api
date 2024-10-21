@@ -31,16 +31,11 @@ func GetUserEthAddr(c *fiber.Ctx) *common.Address {
 	token := c.Locals("user").(*jwt.Token)
 	claims := token.Claims.(jwt.MapClaims)
 	ethAddr, ok := claims["ethereum_address"].(string)
-	if !ok {
+	if !ok || common.IsHexAddress(ethAddr) {
 		return nil
 	}
 	e := common.HexToAddress(ethAddr)
 	return &e
-}
-
-// CreateResponse is a generic response with an ID of the created entity
-type CreateResponse struct {
-	ID string `json:"id"`
 }
 
 // ErrorHandler custom handler to log recovered errors using our logger and return json instead of string
