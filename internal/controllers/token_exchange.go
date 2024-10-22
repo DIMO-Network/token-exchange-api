@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math/big"
 	"strconv"
-	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
 
@@ -72,24 +71,30 @@ func (t *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.C
 		return fiber.NewError(fiber.StatusBadRequest, "Couldn't parse request body.")
 	}
 
-	pr.NFTContractAddress = strings.ToLower(pr.NFTContractAddress)
+	if !common.IsHexAddress(pr.NFTContractAddress) {
+		return fiber.NewError(fiber.StatusBadRequest, fmt.Sprintf("Invalid NFT contract address %q.", pr.NFTContractAddress))
+	}
+
+	nftAddr := common.HexToAddress(pr.NFTContractAddress)
 
 	t.logger.Debug().Interface("request", pr).Msg("Got request.")
 
 	if len(pr.Privileges) == 0 {
-		return fiber.NewError(fiber.StatusBadRequest, "Please provide the privileges you need permission for.")
+		return fiber.NewError(fiber.StatusBadRequest, "Please provide at least one privilege.")
 	}
 
 	// Contract address has been validated in the middleware
+	// TODO(elffjs): Stop constructing these every darned time.
 	client, err := t.ctinit.InitContractCall(t.settings.BlockchainNodeURL)
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Could not connect to blockchain node")
 	}
 
-	m, err := t.ctmr.GetMultiPrivilege(pr.NFTContractAddress, client)
+	m, err := t.ctmr.GetMultiPrivilege(nftAddr.Hex(), client)
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Could not connect to blockchain node")
 	}
+
 	s, err := t.ctmr.GetSacd(t.settings.ContractAddressSacd, client)
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Could not connect to blockchain node")
@@ -101,16 +106,21 @@ func (t *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.C
 		userID := api.GetUserID(c)
 		user, err := t.usersService.GetUserByID(c.Context(), userID)
 		if err != nil {
+			// TODO(elffjs): If there's no record here, it's a client error.
 			return fiber.NewError(fiber.StatusInternalServerError, "Failed to get user by ID")
 		}
-		if user.EthereumAddress == nil {
-			return fiber.NewError(fiber.StatusInternalServerError, "User Ethereum address is not set")
+		if user.EthereumAddress == nil || !common.IsHexAddress(*user.EthereumAddress) {
+			return fiber.NewError(fiber.StatusBadRequest, "No Ethereum address in JWT or on record.")
 		}
 		e := common.HexToAddress(*user.EthereumAddress)
 		ethAddr = &e
 	}
 
 	for _, p := range pr.Privileges {
+		if p < 0 || p >= 128 {
+			return fiber.NewError(fiber.StatusBadRequest, fmt.Sprintf("Invalid permission id %d. These must be non-negative and less than 128.", p))
+		}
+
 		resMulti, err := m.HasPrivilege(nil, big.NewInt(pr.TokenID), big.NewInt(p), *ethAddr)
 		if err != nil {
 			return fiber.NewError(fiber.StatusInternalServerError, err.Error())
@@ -120,13 +130,14 @@ func (t *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.C
 			continue
 		}
 
-		resSacd, err := s.HasPermission(nil, common.HexToAddress(pr.NFTContractAddress), big.NewInt(pr.TokenID), *ethAddr, uint8(p))
+		// TODO(elffjs): Get this down to one call.
+		resSacd, err := s.HasPermission(nil, nftAddr, big.NewInt(pr.TokenID), *ethAddr, uint8(p))
 		if err != nil {
 			return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 		}
 
 		if !resSacd {
-			return fiber.NewError(fiber.StatusForbidden, fmt.Sprintf("Address lacks privilege %d.", p))
+			return fiber.NewError(fiber.StatusForbidden, fmt.Sprintf("Address %s lacks permission %d on token id %d for asset %s.", *ethAddr, p, pr.TokenID, nftAddr))
 		}
 	}
 
@@ -139,7 +150,7 @@ func (t *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.C
 		UserEthAddress:     ethAddr.Hex(),
 		TokenID:            strconv.FormatInt(pr.TokenID, 10),
 		PrivilegeIDs:       pr.Privileges,
-		NFTContractAddress: pr.NFTContractAddress,
+		NFTContractAddress: nftAddr.Hex(),
 		Audience:           aud,
 	})
 	if err != nil {
