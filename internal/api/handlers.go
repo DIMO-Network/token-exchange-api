@@ -38,6 +38,17 @@ func GetUserEthAddr(c *fiber.Ctx) *common.Address {
 	return &e
 }
 
+func GetClaimSubject(c *fiber.Ctx) *common.Address {
+	token := c.Locals("user").(*jwt.Token)
+	claims := token.Claims.(jwt.MapClaims)
+	subj, ok := claims["sub"].(string)
+	if !ok || !common.IsHexAddress(subj) {
+		return nil
+	}
+	subject := common.HexToAddress(subj)
+	return &subject
+}
+
 // ErrorHandler custom handler to log recovered errors using our logger and return json instead of string
 func ErrorHandler(c *fiber.Ctx, err error, logger zerolog.Logger, environment string) error {
 	code := fiber.StatusInternalServerError // Default 500 statuscode

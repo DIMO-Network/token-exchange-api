@@ -13,4 +13,5 @@ type Settings struct {
 	UsersAPIGRPCAddress      string `yaml:"USERS_API_GRPC_ADDRESS"`
 	ContractAddressWhitelist string `yaml:"CONTRACT_ADDRESS_WHITELIST"`
 	ContractAddressSacd      string `yaml:"CONTRACT_ADDRESS_SACD"`
+	IdentityAPIURL           string `yaml:"Identity_API_URL"`
 }
