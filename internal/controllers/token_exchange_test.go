@@ -39,6 +39,7 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 
 	dexService := mock_services.NewMockDexService(mockCtrl)
 	usersSvc := mock_services.NewMockUsersService(mockCtrl)
+	idSvc := mock_services.NewMockIdentityService(mockCtrl)
 	contractsMgr := mock_contracts.NewMockManager(mockCtrl)
 	contractsInit := mock_contracts.NewMockContractCallInitializer(mockCtrl)
 	mockMultiPriv := mock_contracts.NewMockMultiPriv(mockCtrl)
@@ -49,19 +50,20 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 		BlockchainNodeURL:        "http://testurl.com/mock",
 		ContractAddressWhitelist: "",
 		ContractAddressSacd:      "0xa6",
-	}, dexService, usersSvc, contractsMgr, contractsInit, nil)
+	}, dexService, usersSvc, contractsMgr, contractsInit, idSvc)
 	userEthAddr := common.HexToAddress("0x20Ca3bE69a8B95D3093383375F0473A8c6341727")
 
 	tests := []struct {
 		name                   string
 		tokenClaims            jwt.MapClaims
 		userEthAddr            *common.Address
+		validDevLicense        bool
 		permissionTokenRequest *PermissionTokenRequest
 		mockSetup              func()
 		expectedCode           int
 	}{
 		{
-			name: "auth jwt with ethereum addr",
+			name: "auth jwt with ethereum addr, req from mobile app",
 			tokenClaims: jwt.MapClaims{
 				"ethereum_address": userEthAddr.Hex(),
 				"nbf":              time.Now().Unix(),
@@ -70,15 +72,16 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 			permissionTokenRequest: &PermissionTokenRequest{
 				TokenID:            123,
 				Privileges:         []int64{4},
-				NFTContractAddress: "0x90c4d6113ec88dd4bdf12f26db2b3998fd13a144",
+				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
+				Audience:           []string{mobileAppAudience},
 			},
 			mockSetup: func() {
 				dexService.EXPECT().SignPrivilegePayload(gomock.Any(), services.PrivilegeTokenDTO{
 					UserEthAddress:     userEthAddr.Hex(),
 					TokenID:            strconv.FormatInt(123, 10),
 					PrivilegeIDs:       []int64{4},
-					NFTContractAddress: "0x90c4d6113ec88dd4bdf12f26db2b3998fd13a144",
-					Audience:           defaultAudience,
+					NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
+					Audience:           []string{mobileAppAudience},
 				}).Return("jwt", nil)
 				mockMultiPriv.EXPECT().HasPrivilege(nil, big.NewInt(123), big.NewInt(4), userEthAddr).
 					Return(true, nil)
@@ -86,7 +89,7 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 			expectedCode: fiber.StatusOK,
 		},
 		{
-			name: "auth jwt with userId",
+			name: "auth jwt with userId, req from mobile app",
 			tokenClaims: jwt.MapClaims{
 				"sub": "user-id-123",
 				"nbf": time.Now().Unix(),
@@ -95,15 +98,16 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 			permissionTokenRequest: &PermissionTokenRequest{
 				TokenID:            123,
 				Privileges:         []int64{4},
-				NFTContractAddress: "0x90c4d6113ec88dd4bdf12f26db2b3998fd13a144",
+				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
+				Audience:           []string{mobileAppAudience},
 			},
 			mockSetup: func() {
 				dexService.EXPECT().SignPrivilegePayload(gomock.Any(), services.PrivilegeTokenDTO{
 					UserEthAddress:     userEthAddr.Hex(),
 					TokenID:            strconv.FormatInt(123, 10),
 					PrivilegeIDs:       []int64{4},
-					NFTContractAddress: "0x90c4d6113ec88dd4bdf12f26db2b3998fd13a144",
-					Audience:           defaultAudience,
+					NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
+					Audience:           []string{mobileAppAudience},
 				}).Return("jwt", nil)
 				mockMultiPriv.EXPECT().HasPrivilege(nil, big.NewInt(123), big.NewInt(4), userEthAddr).
 					Return(true, nil)
@@ -115,17 +119,20 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 			expectedCode: fiber.StatusOK,
 		},
 		{
-			name: "auth jwt with audience",
+			name: "auth jwt with audience, not from mobile",
 			tokenClaims: jwt.MapClaims{
 				"ethereum_address": userEthAddr.Hex(),
 				"nbf":              time.Now().Unix(),
 				"aud":              []string{"dimo.zone"},
+				"sub":              userEthAddr.Hex(),
 			},
-			userEthAddr: &userEthAddr,
+
+			userEthAddr:     &userEthAddr,
+			validDevLicense: true,
 			permissionTokenRequest: &PermissionTokenRequest{
 				TokenID:            123,
 				Privileges:         []int64{4},
-				NFTContractAddress: "0x90c4d6113ec88dd4bdf12f26db2b3998fd13a144",
+				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
 				Audience:           []string{"my-app", "foo"},
 			},
 			mockSetup: func() {
@@ -133,7 +140,7 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 					UserEthAddress:     userEthAddr.Hex(),
 					TokenID:            strconv.FormatInt(123, 10),
 					PrivilegeIDs:       []int64{4},
-					NFTContractAddress: "0x90c4d6113ec88dd4bdf12f26db2b3998fd13a144",
+					NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
 					Audience:           []string{"my-app", "foo"},
 				}).Return("jwt", nil)
 				mockMultiPriv.EXPECT().HasPrivilege(nil, big.NewInt(123), big.NewInt(4), userEthAddr).
@@ -151,7 +158,7 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 			permissionTokenRequest: &PermissionTokenRequest{
 				TokenID:            123,
 				Privileges:         []int64{4},
-				NFTContractAddress: "0x90c4d6113ec88dd4bdf12f26db2b3998fd13a144",
+				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
 			},
 			mockSetup: func() {
 				usersSvc.EXPECT().GetUserByID(gomock.Any(), "user-id-123").Return(nil, fmt.Errorf("not found"))
@@ -172,6 +179,10 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 
 			contractsMgr.EXPECT().GetMultiPrivilege(tc.permissionTokenRequest.NFTContractAddress, &client).Return(mockMultiPriv, nil)
 			contractsMgr.EXPECT().GetSacd(c.settings.ContractAddressSacd, &client).Return(mockSacd, nil)
+
+			if tc.validDevLicense {
+				idSvc.EXPECT().IsDevLicense(gomock.Any(), *tc.userEthAddr).Return(true, nil)
+			}
 
 			request := buildRequest("POST", "/tokens/exchange", string(jsonBytes))
 			response, err := app.Test(request)
