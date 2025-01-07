@@ -1,4 +1,4 @@
-package controllers
+package services
 
 import (
 	"bytes"
@@ -14,19 +14,24 @@ import (
 	"github.com/rs/zerolog"
 )
 
-type IdentityApiController struct {
-	logger      *zerolog.Logger
-	identityUrl string
+//go:generate mockgen -source identity_service.go -destination mocks/identity_service_mock.go
+type IdentityService interface {
+	IsDevLicense(ctx context.Context, ethAddr common.Address) (bool, error)
 }
 
-func NewIdentityApiController(logger *zerolog.Logger, settings *config.Settings) *IdentityApiController {
-	return &IdentityApiController{
+type IdentityController struct {
+	logger      *zerolog.Logger
+	identityURL string
+}
+
+func NewIdentityApiController(logger *zerolog.Logger, settings *config.Settings) *IdentityController {
+	return &IdentityController{
 		logger:      logger,
-		identityUrl: settings.IdentityAPIURL,
+		identityURL: settings.IdentityURL,
 	}
 }
 
-func (i *IdentityApiController) isDevLicense(ctx context.Context, ethAddr common.Address) (bool, error) {
+func (i *IdentityController) IsDevLicense(ctx context.Context, ethAddr common.Address) (bool, error) {
 	requestBody := map[string]any{
 		"query": `{
 			query ($clientId: clientId!) {
@@ -46,7 +51,7 @@ func (i *IdentityApiController) isDevLicense(ctx context.Context, ethAddr common
 		return false, fmt.Errorf("failed to marshal GraphQL request: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, i.identityUrl, bytes.NewBuffer(reqBytes))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, i.identityURL, bytes.NewBuffer(reqBytes))
 	if err != nil {
 		return false, fmt.Errorf("failed to create identity API request: %w", err)
 	}

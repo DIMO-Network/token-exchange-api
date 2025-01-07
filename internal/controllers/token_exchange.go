@@ -26,7 +26,7 @@ type TokenExchangeController struct {
 	usersService       services.UsersService
 	ctmr               contracts.Manager
 	ctinit             contracts.ContractCallInitializer
-	identityController *IdentityApiController
+	identityController services.IdentityService
 }
 
 type PermissionTokenRequest struct {
@@ -47,7 +47,7 @@ type PermissionTokenResponse struct {
 }
 
 func NewTokenExchangeController(logger *zerolog.Logger, settings *config.Settings, dexService services.DexService,
-	usersService services.UsersService, contractsMgr contracts.Manager, contractsInit contracts.ContractCallInitializer, identityController *IdentityApiController) *TokenExchangeController {
+	usersService services.UsersService, contractsMgr contracts.Manager, contractsInit contracts.ContractCallInitializer, idSvc services.IdentityService) *TokenExchangeController {
 	return &TokenExchangeController{
 		logger:             logger,
 		settings:           settings,
@@ -55,7 +55,7 @@ func NewTokenExchangeController(logger *zerolog.Logger, settings *config.Setting
 		usersService:       usersService,
 		ctmr:               contractsMgr,
 		ctinit:             contractsInit,
-		identityController: identityController,
+		identityController: idSvc,
 	}
 }
 
@@ -74,7 +74,7 @@ func (t *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.C
 	if err := c.BodyParser(pr); err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "Couldn't parse request body.")
 	}
-
+	fmt.Println("this: ", pr.Audience)
 	if !common.IsHexAddress(pr.NFTContractAddress) {
 		return fiber.NewError(fiber.StatusBadRequest, fmt.Sprintf("Invalid NFT contract address %q.", pr.NFTContractAddress))
 	}
@@ -127,7 +127,7 @@ func (t *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.C
 
 	if !slices.Contains(aud, mobileAppAudience) { // if the audience is not DIMO mobile
 		ethAddr = api.GetClaimSubject(c)                                                            // we want to check that the subject is the address with permissions granted to it
-		if isLicense, err := t.identityController.isDevLicense(c.Context(), *ethAddr); err != nil { // we also want to confirm the subj is a dev license
+		if isLicense, err := t.identityController.IsDevLicense(c.Context(), *ethAddr); err != nil { // we also want to confirm the subj is a dev license
 			return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 		} else if !isLicense {
 			return fiber.NewError(fiber.StatusForbidden, fmt.Sprintf("invalid requesting address: %s", *ethAddr))

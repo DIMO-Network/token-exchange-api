@@ -47,7 +47,7 @@ func startWebAPI(ctx context.Context, logger zerolog.Logger, settings *config.Se
 	userService := services.NewUsersService(&logger, settings)
 	contractsMgr := contracts.NewContractsManager()
 	contractsInit := contracts.NewContractsCallInitializer()
-	identityController := vtx.NewIdentityApiController(&logger, settings)
+	identityController := services.NewIdentityApiController(&logger, settings)
 	vtxController := vtx.NewTokenExchangeController(&logger, settings, dxS, userService, contractsMgr, contractsInit, identityController)
 
 	ctrAddressesWhitelist, err := getContractWhitelistedAddresses(settings.ContractAddressWhitelist)
