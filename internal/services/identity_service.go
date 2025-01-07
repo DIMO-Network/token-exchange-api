@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"math/big"
 	"net/http"
 
 	"github.com/DIMO-Network/token-exchange-api/internal/config"
@@ -21,91 +20,115 @@ type IdentityService interface {
 
 type IdentityController struct {
 	logger      *zerolog.Logger
+	client      *http.Client
 	identityURL string
 }
 
-func NewIdentityApiController(logger *zerolog.Logger, settings *config.Settings) *IdentityController {
+func NewIdentityController(logger *zerolog.Logger, settings *config.Settings) *IdentityController {
 	return &IdentityController{
 		logger:      logger,
+		client:      &http.Client{},
 		identityURL: settings.IdentityURL,
 	}
 }
 
+const (
+	queryDevLicenseByClientId = `query ($clientId: Address!) 
+	{
+		developerLicense( by: { clientId: $clientId }) 
+			{
+  				owner
+  				alias    
+			}
+	}`
+
+	queryDevLicenseByAlias = `query ($alias: String!) 
+	{
+		developerLicense( by: { alias: $alias }) 
+			{
+  				owner
+  				alias    
+			}
+	}`
+)
+
+// IsDevLicense checks whether the eth address represents a dev license client id
+// TODO(ae) should we (also) be checking by alias?
 func (i *IdentityController) IsDevLicense(ctx context.Context, ethAddr common.Address) (bool, error) {
 	requestBody := map[string]any{
-		"query": `{
-			query ($clientId: clientId!) {
-			  developerLicense(by: {clientId: $clientId}) {
-				  id
-				  name
-				  email
-			  }
-		  }`,
+		"query": queryDevLicenseByClientId,
 		"variables": map[string]any{
 			"clientId": ethAddr.Hex(),
 		},
 	}
 
-	reqBytes, err := json.Marshal(requestBody)
+	response, err := i.executeQuery(requestBody)
 	if err != nil {
-		return false, fmt.Errorf("failed to marshal GraphQL request: %w", err)
+		return false, err
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, i.identityURL, bytes.NewBuffer(reqBytes))
-	if err != nil {
-		return false, fmt.Errorf("failed to create identity API request: %w", err)
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Accept", "application/json")
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return false, fmt.Errorf("failed to send GraphQL request: %w", err)
-	}
-	defer resp.Body.Close()
-
-	bodyBytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return false, fmt.Errorf("failed to read GraphQL response body: %w", err)
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		return false, fmt.Errorf("non-200 response from GraphQL API: %d, '%s'", resp.StatusCode, string(bodyBytes))
-	}
-
-	var respBody IdentityResponse
-	if err := json.Unmarshal(bodyBytes, &respBody); err != nil {
-		return false, fmt.Errorf("failed to unmarshal GraphQL response: %w", err)
-	}
-
-	if len(respBody.Errors) > 0 {
-		if respBody.Errors[0].Message == "sql: no rows in result set" {
-			return false, nil
-		}
-
-		return false, fmt.Errorf("GraphQL API error: %s", respBody.Errors[0].Message)
+	if len(response.Errors) > 1 {
+		return false, nil
 	}
 
 	return true, nil
 
 }
 
-type IdentityResponse struct {
-	Data   DevLicenseResponse `json:"data"`
-	Errors []GraphQLError     `json:"errors"`
+func (i *IdentityController) executeQuery(requestBody map[string]any) (*IdentityResponse, error) {
+	jsonBody, err := json.Marshal(requestBody)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, i.identityURL, bytes.NewBuffer(jsonBody))
+	if err != nil {
+		return nil, fmt.Errorf("error creating request: %v", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := i.client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("graphql request failed making request: %v", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("error reading response body: %v", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("failed query response")
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("invalid response from identity api %d", resp.StatusCode)
+	}
+
+	var respBody IdentityResponse
+	if err := json.Unmarshal(body, &respBody); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal GraphQL response: %w", err)
+	}
+
+	return &respBody, nil
 }
 
-type DevLicenseResponse struct {
-	DevLicense []LicenseInfos `json:"developerLicense"`
-}
-
-type LicenseInfos struct {
-	Owner    common.Address `json:"owner"`
+type DeveloperLicense struct {
+	Owner    string         `json:"owner"`
+	Alias    string         `json:"alias"`
 	ClientId common.Address `json:"clientId"`
-	TokenId  big.Int        `json:"tokenId"`
 }
 
-type GraphQLError struct {
+type Data struct {
+	DeveloperLicense DeveloperLicense `json:"developerLicense"`
+}
+
+type ErrorDetail struct {
 	Message string `json:"message"`
+}
+
+type IdentityResponse struct {
+	Data   *Data         `json:"data,omitempty"`
+	Errors []ErrorDetail `json:"errors,omitempty"`
 }

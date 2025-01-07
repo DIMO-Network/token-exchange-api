@@ -10,6 +10,7 @@ import (
 	"syscall"
 
 	"github.com/DIMO-Network/token-exchange-api/internal/contracts"
+	"github.com/DIMO-Network/token-exchange-api/internal/middleware"
 	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/DIMO-Network/token-exchange-api/internal/api"
@@ -47,8 +48,10 @@ func startWebAPI(ctx context.Context, logger zerolog.Logger, settings *config.Se
 	userService := services.NewUsersService(&logger, settings)
 	contractsMgr := contracts.NewContractsManager()
 	contractsInit := contracts.NewContractsCallInitializer()
-	identityController := services.NewIdentityApiController(&logger, settings)
-	vtxController := vtx.NewTokenExchangeController(&logger, settings, dxS, userService, contractsMgr, contractsInit, identityController)
+	vtxController := vtx.NewTokenExchangeController(&logger, settings, dxS, userService, contractsMgr, contractsInit)
+	idSvc := services.NewIdentityController(&logger, settings)
+
+	devLicenseMiddleware := middleware.NewDevLicenseValidator(settings, logger, idSvc)
 
 	ctrAddressesWhitelist, err := getContractWhitelistedAddresses(settings.ContractAddressWhitelist)
 	if err != nil {
@@ -79,6 +82,7 @@ func startWebAPI(ctx context.Context, logger zerolog.Logger, settings *config.Se
 	sc := swagger.Config{}
 	app.Get("/v1/swagger/*", swagger.New(sc))
 
+	app.Use("*", devLicenseMiddleware)
 	jwtAuth := jwtware.New(jwtware.Config{
 		JWKSetURLs: []string{settings.JWKKeySetURL},
 	})

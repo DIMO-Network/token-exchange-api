@@ -3,7 +3,6 @@ package controllers
 import (
 	"fmt"
 	"math/big"
-	"slices"
 	"strconv"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -17,16 +16,14 @@ import (
 )
 
 var defaultAudience = []string{"dimo.zone"}
-var mobileAppAudience = "dimo-driver"
 
 type TokenExchangeController struct {
-	logger             *zerolog.Logger
-	settings           *config.Settings
-	dexService         services.DexService
-	usersService       services.UsersService
-	ctmr               contracts.Manager
-	ctinit             contracts.ContractCallInitializer
-	identityController services.IdentityService
+	logger       *zerolog.Logger
+	settings     *config.Settings
+	dexService   services.DexService
+	usersService services.UsersService
+	ctmr         contracts.Manager
+	ctinit       contracts.ContractCallInitializer
 }
 
 type PermissionTokenRequest struct {
@@ -47,15 +44,14 @@ type PermissionTokenResponse struct {
 }
 
 func NewTokenExchangeController(logger *zerolog.Logger, settings *config.Settings, dexService services.DexService,
-	usersService services.UsersService, contractsMgr contracts.Manager, contractsInit contracts.ContractCallInitializer, idSvc services.IdentityService) *TokenExchangeController {
+	usersService services.UsersService, contractsMgr contracts.Manager, contractsInit contracts.ContractCallInitializer) *TokenExchangeController {
 	return &TokenExchangeController{
-		logger:             logger,
-		settings:           settings,
-		dexService:         dexService,
-		usersService:       usersService,
-		ctmr:               contractsMgr,
-		ctinit:             contractsInit,
-		identityController: idSvc,
+		logger:       logger,
+		settings:     settings,
+		dexService:   dexService,
+		usersService: usersService,
+		ctmr:         contractsMgr,
+		ctinit:       contractsInit,
 	}
 }
 
@@ -74,7 +70,7 @@ func (t *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.C
 	if err := c.BodyParser(pr); err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "Couldn't parse request body.")
 	}
-	fmt.Println("this: ", pr.Audience)
+
 	if !common.IsHexAddress(pr.NFTContractAddress) {
 		return fiber.NewError(fiber.StatusBadRequest, fmt.Sprintf("Invalid NFT contract address %q.", pr.NFTContractAddress))
 	}
@@ -120,20 +116,6 @@ func (t *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.C
 		ethAddr = &e
 	}
 
-	aud := pr.Audience
-	if len(aud) == 0 {
-		aud = defaultAudience
-	}
-
-	if !slices.Contains(aud, mobileAppAudience) { // if the audience is not DIMO mobile
-		ethAddr = api.GetClaimSubject(c)                                                            // we want to check that the subject is the address with permissions granted to it
-		if isLicense, err := t.identityController.IsDevLicense(c.Context(), *ethAddr); err != nil { // we also want to confirm the subj is a dev license
-			return fiber.NewError(fiber.StatusInternalServerError, err.Error())
-		} else if !isLicense {
-			return fiber.NewError(fiber.StatusForbidden, fmt.Sprintf("invalid requesting address: %s", *ethAddr))
-		}
-	}
-
 	for _, p := range pr.Privileges {
 		if p < 0 || p >= 128 {
 			return fiber.NewError(fiber.StatusBadRequest, fmt.Sprintf("Invalid permission id %d. These must be non-negative and less than 128.", p))
@@ -157,6 +139,11 @@ func (t *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.C
 		if !resSacd {
 			return fiber.NewError(fiber.StatusForbidden, fmt.Sprintf("Address %s lacks permission %d on token id %d for asset %s.", *ethAddr, p, pr.TokenID, nftAddr))
 		}
+	}
+
+	aud := pr.Audience
+	if len(aud) == 0 {
+		aud = defaultAudience
 	}
 
 	tk, err := t.dexService.SignPrivilegePayload(c.Context(), services.PrivilegeTokenDTO{
