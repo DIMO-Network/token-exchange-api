@@ -16,7 +16,6 @@ import (
 
 // MobileAppAudience Audience in DIMO mobile JWT
 const MobileAppAudience = "dimo-driver"
-const MobileAppDeveloperLicense = "0x" //TODO(ae)
 
 // NewDevLicenseValidator validates whether the jwt is coming from DIMO mobile or if it represents a valid developer license
 func NewDevLicenseValidator(settings *config.Settings, logger zerolog.Logger, idSvc services.IdentityService) fiber.Handler {
@@ -47,7 +46,6 @@ func NewDevLicenseValidator(settings *config.Settings, logger zerolog.Logger, id
 			return fiber.NewError(fiber.StatusBadRequest, "invalid type found in claim")
 		}
 
-		// TODO(ae) also check for mobile dev license?
 		if aud == MobileAppAudience {
 			return c.Next()
 		}

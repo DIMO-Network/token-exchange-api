@@ -41,19 +41,9 @@ const (
   				alias    
 			}
 	}`
-
-	queryDevLicenseByAlias = `query ($alias: String!) 
-	{
-		developerLicense( by: { alias: $alias }) 
-			{
-  				owner
-  				alias    
-			}
-	}`
 )
 
 // IsDevLicense checks whether the eth address represents a dev license client id
-// TODO(ae) should we (also) be checking by alias?
 func (i *IdentityController) IsDevLicense(ctx context.Context, ethAddr common.Address) (bool, error) {
 	requestBody := map[string]any{
 		"query": queryDevLicenseByClientId,
