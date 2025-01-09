@@ -51,7 +51,7 @@ func startWebAPI(ctx context.Context, logger zerolog.Logger, settings *config.Se
 	vtxController := vtx.NewTokenExchangeController(&logger, settings, dxS, userService, contractsMgr, contractsInit)
 	idSvc := services.NewIdentityController(&logger, settings)
 
-	devLicenseMiddleware := middleware.NewDevLicenseValidator(settings, logger, idSvc)
+	devLicenseMiddleware := middleware.NewDevLicenseValidator(logger, idSvc)
 
 	ctrAddressesWhitelist, err := getContractWhitelistedAddresses(settings.ContractAddressWhitelist)
 	if err != nil {
@@ -82,7 +82,6 @@ func startWebAPI(ctx context.Context, logger zerolog.Logger, settings *config.Se
 	sc := swagger.Config{}
 	app.Get("/v1/swagger/*", swagger.New(sc))
 
-	app.Use("*", devLicenseMiddleware)
 	jwtAuth := jwtware.New(jwtware.Config{
 		JWKSetURLs: []string{settings.JWKKeySetURL},
 	})
@@ -90,7 +89,7 @@ func startWebAPI(ctx context.Context, logger zerolog.Logger, settings *config.Se
 	// All api routes should be under v1
 	v1Route := app.Group("/v1")
 	// Token routes
-	tokenRoutes := v1Route.Group("/tokens", jwtAuth)
+	tokenRoutes := v1Route.Group("/tokens", jwtAuth, devLicenseMiddleware)
 	ctrWhitelistWare := mware.NewContractWhiteList(settings, logger, ctrAddressesWhitelist)
 
 	tokenRoutes.Post("/exchange", ctrWhitelistWare, vtxController.GetDeviceCommandPermissionWithScope)

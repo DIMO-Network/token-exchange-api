@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"encoding/base64"
 	"fmt"
+	"slices"
 	"strings"
 
-	"github.com/DIMO-Network/token-exchange-api/internal/config"
 	"github.com/DIMO-Network/token-exchange-api/internal/services"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/gofiber/fiber/v2"
@@ -14,39 +14,28 @@ import (
 	"github.com/rs/zerolog"
 )
 
-// MobileAppAudience Audience in DIMO mobile JWT
-const MobileAppAudience = "dimo-driver"
+// mobileAppAudience Audience in DIMO mobile JWT
+const mobileAppAudience = "dimo-driver"
 
 // NewDevLicenseValidator validates whether the jwt is coming from DIMO mobile or if it represents a valid developer license
-func NewDevLicenseValidator(settings *config.Settings, logger zerolog.Logger, idSvc services.IdentityService) fiber.Handler {
+func NewDevLicenseValidator(logger zerolog.Logger, idSvc services.IdentityService) fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		authHeader := c.Get("Authorization")
-		if !strings.HasPrefix(authHeader, "Bearer ") {
-			return fiber.NewError(fiber.StatusBadRequest, "invalid authorization header")
+		token, ok := c.Locals("user").(*jwt.Token)
+		if !ok {
+			return fiber.NewError(fiber.StatusBadRequest, "failed to pull token from request context")
 		}
 
-		tk := strings.TrimPrefix(authHeader, "Bearer ")
-		token, _, err := new(jwt.Parser).ParseUnverified(tk, jwt.MapClaims{})
+		subj, err := token.Claims.GetSubject()
 		if err != nil {
-			return fiber.NewError(fiber.StatusBadRequest, "invalid authorization token")
+			return fiber.NewError(fiber.StatusBadRequest, "failed to get subject from token claims")
 		}
 
-		claims, ok := token.Claims.(jwt.MapClaims)
-		if !ok {
-			return fiber.NewError(fiber.StatusBadRequest, "failed to parse claims")
+		aud, err := token.Claims.GetAudience()
+		if err != nil {
+			return fiber.NewError(fiber.StatusBadRequest, "failed to get audience from token claims")
 		}
 
-		subj, ok := claims["sub"].(string)
-		if !ok {
-			return fiber.NewError(fiber.StatusBadRequest, "invalid type in claim")
-		}
-
-		aud, ok := claims["aud"].(string)
-		if !ok {
-			return fiber.NewError(fiber.StatusBadRequest, "invalid type found in claim")
-		}
-
-		if aud == MobileAppAudience {
+		if slices.Contains(aud, mobileAppAudience) {
 			return c.Next()
 		}
 
@@ -67,8 +56,8 @@ func NewDevLicenseValidator(settings *config.Settings, logger zerolog.Logger, id
 		}
 
 		if valid {
-			if subject != aud {
-				logger.Debug().Str("subject", subject).Str("audience", aud).Msg("developer jwt sub and aud do not match")
+			if !slices.Contains(aud, subject) {
+				logger.Debug().Str("subject", subject).Any("aud", aud).Msg("developer jwt sub and aud do not match")
 			}
 			return c.Next()
 		}

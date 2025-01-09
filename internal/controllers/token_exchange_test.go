@@ -188,7 +188,7 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 }
 
 const (
-	developerAuthToken = `Bearer eyJhbGciOiJSUzI1NiIsImtpZCI6ImRkNTFkNDkwYjc1Y2VhOTNlMGI3YWI2YzcwODczNWVlN2FmZDBmMDgifQ.eyJpc3MiOiJodHRwczovL2F1dGguZGltby56b25lIiwicHJvdmlkZXJfaWQiOiJ3ZWIzIiwic3ViIjoiQ2lvd2VEWmxNMlk1Um1FME1VUTFOV1kzTWpZd05UQkRNelZsWVRaQlJtVmtOalZsTURZME1XSTVOVGNTQkhkbFlqTSIsImF1ZCI6IjB4NmUzZjlGYTQxRDU1ZjcyNjA1MEMzNWVhNkFGZWQ2NWUwNjQxYjk1NyIsImV4cCI6MTcyNDI0NDE3NCwiaWF0IjoxNzIzMDM0NTc0LCJhdF9oYXNoIjoiZVpzS2p5SzB0TGY2UkFNZkxKM1AydyIsImVtYWlsX3ZlcmlmaWVkIjpmYWxzZSwiZXRoZXJldW1fYWRkcmVzcyI6IjB4NmUzZjlGYTQxRDU1ZjcyNjA1MEMzNWVhNkFGZWQ2NWUwNjQxYjk1NyJ9.n7w63IvKTBqynVIggMCJAuty7P9nyCWugF0oxjipgzw9P7LvctzEXaheJmrWoP95QZJg9izaFWL2UoE4VpcnR4-_G6R2whZGV2aqlj8FQH1mQuznJZQyZUc6zKMi0wqedGEIYWBRI1zmXHy70_rXYnV4U4loPqKrXxXrhQ6oZWqCb9WxOdX5zf41LuYF6Ez2xk_jiciKxrvjoGtFsJK4fKhKRkzbO0i5IcdmQwrPEN75k8DxtYTHiYO8p_8BXY5Wej3lfEo6ZVtLumxfdkanILiOd-cY793Ru7sFvY6ObAsA9OLM-F1VmiRkCaHTaTK9t3DwPGmuDgduStFDLVX76Q`
+	developerAuthToken = `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2F1dGguZGltby56b25lIiwicHJvdmlkZXJfaWQiOiJ3ZWIzIiwic3ViIjoiQ2lvd2VEWTRSRFk0UWpVMVlqQm1ZekV4UmpSa01FUTVNVFF6TTBFM1JqWXlNVGRtTWtORFJEQXlaVE1TQkhkbFlqTSIsImF1ZCI6IjB4ZjVhZGE4OTBEQTJFNTU4MkUzOERGNDY0OEY5ZEFlRTAwZTY5MTE5OSIsImV4cCI6MTczNzU1NzAxMiwiaWF0IjoxNzM2MzQ3NDEyLCJhdF9oYXNoIjoiTFpleUlkdHNSdVFSNFB3MXBEdG5SQSIsImVtYWlsX3ZlcmlmaWVkIjpmYWxzZSwiZXRoZXJldW1fYWRkcmVzcyI6IjB4NjhENjhCNTViMGZjMTFGNGQwRDkxNDMzQTdGNjIxN2YyQ0NEMDJlMyJ9.u1WEj_OKcZPj3rgS_w7-VukB4dsxNMPVXa41oHnZWRw`
 	mobileAuthToken    = `Bearer eyJhbGciOiJSUzI1NiIsImtpZCI6ImE0YWFiMzgzNTZkOWVmYjUyY2Q3MjY0YmI4ZDc4ZTU4ZWQwODJlNWEifQ.eyJpc3MiOiJodHRwczovL2F1dGguZGltby56b25lIiwicHJvdmlkZXJfaWQiOiJ3ZWIzIiwic3ViIjoiQ2lvd2VHRTVNMkkzWW1NeFJUTTFOamcyTWpjNU5EZ3dORFpHTUdVME9EQTBRMk01UVdaRE1USTNOMlVTQkhkbFlqTSIsImF1ZCI6ImRpbW8tZHJpdmVyIiwiZXhwIjoxNzM3NTY2Mjk4LCJpYXQiOjE3MzYzNTY2OTgsImF0X2hhc2giOiJRcGJ0Zm1rMkVvUTAzMkFCS1VPZi13IiwiY19oYXNoIjoiN29RUmZoRi1meFAwQWNPbEE0N2ZJdyIsImVtYWlsX3ZlcmlmaWVkIjpmYWxzZSwiZXRoZXJldW1fYWRkcmVzcyI6IjB4YTkzYjdiYzFFMzU2ODYyNzk0ODA0NkYwZTQ4MDRDYzlBZkMxMjc3ZSJ9.yQmArmywbuZm2LvNSvmretbg18cfBZmqR7FBEtJJy47YuqasyiNCjtnb1MM2yTnk_DWnMfEvtbKX8wG3fVfv777lcmwXzZZqVbZ0R9ekUXxi3mvSvgPe82C1OIa-B1Tep6PweW0oqr5OU_L17yxBEpFJ8lRVBYdLCPScVCWFHovLFulG2uEGWheuNcjAKxuB1yGzqGMK7JlpgzKPgUSuRweL3sR6Z7WKrefaZiHNwmknOfuZHMHO0z4EbEnemYvH6uNaGDbExd3VbOOXjzAOQMDeuluftCLAWuq0xIu4uLHfeQvkVzjnq7rVEM6lTOSITIdeapP2IDEKDTJY5Tx0qg`
 )
 
@@ -221,21 +221,32 @@ func TestDevLicenseMiddleware_LoginWithDimo(t *testing.T) {
 			name:             "Developer license",
 			token:            developerAuthToken,
 			validDevLicense:  true,
-			developerLicense: common.HexToAddress("0x6e3f9Fa41D55f726050C35ea6AFed65e0641b957"),
+			developerLicense: common.HexToAddress("0x68D68B55b0fc11F4d0D91433A7F6217f2CCD02e3"),
 			expectedCode:     fiber.StatusOK,
 		},
 		{
 			name:             "Invalid developer license",
 			token:            developerAuthToken,
-			developerLicense: common.HexToAddress("0x6e3f9Fa41D55f726050C35ea6AFed65e0641b957"),
+			developerLicense: common.HexToAddress("0x68D68B55b0fc11F4d0D91433A7F6217f2CCD02e3"),
 			expectedCode:     fiber.StatusForbidden,
 		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			devLicenseMiddleware := middleware.NewDevLicenseValidator(&config.Settings{}, logger, idSvc)
+			devLicenseMiddleware := middleware.NewDevLicenseValidator(logger, idSvc)
 			app := fiber.New()
-			app.Get("/", devLicenseMiddleware, func(c *fiber.Ctx) error { return c.SendStatus(fiber.StatusOK) })
+			app.Get("/",
+				func(c *fiber.Ctx) error {
+					authHeader := c.Get("Authorization")
+					tk := strings.TrimPrefix(authHeader, "Bearer ")
+					token, _, _ := new(jwt.Parser).ParseUnverified(tk, jwt.MapClaims{})
+					c.Locals("user", token)
+					return c.Next()
+				},
+
+				devLicenseMiddleware,
+
+				func(c *fiber.Ctx) error { return c.SendStatus(fiber.StatusOK) })
 
 			if !tc.dimoMobile {
 				if tc.validDevLicense {
