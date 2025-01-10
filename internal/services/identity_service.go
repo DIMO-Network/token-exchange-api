@@ -13,11 +13,6 @@ import (
 	"github.com/rs/zerolog"
 )
 
-//go:generate mockgen -source identity_service.go -destination mocks/identity_service_mock.go
-type IdentityService interface {
-	IsDevLicense(ctx context.Context, ethAddr common.Address) (bool, error)
-}
-
 type IdentityController struct {
 	logger      *zerolog.Logger
 	client      *http.Client
@@ -33,7 +28,7 @@ func NewIdentityController(logger *zerolog.Logger, settings *config.Settings) *I
 }
 
 const (
-	queryDevLicenseByClientId = `query ($clientId: Address!) 
+	queryDevLicenseByClientID = `query ($clientId: Address!) 
 	{
 		developerLicense( by: { clientId: $clientId }) 
 			{
@@ -46,18 +41,18 @@ const (
 // IsDevLicense checks whether the eth address represents a dev license client id
 func (i *IdentityController) IsDevLicense(ctx context.Context, ethAddr common.Address) (bool, error) {
 	requestBody := map[string]any{
-		"query": queryDevLicenseByClientId,
+		"query": queryDevLicenseByClientID,
 		"variables": map[string]any{
 			"clientId": ethAddr.Hex(),
 		},
 	}
 
-	response, err := i.executeQuery(requestBody)
+	response, err := i.executeQuery(ctx, requestBody)
 	if err != nil {
 		return false, err
 	}
-
-	if len(response.Errors) > 1 {
+	fmt.Println(response)
+	if len(response.Errors) >= 1 {
 		return false, nil
 	}
 
@@ -65,13 +60,13 @@ func (i *IdentityController) IsDevLicense(ctx context.Context, ethAddr common.Ad
 
 }
 
-func (i *IdentityController) executeQuery(requestBody map[string]any) (*IdentityResponse, error) {
+func (i *IdentityController) executeQuery(ctx context.Context, requestBody map[string]any) (*IdentityResponse, error) {
 	jsonBody, err := json.Marshal(requestBody)
 	if err != nil {
 		return nil, err
 	}
 
-	req, err := http.NewRequest(http.MethodPost, i.identityURL, bytes.NewBuffer(jsonBody))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, i.identityURL, bytes.NewBuffer(jsonBody))
 	if err != nil {
 		return nil, fmt.Errorf("error creating request: %v", err)
 	}
@@ -83,35 +78,30 @@ func (i *IdentityController) executeQuery(requestBody map[string]any) (*Identity
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("invalid response from identity api %d", resp.StatusCode)
+	}
+
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("error reading response body: %v", err)
 	}
 
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("failed query response")
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("invalid response from identity api %d", resp.StatusCode)
-	}
-
 	var respBody IdentityResponse
 	if err := json.Unmarshal(body, &respBody); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal GraphQL response: %w", err)
+		return nil, fmt.Errorf("failed to unmarshal GraphQL response: %v", err)
 	}
 
 	return &respBody, nil
 }
 
 type DeveloperLicense struct {
-	Owner    string         `json:"owner"`
-	Alias    string         `json:"alias"`
-	ClientId common.Address `json:"clientId"`
+	Alias string         `json:"alias"`
+	Owner common.Address `json:"owner"`
 }
 
 type Data struct {
-	DeveloperLicense DeveloperLicense `json:"developerLicense"`
+	DeveloperLicense *DeveloperLicense `json:"developerLicense"`
 }
 
 type ErrorDetail struct {

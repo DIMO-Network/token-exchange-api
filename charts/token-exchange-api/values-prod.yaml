@@ -13,7 +13,8 @@ env:
   USERS_API_GRPC_ADDRESS: users-api-prod:8086
   CONTRACT_ADDRESS_WHITELIST: 0xba5738a18d83d41847dffbdc6101d37c69c9b0cf,0x3b07e2A2ABdd0A9B8F7878bdE6487c502164B9dd
   CONTRACT_ADDRESS_SACD: '0x3c152B5d96769661008Ff404224d6530FCAC766d'
-  IDENTITY_URL: 'https://identity-api.dimo.zone/query'
+  IDENTITY_URL: 'http://identity-api:8080/query'
+  DEV_LICENSE_VALIDATOR_FEATURE_FLAG: true
 resources:
   limits:
     cpu: 1
