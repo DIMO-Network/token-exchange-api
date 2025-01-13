@@ -60,6 +60,7 @@ func (i *IdentityController) IsDevLicense(ctx context.Context, ethAddr common.Ad
 		var errs []string
 		for _, e := range response.Errors {
 			if e.Message == fmt.Sprintf(DeveloperLicenseNotFoundErrMsg, ethAddr) {
+				i.logger.Info().Msg(e.Message)
 				return false, errors.New(e.Message)
 			}
 			errs = append(errs, e.Message)
