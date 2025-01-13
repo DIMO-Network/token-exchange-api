@@ -21,6 +21,8 @@ type IdentityController struct {
 	identityURL string
 }
 
+const DeveloperLicenseNotFoundErrMsg = "No developer license with client id %s."
+
 func NewIdentityController(logger *zerolog.Logger, settings *config.Settings) *IdentityController {
 	return &IdentityController{
 		logger:      logger,
@@ -57,6 +59,9 @@ func (i *IdentityController) IsDevLicense(ctx context.Context, ethAddr common.Ad
 	if len(response.Errors) >= 1 {
 		var errs []string
 		for _, e := range response.Errors {
+			if e.Message == fmt.Sprintf(DeveloperLicenseNotFoundErrMsg, ethAddr) {
+				return false, errors.New(e.Message)
+			}
 			errs = append(errs, e.Message)
 		}
 
