@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 
 	"github.com/DIMO-Network/token-exchange-api/internal/config"
 	"github.com/ethereum/go-ethereum/common"
@@ -51,9 +53,16 @@ func (i *IdentityController) IsDevLicense(ctx context.Context, ethAddr common.Ad
 	if err != nil {
 		return false, err
 	}
-	fmt.Println(response)
+
 	if len(response.Errors) >= 1 {
-		return false, nil
+		var errs []string
+		for _, e := range response.Errors {
+			errs = append(errs, e.Message)
+		}
+
+		errAll := errors.New(strings.Join(errs, ";"))
+		i.logger.Err(errAll).Msg("failed to fetch dev license from identity api")
+		return false, errAll
 	}
 
 	return true, nil
