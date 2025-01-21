@@ -83,13 +83,13 @@ func (i *IdentityController) executeQuery(ctx context.Context, requestBody map[s
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, i.identityURL, bytes.NewBuffer(jsonBody))
 	if err != nil {
-		return nil, fmt.Errorf("error creating request: %v", err)
+		return nil, fmt.Errorf("error creating request: %w", err)
 	}
 
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := i.client.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("graphql request failed making request: %v", err)
+		return nil, fmt.Errorf("graphql request failed making request: %w", err)
 	}
 	defer resp.Body.Close()
 
@@ -99,7 +99,7 @@ func (i *IdentityController) executeQuery(ctx context.Context, requestBody map[s
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("error reading response body: %v", err)
+		return nil, fmt.Errorf("error reading response body: %w", err)
 	}
 
 	var respBody IdentityResponse
