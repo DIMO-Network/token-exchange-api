@@ -10,6 +10,7 @@ import (
 	"syscall"
 
 	"github.com/DIMO-Network/token-exchange-api/internal/contracts"
+	"github.com/DIMO-Network/token-exchange-api/internal/middleware"
 	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/DIMO-Network/token-exchange-api/internal/api"
@@ -48,6 +49,9 @@ func startWebAPI(ctx context.Context, logger zerolog.Logger, settings *config.Se
 	contractsMgr := contracts.NewContractsManager()
 	contractsInit := contracts.NewContractsCallInitializer()
 	vtxController := vtx.NewTokenExchangeController(&logger, settings, dxS, userService, contractsMgr, contractsInit)
+	idSvc := services.NewIdentityController(&logger, settings)
+
+	devLicenseMiddleware := middleware.NewDevLicenseValidator(idSvc, logger)
 
 	ctrAddressesWhitelist, err := getContractWhitelistedAddresses(settings.ContractAddressWhitelist)
 	if err != nil {
@@ -82,10 +86,15 @@ func startWebAPI(ctx context.Context, logger zerolog.Logger, settings *config.Se
 		JWKSetURLs: []string{settings.JWKKeySetURL},
 	})
 
+	handlers := []fiber.Handler{jwtAuth}
+	if settings.DevLiscFeatureFlag {
+		handlers = append(handlers, devLicenseMiddleware)
+	}
+
 	// All api routes should be under v1
 	v1Route := app.Group("/v1")
 	// Token routes
-	tokenRoutes := v1Route.Group("/tokens", jwtAuth)
+	tokenRoutes := v1Route.Group("/tokens", handlers...)
 	ctrWhitelistWare := mware.NewContractWhiteList(settings, logger, ctrAddressesWhitelist)
 
 	tokenRoutes.Post("/exchange", ctrWhitelistWare, vtxController.GetDeviceCommandPermissionWithScope)

@@ -13,4 +13,6 @@ type Settings struct {
 	UsersAPIGRPCAddress      string `yaml:"USERS_API_GRPC_ADDRESS"`
 	ContractAddressWhitelist string `yaml:"CONTRACT_ADDRESS_WHITELIST"`
 	ContractAddressSacd      string `yaml:"CONTRACT_ADDRESS_SACD"`
+	IdentityURL              string `yaml:"IDENTITY_URL"`
+	DevLiscFeatureFlag       bool   `yaml:"DEV_LICENSE_VALIDATOR_FEATURE_FLAG"`
 }
