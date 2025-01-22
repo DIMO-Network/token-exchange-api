@@ -21,7 +21,7 @@ type IdentityController struct {
 	identityURL string
 }
 
-const DeveloperLicenseNotFoundErrMsg = "No developer license with client id %s."
+const IdentityAPINotFoundError = "NOT_FOUND"
 
 func NewIdentityController(logger *zerolog.Logger, settings *config.Settings) *IdentityController {
 	return &IdentityController{
@@ -37,7 +37,6 @@ const (
 		developerLicense( by: { clientId: $clientId }) 
 			{
   				owner
-  				alias    
 			}
 	}`
 )
@@ -59,13 +58,12 @@ func (i *IdentityController) IsDevLicense(ctx context.Context, ethAddr common.Ad
 	if len(response.Errors) >= 1 {
 		var errs []string
 		for _, e := range response.Errors {
-			if e.Message == fmt.Sprintf(DeveloperLicenseNotFoundErrMsg, ethAddr) {
+			if e.Extensions.Code == IdentityAPINotFoundError {
 				i.logger.Info().Msg(e.Message)
 				return false, errors.New(e.Message)
 			}
 			errs = append(errs, e.Message)
 		}
-
 		errAll := errors.New(strings.Join(errs, ";"))
 		i.logger.Err(errAll).Msg("failed to fetch dev license from identity api")
 		return false, errAll
@@ -111,7 +109,6 @@ func (i *IdentityController) executeQuery(ctx context.Context, requestBody map[s
 }
 
 type DeveloperLicense struct {
-	Alias string         `json:"alias"`
 	Owner common.Address `json:"owner"`
 }
 
@@ -120,7 +117,11 @@ type Data struct {
 }
 
 type ErrorDetail struct {
-	Message string `json:"message"`
+	Message    string   `json:"message"`
+	Path       []string `json:"path"`
+	Extensions struct {
+		Code string `json:"code"`
+	} `json:"extensions"`
 }
 
 type IdentityResponse struct {
