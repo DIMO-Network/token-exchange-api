@@ -60,13 +60,18 @@ func (i *IdentityController) IsDevLicense(ctx context.Context, ethAddr common.Ad
 		for _, e := range response.Errors {
 			if e.Extensions.Code == IdentityAPINotFoundError {
 				i.logger.Info().Msg(e.Message)
-				return false, errors.New(e.Message)
+				continue
 			}
 			errs = append(errs, e.Message)
 		}
-		errAll := errors.New(strings.Join(errs, ";"))
-		i.logger.Err(errAll).Msg("failed to fetch dev license from identity api")
-		return false, errAll
+
+		if len(errs) > 0 {
+			errAll := errors.New(strings.Join(errs, ";"))
+			i.logger.Err(errAll).Msg("failed to fetch dev license from identity api")
+			return false, errAll
+		}
+
+		return false, nil
 	}
 
 	return true, nil
