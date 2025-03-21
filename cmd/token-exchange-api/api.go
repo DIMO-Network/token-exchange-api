@@ -9,15 +9,14 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/DIMO-Network/token-exchange-api/internal/contracts"
-	"github.com/DIMO-Network/token-exchange-api/internal/middleware"
-	"github.com/ethereum/go-ethereum/common"
-
 	"github.com/DIMO-Network/token-exchange-api/internal/api"
 	"github.com/DIMO-Network/token-exchange-api/internal/config"
+	"github.com/DIMO-Network/token-exchange-api/internal/contracts"
 	vtx "github.com/DIMO-Network/token-exchange-api/internal/controllers"
-	mware "github.com/DIMO-Network/token-exchange-api/internal/middleware"
+	"github.com/DIMO-Network/token-exchange-api/internal/middleware"
 	"github.com/DIMO-Network/token-exchange-api/internal/services"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient"
 	jwtware "github.com/gofiber/contrib/jwt"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/adaptor"
@@ -47,8 +46,13 @@ func startWebAPI(ctx context.Context, logger zerolog.Logger, settings *config.Se
 	dxS := services.NewDexService(&logger, settings)
 	userService := services.NewUsersService(&logger, settings)
 	contractsMgr := contracts.NewContractsManager()
-	contractsInit := contracts.NewContractsCallInitializer()
-	vtxController := vtx.NewTokenExchangeController(&logger, settings, dxS, userService, contractsMgr, contractsInit)
+
+	ethClient, err := ethclient.Dial(settings.BlockchainNodeURL)
+	if err != nil {
+		logger.Fatal().Err(err).Msg("Failed to dial Ethereum RPC.")
+	}
+
+	vtxController := vtx.NewTokenExchangeController(&logger, settings, dxS, userService, contractsMgr, ethClient)
 	idSvc := services.NewIdentityController(&logger, settings)
 
 	devLicenseMiddleware := middleware.NewDevLicenseValidator(idSvc, logger)
@@ -95,7 +99,7 @@ func startWebAPI(ctx context.Context, logger zerolog.Logger, settings *config.Se
 	v1Route := app.Group("/v1")
 	// Token routes
 	tokenRoutes := v1Route.Group("/tokens", handlers...)
-	ctrWhitelistWare := mware.NewContractWhiteList(settings, logger, ctrAddressesWhitelist)
+	ctrWhitelistWare := middleware.NewContractWhiteList(settings, logger, ctrAddressesWhitelist)
 
 	tokenRoutes.Post("/exchange", ctrWhitelistWare, vtxController.GetDeviceCommandPermissionWithScope)
 
