@@ -5,12 +5,12 @@ import (
 	"math/big"
 	"strconv"
 
-	"github.com/ethereum/go-ethereum/common"
-
 	"github.com/DIMO-Network/token-exchange-api/internal/api"
 	"github.com/DIMO-Network/token-exchange-api/internal/config"
 	"github.com/DIMO-Network/token-exchange-api/internal/contracts"
 	"github.com/DIMO-Network/token-exchange-api/internal/services"
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/gofiber/fiber/v2"
 	"github.com/rs/zerolog"
 )
@@ -23,7 +23,7 @@ type TokenExchangeController struct {
 	dexService   services.DexService
 	usersService services.UsersService
 	ctmr         contracts.Manager
-	ctinit       contracts.ContractCallInitializer
+	ethClient    bind.ContractBackend
 }
 
 type PermissionTokenRequest struct {
@@ -44,14 +44,14 @@ type PermissionTokenResponse struct {
 }
 
 func NewTokenExchangeController(logger *zerolog.Logger, settings *config.Settings, dexService services.DexService,
-	usersService services.UsersService, contractsMgr contracts.Manager, contractsInit contracts.ContractCallInitializer) *TokenExchangeController {
+	usersService services.UsersService, contractsMgr contracts.Manager, ethClient bind.ContractBackend) *TokenExchangeController {
 	return &TokenExchangeController{
 		logger:       logger,
 		settings:     settings,
 		dexService:   dexService,
 		usersService: usersService,
 		ctmr:         contractsMgr,
-		ctinit:       contractsInit,
+		ethClient:    ethClient,
 	}
 }
 
@@ -83,19 +83,13 @@ func (t *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.C
 		return fiber.NewError(fiber.StatusBadRequest, "Please provide at least one privilege.")
 	}
 
-	// Contract address has been validated in the middleware
-	// TODO(elffjs): Stop constructing these every darned time.
-	client, err := t.ctinit.InitContractCall(t.settings.BlockchainNodeURL)
+	// TODO(elffjs): If the whitelist is going to stick around, then we can probably pre-construct these.
+	m, err := t.ctmr.GetMultiPrivilege(nftAddr.Hex(), t.ethClient)
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Could not connect to blockchain node")
 	}
 
-	m, err := t.ctmr.GetMultiPrivilege(nftAddr.Hex(), client)
-	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, "Could not connect to blockchain node")
-	}
-
-	s, err := t.ctmr.GetSacd(t.settings.ContractAddressSacd, client)
+	s, err := t.ctmr.GetSacd(t.settings.ContractAddressSacd, t.ethClient)
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Could not connect to blockchain node")
 	}

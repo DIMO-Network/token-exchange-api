@@ -43,16 +43,18 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 	dexService := mock_services.NewMockDexService(mockCtrl)
 	usersSvc := mock_services.NewMockUsersService(mockCtrl)
 	contractsMgr := mock_contracts.NewMockManager(mockCtrl)
-	contractsInit := mock_contracts.NewMockContractCallInitializer(mockCtrl)
 	mockMultiPriv := mock_contracts.NewMockMultiPriv(mockCtrl)
 	mockSacd := mock_contracts.NewMockSacd(mockCtrl)
+
+	// This never gets called.
+	client := ethclient.Client{}
 
 	// setup app and route req
 	c := NewTokenExchangeController(&logger, &config.Settings{
 		BlockchainNodeURL:        "http://testurl.com/mock",
 		ContractAddressWhitelist: "",
 		ContractAddressSacd:      "0xa6",
-	}, dexService, usersSvc, contractsMgr, contractsInit)
+	}, dexService, usersSvc, contractsMgr, &client)
 	userEthAddr := common.HexToAddress("0x20Ca3bE69a8B95D3093383375F0473A8c6341727")
 
 	tests := []struct {
@@ -170,8 +172,6 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 
 			// setup mock expectations
 			tc.mockSetup()
-			client := ethclient.Client{}
-			contractsInit.EXPECT().InitContractCall("http://testurl.com/mock").Return(&client, nil)
 
 			contractsMgr.EXPECT().GetMultiPrivilege(tc.permissionTokenRequest.NFTContractAddress, &client).Return(mockMultiPriv, nil)
 			contractsMgr.EXPECT().GetSacd(c.settings.ContractAddressSacd, &client).Return(mockSacd, nil)
