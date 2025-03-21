@@ -9,16 +9,14 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/DIMO-Network/token-exchange-api/internal/contracts"
-	"github.com/DIMO-Network/token-exchange-api/internal/middleware"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/ethclient"
-
 	"github.com/DIMO-Network/token-exchange-api/internal/api"
 	"github.com/DIMO-Network/token-exchange-api/internal/config"
+	"github.com/DIMO-Network/token-exchange-api/internal/contracts"
 	vtx "github.com/DIMO-Network/token-exchange-api/internal/controllers"
-	mware "github.com/DIMO-Network/token-exchange-api/internal/middleware"
+	"github.com/DIMO-Network/token-exchange-api/internal/middleware"
 	"github.com/DIMO-Network/token-exchange-api/internal/services"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient"
 	jwtware "github.com/gofiber/contrib/jwt"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/adaptor"
@@ -101,7 +99,7 @@ func startWebAPI(ctx context.Context, logger zerolog.Logger, settings *config.Se
 	v1Route := app.Group("/v1")
 	// Token routes
 	tokenRoutes := v1Route.Group("/tokens", handlers...)
-	ctrWhitelistWare := mware.NewContractWhiteList(settings, logger, ctrAddressesWhitelist)
+	ctrWhitelistWare := middleware.NewContractWhiteList(settings, logger, ctrAddressesWhitelist)
 
 	tokenRoutes.Post("/exchange", ctrWhitelistWare, vtxController.GetDeviceCommandPermissionWithScope)
 
