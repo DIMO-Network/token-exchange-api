@@ -43,7 +43,7 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 	dexService := mock_services.NewMockDexService(mockCtrl)
 	usersSvc := mock_services.NewMockUsersService(mockCtrl)
 	contractsMgr := mock_contracts.NewMockManager(mockCtrl)
-	mockMultiPriv := mock_contracts.NewMockMultiPriv(mockCtrl)
+	_ = mock_contracts.NewMockMultiPriv(mockCtrl)
 	mockSacd := mock_contracts.NewMockSacd(mockCtrl)
 
 	// This never gets called.
@@ -78,6 +78,8 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
 			},
 			mockSetup: func() {
+				contractsMgr.EXPECT().GetSacd(c.settings.ContractAddressSacd, &client).Return(mockSacd, nil)
+
 				dexService.EXPECT().SignPrivilegePayload(gomock.Any(), services.PrivilegeTokenDTO{
 					UserEthAddress:     userEthAddr.Hex(),
 					TokenID:            strconv.FormatInt(123, 10),
@@ -85,8 +87,7 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 					NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
 					Audience:           defaultAudience,
 				}).Return("jwt", nil)
-				mockMultiPriv.EXPECT().HasPrivilege(nil, big.NewInt(123), big.NewInt(4), userEthAddr).
-					Return(true, nil)
+				mockSacd.EXPECT().GetPermissions(nil, common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr, big.NewInt(0b1100000000)).Return(big.NewInt(0b1100000000), nil)
 			},
 			expectedCode: fiber.StatusOK,
 		},
@@ -103,6 +104,8 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
 			},
 			mockSetup: func() {
+				contractsMgr.EXPECT().GetSacd(c.settings.ContractAddressSacd, &client).Return(mockSacd, nil)
+
 				dexService.EXPECT().SignPrivilegePayload(gomock.Any(), services.PrivilegeTokenDTO{
 					UserEthAddress:     userEthAddr.Hex(),
 					TokenID:            strconv.FormatInt(123, 10),
@@ -110,8 +113,7 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 					NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
 					Audience:           defaultAudience,
 				}).Return("jwt", nil)
-				mockMultiPriv.EXPECT().HasPrivilege(nil, big.NewInt(123), big.NewInt(4), userEthAddr).
-					Return(true, nil)
+				mockSacd.EXPECT().GetPermissions(nil, common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr, big.NewInt(0b1100000000)).Return(big.NewInt(0b1100000000), nil)
 				e := userEthAddr.Hex()
 				usersSvc.EXPECT().GetUserByID(gomock.Any(), "user-id-123").Return(&grpc.User{
 					EthereumAddress: &e,
@@ -134,6 +136,7 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 				Audience:           []string{"my-app", "foo"},
 			},
 			mockSetup: func() {
+				contractsMgr.EXPECT().GetSacd(c.settings.ContractAddressSacd, &client).Return(mockSacd, nil)
 				dexService.EXPECT().SignPrivilegePayload(gomock.Any(), services.PrivilegeTokenDTO{
 					UserEthAddress:     userEthAddr.Hex(),
 					TokenID:            strconv.FormatInt(123, 10),
@@ -141,8 +144,7 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 					NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
 					Audience:           []string{"my-app", "foo"},
 				}).Return("jwt", nil)
-				mockMultiPriv.EXPECT().HasPrivilege(nil, big.NewInt(123), big.NewInt(4), userEthAddr).
-					Return(true, nil)
+				mockSacd.EXPECT().GetPermissions(nil, common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr, big.NewInt(0b1100000000)).Return(big.NewInt(0b1100000000), nil)
 			},
 			expectedCode: fiber.StatusOK,
 		},
@@ -172,9 +174,6 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 
 			// setup mock expectations
 			tc.mockSetup()
-
-			contractsMgr.EXPECT().GetMultiPrivilege(tc.permissionTokenRequest.NFTContractAddress, &client).Return(mockMultiPriv, nil)
-			contractsMgr.EXPECT().GetSacd(c.settings.ContractAddressSacd, &client).Return(mockSacd, nil)
 
 			request := buildRequest("POST", "/tokens/exchange", string(jsonBytes))
 			response, err := app.Test(request)
