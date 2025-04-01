@@ -31,7 +31,7 @@ func NewUsersService(log *zerolog.Logger, settings *config.Settings) UsersServic
 }
 
 func (u *usersService) getUsersServiceGrpcConnection() (pb.UserServiceClient, *grpc.ClientConn, error) {
-	conn, err := grpc.Dial(u.usersGRPCAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.NewClient(u.usersGRPCAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return nil, conn, err
 	}

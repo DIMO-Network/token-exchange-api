@@ -83,17 +83,6 @@ func (t *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.C
 		return fiber.NewError(fiber.StatusBadRequest, "Please provide at least one privilege.")
 	}
 
-	// TODO(elffjs): If the whitelist is going to stick around, then we can probably pre-construct these.
-	m, err := t.ctmr.GetMultiPrivilege(nftAddr.Hex(), t.ethClient)
-	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, "Could not connect to blockchain node")
-	}
-
-	s, err := t.ctmr.GetSacd(t.settings.ContractAddressSacd, t.ethClient)
-	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, "Could not connect to blockchain node")
-	}
-
 	ethAddr := api.GetUserEthAddr(c)
 	if ethAddr == nil {
 		// If eth addr not in JWT, use userID to fetch user
@@ -110,28 +99,54 @@ func (t *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.C
 		ethAddr = &e
 	}
 
+	// TODO(elffjs): Still silly to create this every time.
+	s, err := t.ctmr.GetSacd(t.settings.ContractAddressSacd, t.ethClient)
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, "Could not connect to blockchain node")
+	}
+
+	mask := big.NewInt(0)
+
 	for _, p := range pr.Privileges {
 		if p < 0 || p >= 128 {
 			return fiber.NewError(fiber.StatusBadRequest, fmt.Sprintf("Invalid permission id %d. These must be non-negative and less than 128.", p))
 		}
 
-		resMulti, err := m.HasPrivilege(nil, big.NewInt(pr.TokenID), big.NewInt(p), *ethAddr)
+		mask.SetBit(mask, 2*int(p), 1)
+		mask.SetBit(mask, 2*int(p)+1, 1)
+	}
+
+	ret, err := s.GetPermissions(nil, nftAddr, big.NewInt(pr.TokenID), *ethAddr, mask)
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+	}
+
+	// Collecting these because in the future we'd like to list all of them.
+	var lack []int64
+
+	for _, p := range pr.Privileges {
+		if ret.Bit(2*int(p)) != 1 || ret.Bit(2*int(p)+1) != 1 {
+			lack = append(lack, p)
+		}
+	}
+
+	if len(lack) != 0 {
+		// Fall back to checking old-style privileges.
+		// TODO(elffjs): If the whitelist is going to stick around, then we can probably pre-construct these.
+		m, err := t.ctmr.GetMultiPrivilege(nftAddr.Hex(), t.ethClient)
 		if err != nil {
-			return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+			return fiber.NewError(fiber.StatusInternalServerError, "Could not connect to blockchain node")
 		}
 
-		if resMulti {
-			continue
-		}
+		for _, p := range pr.Privileges {
+			hasPriv, err := m.HasPrivilege(nil, big.NewInt(pr.TokenID), big.NewInt(p), *ethAddr)
+			if err != nil {
+				return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+			}
 
-		// TODO(elffjs): Get this down to one call.
-		resSacd, err := s.HasPermission(nil, nftAddr, big.NewInt(pr.TokenID), *ethAddr, uint8(p))
-		if err != nil {
-			return fiber.NewError(fiber.StatusInternalServerError, err.Error())
-		}
-
-		if !resSacd {
-			return fiber.NewError(fiber.StatusForbidden, fmt.Sprintf("Address %s lacks permission %d on token id %d for asset %s.", *ethAddr, p, pr.TokenID, nftAddr))
+			if !hasPriv {
+				return fiber.NewError(fiber.StatusBadRequest, fmt.Sprintf("Address %s lacks permission %d on token id %d for asset %s.", ethAddr.Hex(), p, pr.TokenID, nftAddr))
+			}
 		}
 	}
 
