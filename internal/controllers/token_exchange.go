@@ -99,6 +99,7 @@ func (t *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.C
 		ethAddr = &e
 	}
 
+	// TODO(elffjs): Still silly to create this every time.
 	s, err := t.ctmr.GetSacd(t.settings.ContractAddressSacd, t.ethClient)
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Could not connect to blockchain node")
