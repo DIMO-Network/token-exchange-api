@@ -60,8 +60,9 @@ type PermissionRecord struct {
 		} `json:"grantee"`
 		EffectiveAt time.Time `json:"effectiveAt"`
 		ExpiresAt   time.Time `json:"expiresAt"`
-		Agreement   []struct {
+		Agreements  []struct {
 			Type        string `json:"type"`
+			Asset       string `json:"asset"`
 			Permissions []struct {
 				Name string `json:"name"`
 			} `json:"permissions"`
@@ -137,12 +138,12 @@ func (t *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.C
 	}
 
 	// Fetch the JSON content from IPFS
-	jsonContent, err := t.fetchFromIPFS(resPermRecord.Source)
+	sacdDoc, err := t.fetchFromIPFS(resPermRecord.Source)
 	if err != nil {
 		t.logger.Warn().Err(err).Msg("Failed to fetch JSON from IPFS")
 		// Proceed with other checks if IPFS fetch fails
 	} else {
-		hasPermFromSacdDoc, err := t.checkPermissionsFromSacdDoc(jsonContent, pr.Privileges, ethAddr.Hex())
+		hasPermFromSacdDoc, err := t.checkPermissionsFromSacdDoc(sacdDoc, pr, ethAddr.Hex())
 		if err != nil {
 			t.logger.Warn().Err(err).Msg("Failed to validate IPFS JSON")
 		} else if hasPermFromSacdDoc {
@@ -256,9 +257,9 @@ func (t *TokenExchangeController) fetchFromIPFS(cid string) (string, error) {
 	return string(body), nil
 }
 
-func (t *TokenExchangeController) checkPermissionsFromSacdDoc(jsonSource string, requestedPrivileges []int64, granteeAddress string) (bool, error) {
+func (t *TokenExchangeController) checkPermissionsFromSacdDoc(sacdDoc string, req *PermissionTokenRequest, granteeAddress string) (bool, error) {
 	var record PermissionRecord
-	if err := json.Unmarshal([]byte(jsonSource), &record); err != nil {
+	if err := json.Unmarshal([]byte(sacdDoc), &record); err != nil {
 		return false, fmt.Errorf("invalid JSON format: %w", err)
 	}
 
@@ -275,15 +276,18 @@ func (t *TokenExchangeController) checkPermissionsFromSacdDoc(jsonSource string,
 		return false, fmt.Errorf("grantee address mismatch")
 	}
 
-	// TODO Validate asset "did:nft:137:0x3330000000000000000000000000000000000000_31415"
-
-	// TODO I can have a list of permissions, how to choose the right one?
 	// Check permissions
 	userPermissions := make(map[string]bool)
-	for _, agreement := range record.Data.Agreement {
-		// Check agreement type
+	for _, agreement := range record.Data.Agreements {
+		// Skip non permission types
 		if agreement.Type != "permissions" {
-			return false, fmt.Errorf("invalid agreement type: expected 'permissions', got '%s'", agreement.Type)
+			continue
+		}
+
+		// Validate the asset DID if it exists in the record
+		valid, err := t.validateAssetDID(agreement.Asset, req)
+		if err != nil || !valid {
+			continue
 		}
 
 		// Add permissions from this agreement
@@ -292,13 +296,7 @@ func (t *TokenExchangeController) checkPermissionsFromSacdDoc(jsonSource string,
 		}
 	}
 
-	// Check if the user has all the requested privileges
-	for _, priv := range requestedPrivileges {
-		permName := fmt.Sprintf("permission%d", priv)
-		if !userPermissions[permName] {
-			return false, fmt.Errorf("user lacks required permission: %s", permName)
-		}
-	}
+	// TODO Check which permissions the user lacks
 
 	return true, nil
 }
@@ -314,4 +312,74 @@ func intArrayTo2BitArray(indices []int64, length int) *big.Int {
 	}
 
 	return bitArray
+}
+
+// TODO Documentation
+func (t *TokenExchangeController) validateAssetDID(did string, req *PermissionTokenRequest) (bool, error) {
+	decodedDID, err := DecodeNFTDID(did)
+	if err != nil {
+		return false, fmt.Errorf("failed to decode DID: %w", err)
+	}
+
+	requestNFTAddr := common.HexToAddress(req.NFTContractAddress)
+
+	if decodedDID.ContractAddress != requestNFTAddr {
+		return false, fmt.Errorf("DID contract address %s does not match request contract address %s",
+			decodedDID.ContractAddress.Hex(), requestNFTAddr.Hex())
+	}
+
+	if int64(decodedDID.TokenID) != req.TokenID {
+		return false, fmt.Errorf("DID token ID %d does not match request token ID %d",
+			decodedDID.TokenID, req.TokenID)
+	}
+
+	// If we get here, the DID is valid for the given request
+	return true, nil
+}
+
+type DID struct {
+	Type            string         `json:"type"`
+	ChainID         uint64         `json:"chainId"`
+	ContractAddress common.Address `json:"contract"`
+	TokenID         uint32         `json:"tokenId"` // TODO Should it be big.int?
+}
+
+// TODO Remove it to use cloudevent repo
+func DecodeNFTDID(did string) (DID, error) {
+	var errInvalidDID = fmt.Errorf("invalid DID")
+
+	// sample did "did:nft:1:0xbA5738a18d83D41847dfFbDC6101d37C69c9B0cF_1"
+	parts := strings.Split(did, ":")
+	if len(parts) != 4 {
+		return DID{}, errInvalidDID
+	}
+	if parts[0] != "did" {
+		return DID{}, fmt.Errorf("%w, incorrect DID prefix %s", errInvalidDID, parts[0])
+	}
+	if parts[1] != "nft" {
+		return DID{}, fmt.Errorf("%w, incorrect DID method %s", errInvalidDID, parts[1])
+	}
+	nftParts := strings.Split(parts[3], "_")
+	if len(nftParts) != 2 {
+		return DID{}, fmt.Errorf("%w, incorrect NFT format %s", errInvalidDID, parts[3])
+	}
+	tokenID, err := strconv.ParseUint(nftParts[1], 10, 32)
+	if err != nil {
+		return DID{}, fmt.Errorf("%w, invalid token ID %s", errInvalidDID, nftParts[1])
+	}
+	addrBytes := nftParts[0]
+	if !common.IsHexAddress(addrBytes) {
+		return DID{}, fmt.Errorf("%w, invalid contract address %s", errInvalidDID, addrBytes)
+	}
+	chainID, err := strconv.ParseUint(parts[2], 10, 32)
+	if err != nil {
+		return DID{}, fmt.Errorf("%w, invalid chain ID %s", errInvalidDID, parts[2])
+	}
+
+	return DID{
+		Type:            parts[1],
+		ChainID:         chainID,
+		ContractAddress: common.HexToAddress(addrBytes),
+		TokenID:         uint32(tokenID),
+	}, nil
 }
