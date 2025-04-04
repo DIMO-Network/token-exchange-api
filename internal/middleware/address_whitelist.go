@@ -2,12 +2,12 @@ package middleware
 
 import (
 	"regexp"
+	"slices"
 
 	"github.com/DIMO-Network/token-exchange-api/internal/config"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/gofiber/fiber/v2"
 	"github.com/rs/zerolog"
-	"golang.org/x/exp/slices"
 )
 
 // ReqBody is controllers.PermissionTokenRequest with the only field

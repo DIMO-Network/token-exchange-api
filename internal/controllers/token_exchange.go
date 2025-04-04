@@ -110,17 +110,6 @@ func (t *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.C
 		return fiber.NewError(fiber.StatusBadRequest, "Please provide at least one privilege.")
 	}
 
-	// TODO(elffjs): If the whitelist is going to stick around, then we can probably pre-construct these.
-	m, err := t.ctmr.GetMultiPrivilege(nftAddr.Hex(), t.ethClient)
-	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, "Could not connect to blockchain node")
-	}
-
-	s, err := t.ctmr.GetSacd(t.settings.ContractAddressSacd, t.ethClient)
-	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, "Could not connect to blockchain node")
-	}
-
 	ethAddr := api.GetUserEthAddr(c)
 	if ethAddr == nil {
 		// If eth addr not in JWT, use userID to fetch user
@@ -137,52 +126,70 @@ func (t *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.C
 		ethAddr = &e
 	}
 
-	resPermRecord, err := s.CurrentPermissionRecord(nil, nftAddr, big.NewInt(pr.TokenID), *ethAddr)
+	// If the user doesn't have all permissions in SACD, check the old privilege system
+	// TODO(elffjs): Still silly to create this every time.
+	s, err := t.ctmr.GetSacd(t.settings.ContractAddressSacd, t.ethClient)
 	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+		return fiber.NewError(fiber.StatusInternalServerError, "Could not connect to blockchain node")
 	}
 
-	// Fetch the JSON content from IPFS
-	sacdDoc, err := t.fetchFromIPFS(resPermRecord.Source)
-	if err != nil {
-		t.logger.Warn().Err(err).Msg("Failed to fetch JSON from IPFS")
-		// Proceed with other checks if IPFS fetch fails
-	} else {
-		hasPermFromSacdDoc, err := t.checkPermissionsFromSacdDoc(sacdDoc, pr, ethAddr.Hex())
-		if err != nil {
-			t.logger.Warn().Err(err).Msg("Failed to validate IPFS JSON")
-		} else if hasPermFromSacdDoc {
-			return t.createAndReturnToken(c, pr, ethAddr)
-		}
-	}
+	// resPermRecord, err := s.CurrentPermissionRecord(nil, nftAddr, big.NewInt(pr.TokenID), *ethAddr)
+	// if err != nil {
+	// 	return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+	// }
+
+	// // Fetch the JSON content from IPFS
+	// sacdDoc, err := t.fetchFromIPFS(resPermRecord.Source)
+	// if err != nil {
+	// 	t.logger.Warn().Err(err).Msg("Failed to fetch JSON from IPFS")
+	// 	// Proceed with other checks if IPFS fetch fails
+	// } else {
+	// 	hasPermFromSacdDoc, err := t.checkPermissionsFromSacdDoc(sacdDoc, pr, ethAddr.Hex())
+	// 	if err != nil {
+	// 		t.logger.Warn().Err(err).Msg("Failed to validate IPFS JSON")
+	// 	} else if hasPermFromSacdDoc {
+	// 		return t.createAndReturnToken(c, pr, ethAddr)
+	// 	}
+	// }
 
 	// If the user doesn't have all permissions from IPFS doc, check bitstring
 	// Convert pr.Privileges to 2-bit array format
-	privilegesBitArray := intArrayTo2BitArray(pr.Privileges, 128) // Assuming max privilege is 128
-
-	hasPerm, err := s.HasPermissions(nil, nftAddr, big.NewInt(pr.TokenID), *ethAddr, privilegesBitArray)
+	mask, err := intArrayTo2BitArray(pr.Privileges, 128) // Assuming max privilege is 128
 	if err != nil {
-		// TODO should we just log it?
+		fiber.NewError(fiber.StatusBadRequest, err.Error())
+	}
+
+	ret, err := s.GetPermissions(nil, nftAddr, big.NewInt(pr.TokenID), *ethAddr, mask)
+	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 	}
 
-	if hasPerm {
-		return t.createAndReturnToken(c, pr, ethAddr)
+	// Collecting these because in the future we'd like to list all of them.
+	var lack []int64
+
+	for _, p := range pr.Privileges {
+		if ret.Bit(2*int(p)) != 1 || ret.Bit(2*int(p)+1) != 1 {
+			lack = append(lack, p)
+		}
 	}
 
-	// If the user doesn't have all permissions in SACD, check the old privilege system
-	for _, p := range pr.Privileges {
-		if p < 0 || p >= 128 {
-			return fiber.NewError(fiber.StatusBadRequest, fmt.Sprintf("Invalid permission id %d. These must be non-negative and less than 128.", p))
-		}
-
-		resMulti, err := m.HasPrivilege(nil, big.NewInt(pr.TokenID), big.NewInt(p), *ethAddr)
+	if len(lack) != 0 {
+		// Fall back to checking old-style privileges.
+		// TODO(elffjs): If the whitelist is going to stick around, then we can probably pre-construct these.
+		m, err := t.ctmr.GetMultiPrivilege(nftAddr.Hex(), t.ethClient)
 		if err != nil {
-			return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+			return fiber.NewError(fiber.StatusInternalServerError, "Could not connect to blockchain node")
 		}
 
-		if !resMulti {
-			return fiber.NewError(fiber.StatusForbidden, fmt.Sprintf("Address %s lacks permission %d on token id %d for asset %s.", *ethAddr, p, pr.TokenID, nftAddr))
+		for _, p := range pr.Privileges {
+			hasPriv, err := m.HasPrivilege(nil, big.NewInt(pr.TokenID), big.NewInt(p), *ethAddr)
+			if err != nil {
+				return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+			}
+
+			if !hasPriv {
+				return fiber.NewError(fiber.StatusBadRequest, fmt.Sprintf("Address %s lacks permission %d on token id %d for asset %s.", ethAddr.Hex(), p, pr.TokenID, nftAddr))
+			}
 		}
 	}
 
@@ -277,17 +284,18 @@ func (t *TokenExchangeController) checkPermissionsFromSacdDoc(sacdDoc string, re
 	return true, nil
 }
 
-func intArrayTo2BitArray(indices []int64, length int) *big.Int {
-	bitArray := big.NewInt(0)
+func intArrayTo2BitArray(indices []int64, length int) (*big.Int, error) {
+	mask := big.NewInt(0)
 
 	for _, index := range indices {
-		if index >= 1 && index <= int64(length) {
-			bitArray.SetBit(bitArray, int(index*2), 1)
-			bitArray.SetBit(bitArray, int(index*2+1), 1)
+		if index < 0 && index >= int64(length) {
+			return big.NewInt(0), fmt.Errorf("Invalid index %d. These must be non-negative and less than %d.", index, length)
 		}
+		mask.SetBit(mask, int(index*2), 1)
+		mask.SetBit(mask, int(index*2+1), 1)
 	}
 
-	return bitArray
+	return mask, nil
 }
 
 // TODO Documentation
