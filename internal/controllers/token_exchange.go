@@ -133,24 +133,24 @@ func (t *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.C
 		return fiber.NewError(fiber.StatusInternalServerError, "Could not connect to blockchain node")
 	}
 
-	// resPermRecord, err := s.CurrentPermissionRecord(nil, nftAddr, big.NewInt(pr.TokenID), *ethAddr)
-	// if err != nil {
-	// 	return fiber.NewError(fiber.StatusInternalServerError, err.Error())
-	// }
+	resPermRecord, err := s.CurrentPermissionRecord(nil, nftAddr, big.NewInt(pr.TokenID), *ethAddr)
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+	}
 
-	// // Fetch the JSON content from IPFS
-	// sacdDoc, err := t.fetchFromIPFS(resPermRecord.Source)
-	// if err != nil {
-	// 	t.logger.Warn().Err(err).Msg("Failed to fetch JSON from IPFS")
-	// 	// Proceed with other checks if IPFS fetch fails
-	// } else {
-	// 	hasPermFromSacdDoc, err := t.checkPermissionsFromSacdDoc(sacdDoc, pr, ethAddr.Hex())
-	// 	if err != nil {
-	// 		t.logger.Warn().Err(err).Msg("Failed to validate IPFS JSON")
-	// 	} else if hasPermFromSacdDoc {
-	// 		return t.createAndReturnToken(c, pr, ethAddr)
-	// 	}
-	// }
+	// Fetch the JSON content from IPFS
+	sacdDoc, err := t.fetchFromIPFS(resPermRecord.Source)
+	if err != nil {
+		t.logger.Warn().Err(err).Msg("Failed to fetch JSON from IPFS")
+		// Proceed with other checks if IPFS fetch fails
+	} else {
+		hasPermFromSacdDoc, err := t.checkPermissionsFromSacdDoc(sacdDoc, pr, ethAddr.Hex())
+		if err != nil {
+			t.logger.Warn().Err(err).Msg("Failed to validate IPFS JSON")
+		} else if hasPermFromSacdDoc {
+			return t.createAndReturnToken(c, pr, ethAddr)
+		}
+	}
 
 	// If the user doesn't have all permissions from IPFS doc, check bitstring
 	// Convert pr.Privileges to 2-bit array format

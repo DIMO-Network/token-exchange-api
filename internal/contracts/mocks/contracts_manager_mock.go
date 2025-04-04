@@ -14,6 +14,7 @@ import (
 	reflect "reflect"
 
 	contracts "github.com/DIMO-Network/token-exchange-api/internal/contracts"
+	sacd "github.com/DIMO-Network/token-exchange-api/internal/contracts/sacd"
 	bind "github.com/ethereum/go-ethereum/accounts/abi/bind"
 	common "github.com/ethereum/go-ethereum/common"
 	gomock "go.uber.org/mock/gomock"
@@ -134,6 +135,21 @@ func NewMockSacd(ctrl *gomock.Controller) *MockSacd {
 // EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockSacd) EXPECT() *MockSacdMockRecorder {
 	return m.recorder
+}
+
+// CurrentPermissionRecord mocks base method.
+func (m *MockSacd) CurrentPermissionRecord(opts *bind.CallOpts, asset common.Address, tokenId *big.Int, grantee common.Address) (sacd.ISacdPermissionRecord, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CurrentPermissionRecord", opts, asset, tokenId, grantee)
+	ret0, _ := ret[0].(sacd.ISacdPermissionRecord)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CurrentPermissionRecord indicates an expected call of CurrentPermissionRecord.
+func (mr *MockSacdMockRecorder) CurrentPermissionRecord(opts, asset, tokenId, grantee any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CurrentPermissionRecord", reflect.TypeOf((*MockSacd)(nil).CurrentPermissionRecord), opts, asset, tokenId, grantee)
 }
 
 // GetPermissions mocks base method.
