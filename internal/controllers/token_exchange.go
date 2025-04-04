@@ -156,7 +156,7 @@ func (t *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.C
 	// Convert pr.Privileges to 2-bit array format
 	mask, err := intArrayTo2BitArray(pr.Privileges, 128) // Assuming max privilege is 128
 	if err != nil {
-		fiber.NewError(fiber.StatusBadRequest, err.Error())
+		return fiber.NewError(fiber.StatusBadRequest, err.Error())
 	}
 
 	ret, err := s.GetPermissions(nil, nftAddr, big.NewInt(pr.TokenID), *ethAddr, mask)
@@ -289,7 +289,7 @@ func intArrayTo2BitArray(indices []int64, length int) (*big.Int, error) {
 
 	for _, index := range indices {
 		if index < 0 && index >= int64(length) {
-			return big.NewInt(0), fmt.Errorf("Invalid index %d. These must be non-negative and less than %d.", index, length)
+			return big.NewInt(0), fmt.Errorf("invalid index %d. These must be non-negative and less than %d", index, length)
 		}
 		mask.SetBit(mask, int(index*2), 1)
 		mask.SetBit(mask, int(index*2+1), 1)
