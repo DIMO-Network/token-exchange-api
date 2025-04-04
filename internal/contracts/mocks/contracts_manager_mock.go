@@ -138,18 +138,18 @@ func (m *MockSacd) EXPECT() *MockSacdMockRecorder {
 }
 
 // CurrentPermissionRecord mocks base method.
-func (m *MockSacd) CurrentPermissionRecord(opts *bind.CallOpts, asset common.Address, tokenId *big.Int, grantee common.Address) (sacd.ISacdPermissionRecord, error) {
+func (m *MockSacd) CurrentPermissionRecord(opts *bind.CallOpts, asset common.Address, tokenID *big.Int, grantee common.Address) (sacd.ISacdPermissionRecord, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CurrentPermissionRecord", opts, asset, tokenId, grantee)
+	ret := m.ctrl.Call(m, "CurrentPermissionRecord", opts, asset, tokenID, grantee)
 	ret0, _ := ret[0].(sacd.ISacdPermissionRecord)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CurrentPermissionRecord indicates an expected call of CurrentPermissionRecord.
-func (mr *MockSacdMockRecorder) CurrentPermissionRecord(opts, asset, tokenId, grantee any) *gomock.Call {
+func (mr *MockSacdMockRecorder) CurrentPermissionRecord(opts, asset, tokenID, grantee any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CurrentPermissionRecord", reflect.TypeOf((*MockSacd)(nil).CurrentPermissionRecord), opts, asset, tokenId, grantee)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CurrentPermissionRecord", reflect.TypeOf((*MockSacd)(nil).CurrentPermissionRecord), opts, asset, tokenID, grantee)
 }
 
 // GetPermissions mocks base method.
