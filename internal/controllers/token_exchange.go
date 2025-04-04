@@ -153,27 +153,9 @@ func (t *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.C
 
 	// If the user doesn't have all permissions from IPFS doc, check bitstring
 	// Convert pr.Privileges to 2-bit array format
-	privilegesBitArray := intArrayTo2BitArray(pr.Privileges, 128) // Assuming max privilege is 128
-
-	hasPerm, err := s.HasPermissions(nil, nftAddr, big.NewInt(pr.TokenID), *ethAddr, privilegesBitArray)
+	mask, err := intArrayTo2BitArray(pr.Privileges, 128) // Assuming max privilege is 128
 	if err != nil {
-		// TODO should we just log it?
-		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
-	}
-
-	if hasPerm {
-		return t.createAndReturnToken(c, pr, ethAddr)
-	}
-
-	mask := big.NewInt(0)
-
-	for _, p := range pr.Privileges {
-		if p < 0 || p >= 128 {
-			return fiber.NewError(fiber.StatusBadRequest, fmt.Sprintf("Invalid permission id %d. These must be non-negative and less than 128.", p))
-		}
-
-		mask.SetBit(mask, 2*int(p), 1)
-		mask.SetBit(mask, 2*int(p)+1, 1)
+		return fiber.NewError(fiber.StatusBadRequest, err.Error())
 	}
 
 	ret, err := s.GetPermissions(nil, nftAddr, big.NewInt(pr.TokenID), *ethAddr, mask)
@@ -301,17 +283,17 @@ func (t *TokenExchangeController) checkPermissionsFromSacdDoc(sacdDoc string, re
 	return true, nil
 }
 
-func intArrayTo2BitArray(indices []int64, length int) *big.Int {
-	bitArray := big.NewInt(0)
+func intArrayTo2BitArray(indices []int64, length int) (*big.Int, error) {
+	mask := big.NewInt(0)
 
 	for _, index := range indices {
-		if index >= 1 && index <= int64(length) {
-			bitArray.SetBit(bitArray, int(index*2), 1)
-			bitArray.SetBit(bitArray, int(index*2+1), 1)
+		if index < 0 && index >= int64(length) {
+			return big.NewInt(0), fmt.Errorf("invalid index %d. These must be non-negative and less than %d", index, length)
 		}
+		mask.SetBit(mask, int(index*2), 1)
+		mask.SetBit(mask, int(index*2+1), 1)
 	}
-
-	return bitArray
+	return mask, nil
 }
 
 // TODO Documentation
