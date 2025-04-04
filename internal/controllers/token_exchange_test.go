@@ -15,6 +15,7 @@ import (
 
 	"github.com/DIMO-Network/token-exchange-api/internal/config"
 	mock_contracts "github.com/DIMO-Network/token-exchange-api/internal/contracts/mocks"
+	"github.com/DIMO-Network/token-exchange-api/internal/contracts/sacd"
 	"github.com/DIMO-Network/token-exchange-api/internal/middleware"
 	mock_middleware "github.com/DIMO-Network/token-exchange-api/internal/middleware/mocks"
 	"github.com/DIMO-Network/token-exchange-api/internal/services"
@@ -57,6 +58,13 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 	}, dexService, usersSvc, contractsMgr, &client)
 	userEthAddr := common.HexToAddress("0x20Ca3bE69a8B95D3093383375F0473A8c6341727")
 
+	// Create a mock empty permission record to return
+	emptyPermRecord := sacd.ISacdPermissionRecord{
+		Permissions: big.NewInt(0),
+		Expiration:  big.NewInt(0),
+		Source:      "",
+	}
+
 	tests := []struct {
 		name                   string
 		tokenClaims            jwt.MapClaims
@@ -87,6 +95,7 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 					NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
 					Audience:           defaultAudience,
 				}).Return("jwt", nil)
+				mockSacd.EXPECT().CurrentPermissionRecord(nil, common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr).Return(emptyPermRecord, nil)
 				mockSacd.EXPECT().GetPermissions(nil, common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr, big.NewInt(0b1100000000)).Return(big.NewInt(0b1100000000), nil)
 			},
 			expectedCode: fiber.StatusOK,
@@ -113,6 +122,7 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 					NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
 					Audience:           defaultAudience,
 				}).Return("jwt", nil)
+				mockSacd.EXPECT().CurrentPermissionRecord(nil, common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr).Return(emptyPermRecord, nil)
 				mockSacd.EXPECT().GetPermissions(nil, common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr, big.NewInt(0b111100111100)).Return(big.NewInt(0b111100111100), nil)
 			},
 			expectedCode: fiber.StatusOK,
@@ -132,6 +142,7 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 			mockSetup: func() {
 				contractsMgr.EXPECT().GetSacd(c.settings.ContractAddressSacd, &client).Return(mockSacd, nil)
 
+				mockSacd.EXPECT().CurrentPermissionRecord(nil, common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr).Return(emptyPermRecord, nil)
 				mockSacd.EXPECT().GetPermissions(nil, common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr, big.NewInt(0b111100111100)).Return(big.NewInt(0b111100001100), nil)
 
 				contractsMgr.EXPECT().GetMultiPrivilege("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144", &client).Return(mockMultiPriv, nil)
@@ -154,6 +165,7 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 			mockSetup: func() {
 				contractsMgr.EXPECT().GetSacd(c.settings.ContractAddressSacd, &client).Return(mockSacd, nil)
 
+				mockSacd.EXPECT().CurrentPermissionRecord(nil, common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr).Return(emptyPermRecord, nil)
 				mockSacd.EXPECT().GetPermissions(nil, common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr, big.NewInt(0b111100111100)).Return(big.NewInt(0b111100001100), nil)
 
 				dexService.EXPECT().SignPrivilegePayload(gomock.Any(), services.PrivilegeTokenDTO{
@@ -191,6 +203,7 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 					NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
 					Audience:           defaultAudience,
 				}).Return("jwt", nil)
+				mockSacd.EXPECT().CurrentPermissionRecord(nil, common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr).Return(emptyPermRecord, nil)
 				mockSacd.EXPECT().GetPermissions(nil, common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr, big.NewInt(0b1100000000)).Return(big.NewInt(0b1100000000), nil)
 				e := userEthAddr.Hex()
 				usersSvc.EXPECT().GetUserByID(gomock.Any(), "user-id-123").Return(&grpc.User{
@@ -222,6 +235,7 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 					NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
 					Audience:           []string{"my-app", "foo"},
 				}).Return("jwt", nil)
+				mockSacd.EXPECT().CurrentPermissionRecord(nil, common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr).Return(emptyPermRecord, nil)
 				mockSacd.EXPECT().GetPermissions(nil, common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr, big.NewInt(0b1100000000)).Return(big.NewInt(0b1100000000), nil)
 			},
 			expectedCode: fiber.StatusOK,
