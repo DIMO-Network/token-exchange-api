@@ -9,7 +9,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
-//go:generate mockgen -source main.go -destination mocks/contracts_manager_mock.go
+//go:generate mockgen -source contracts.go -destination mocks/contracts_manager_mock.go
 type Manager interface {
 	GetMultiPrivilege(nftAddress string, client bind.ContractBackend) (MultiPriv, error)
 	GetSacd(sacdAddress string, client bind.ContractBackend) (Sacd, error)
@@ -52,4 +52,5 @@ type MultiPriv interface {
 type Sacd interface {
 	HasPermissions(opts *bind.CallOpts, asset common.Address, tokenId *big.Int, grantee common.Address, permissions *big.Int) (bool, error)
 	CurrentPermissionRecord(opts *bind.CallOpts, asset common.Address, tokenId *big.Int, grantee common.Address) (sacd.ISacdPermissionRecord, error)
+	GetPermissions(opts *bind.CallOpts, asset common.Address, tokenID *big.Int, grantee common.Address, permissions *big.Int) (*big.Int, error)
 }

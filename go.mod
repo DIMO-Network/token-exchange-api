@@ -17,9 +17,8 @@ require (
 	github.com/stretchr/testify v1.8.4
 	github.com/swaggo/swag v1.16.3
 	github.com/tidwall/gjson v1.18.0
-	go.uber.org/mock v0.4.0
-	golang.org/x/exp v0.0.0-20240213143201-ec583247a57a
-	google.golang.org/grpc v1.61.1
+	go.uber.org/mock v0.5.0
+	google.golang.org/grpc v1.71.0
 )
 
 require (
