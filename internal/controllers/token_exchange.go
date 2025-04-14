@@ -145,7 +145,7 @@ func (t *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.C
 			}
 
 			if !hasPriv {
-				return fiber.NewError(fiber.StatusBadRequest, fmt.Sprintf("Address %s lacks permission %d on token id %d for asset %s.", ethAddr.Hex(), p, pr.TokenID, nftAddr))
+				return fiber.NewError(fiber.StatusBadRequest, fmt.Sprintf("Address %s lacks privilege %d on token id %d for asset %s.", ethAddr.Hex(), p, pr.TokenID, nftAddr))
 			}
 		}
 	}
