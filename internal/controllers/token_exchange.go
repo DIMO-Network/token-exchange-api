@@ -184,6 +184,17 @@ func (t *TokenExchangeController) createAndReturnToken(c *fiber.Ctx, pr *Permiss
 	})
 }
 
+// hasValidSacdDoc fetches and validates a SACD from IPFS.
+// It retrieves the document using the provided source identifier, attempts to parse it as JSON,
+// and verifies that it has the correct type for a DIMO SACD document.
+//
+// Parameters:
+//   - ctx: The context for the IPFS request, which can be used for cancellation and timeouts
+//   - source: The IPFS content identifier (CID) for the SACD document, typically with an "ipfs://" prefix
+//
+// Returns:
+//   - *PermissionRecord: A pointer to the parsed permission record if valid, or nil if the document
+//     could not be fetched, parsed, or doesn't have the correct type
 func (t *TokenExchangeController) hasValidSacdDoc(ctx context.Context, source string) *PermissionRecord {
 	sacdDoc, err := t.fetchFromIPFS(ctx, source)
 	if err != nil {
@@ -205,6 +216,18 @@ func (t *TokenExchangeController) hasValidSacdDoc(ctx context.Context, source st
 	return &record
 }
 
+// fetchFromIPFS retrieves content from IPFS using the provided content identifier (CID).
+// It constructs a URL using the configured IPFS base URL and the CID, then makes an HTTP GET
+// request to fetch the content.
+//
+// Parameters:
+//   - ctx: The context for the HTTP request, which can be used for cancellation and timeouts
+//   - cid: The IPFS content identifier, with or without the "ipfs://" prefix
+//
+// Returns:
+//   - []byte: The content retrieved from IPFS as a byte slice
+//   - error: An error if the request fails at any stage (URL construction, HTTP request creation,
+//     request execution, or response reading)
 func (t *TokenExchangeController) fetchFromIPFS(ctx context.Context, cid string) ([]byte, error) {
 	cid = strings.TrimPrefix(cid, "ipfs://")
 
@@ -232,6 +255,19 @@ func (t *TokenExchangeController) fetchFromIPFS(ctx context.Context, cid string)
 	return body, nil
 }
 
+// evaluateSacdDoc validates a SACD to determine if the requesting user has all the requested privileges.
+// It checks the validity period of the document, verifies the grantee address matches the requester,
+// and confirms all requested privileges are granted in the document.
+//
+// Parameters:
+//   - c: The Fiber context for the HTTP request
+//   - record: The SACD permission record containing the granted permissions and validity period
+//   - pr: The permission token request containing the requested privileges and token information
+//   - grantee: The Ethereum address of the user requesting permissions
+//
+// Returns:
+//   - error: An error if the document is invalid, expired, or missing requested permissions;
+//     nil if all permissions are valid and the token is successfully created and returned
 func (t *TokenExchangeController) evaluateSacdDoc(c *fiber.Ctx, record PermissionRecord, pr *PermissionTokenRequest, grantee *common.Address) error {
 	now := time.Now()
 	if now.Before(record.Data.EffectiveAt) || now.After(record.Data.ExpiresAt) {
@@ -305,6 +341,16 @@ func intArrayTo2BitArray(indices []int64, length int) (*big.Int, error) {
 	return mask, nil
 }
 
+// validateAssetDID verifies that the provided DID matches the NFT contract address
+// and token ID specified in the permission token request.
+//
+// Parameters:
+//   - did: The decentralized identifier string to validate, typically in the format "did:nft:..."
+//   - req: The permission token request containing the NFT contract address and token ID to match against
+//
+// Returns:
+//   - bool: true if the DID is valid and matches the request parameters, false otherwise
+//   - error: An error describing why validation failed, or nil if validation succeeded
 func (t *TokenExchangeController) validateAssetDID(did string, req *PermissionTokenRequest) (bool, error) {
 	decodedDID, err := cloudevent.DecodeNFTDID(did)
 	if err != nil {
@@ -327,6 +373,21 @@ func (t *TokenExchangeController) validateAssetDID(did string, req *PermissionTo
 	return true, nil
 }
 
+// evaluatePermissionsBits checks if the user has the requested privileges using the on-chain permission bits system.
+// It first checks permissions using the SACD contract's 2-bit permission system. If any permissions are missing,
+// it falls back to checking the legacy MultiPrivilege contract. If all permissions are valid, it creates and returns
+// a signed token.
+//
+// Parameters:
+//   - c: The Fiber context for the HTTP request
+//   - s: The SACD contract instance used to check permissions
+//   - nftAddr: The Ethereum address of the NFT contract
+//   - pr: The permission token request containing token ID and requested privileges
+//   - ethAddr: The Ethereum address of the user requesting permissions
+//
+// Returns:
+//   - error: An error if the user lacks any requested permissions or if there's a system error,
+//     otherwise nil if the token is successfully created and returned
 func (t *TokenExchangeController) evaluatePermissionsBits(
 	c *fiber.Ctx,
 	s contracts.Sacd,
