@@ -1,15 +1,18 @@
 package controllers
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"math/big"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/DIMO-Network/cloudevent"
 	"github.com/DIMO-Network/token-exchange-api/internal/api"
 	"github.com/DIMO-Network/token-exchange-api/internal/config"
 	"github.com/DIMO-Network/token-exchange-api/internal/contracts"
@@ -138,7 +141,7 @@ func (t *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.C
 	}
 
 	// Fetch the JSON content from IPFS
-	sacdDoc, err := t.fetchFromIPFS(resPermRecord.Source)
+	sacdDoc, err := t.fetchFromIPFS(c.Context(), resPermRecord.Source)
 	if err != nil {
 		t.logger.Warn().Err(err).Msg("Failed to fetch JSON from IPFS")
 		// Proceed with other checks if IPFS fetch fails
@@ -218,30 +221,36 @@ func (t *TokenExchangeController) createAndReturnToken(c *fiber.Ctx, pr *Permiss
 	})
 }
 
-func (t *TokenExchangeController) fetchFromIPFS(cid string) (string, error) {
-	// Remove the "ipfs://" prefix if it exists
-	// TODO Mayber a Regex is better. We should remove "ipfs://" from the SACD source
+func (t *TokenExchangeController) fetchFromIPFS(ctx context.Context, cid string) ([]byte, error) {
 	cid = strings.TrimPrefix(cid, "ipfs://")
 
-	url := fmt.Sprintf("https://assets.dimo.xyz//ipfs/%s", cid)
-
-	resp, err := http.Get(url)
+	ipfsURL, err := url.JoinPath(t.settings.IPFSBaseURL, cid)
 	if err != nil {
-		return "", fmt.Errorf("failed to fetch from IPFS: %w", err)
+		return nil, fmt.Errorf("failed to join URL paths: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, ipfsURL, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create HTTP request: %w", err)
+	}
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to execute request: %w", err)
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return "", fmt.Errorf("failed to read IPFS response: %w", err)
+		return nil, fmt.Errorf("failed to read IPFS response: %w", err)
 	}
 
-	return string(body), nil
+	return body, nil
 }
 
-func (t *TokenExchangeController) checkPermissionsFromSacdDoc(sacdDoc string, req *PermissionTokenRequest, granteeAddress string) (bool, error) {
+func (t *TokenExchangeController) checkPermissionsFromSacdDoc(sacdDoc []byte, req *PermissionTokenRequest, granteeAddress string) (bool, error) {
 	var record PermissionRecord
-	if err := json.Unmarshal([]byte(sacdDoc), &record); err != nil {
+	if err := json.Unmarshal(sacdDoc, &record); err != nil {
 		return false, fmt.Errorf("invalid JSON format: %w", err)
 	}
 
@@ -298,7 +307,7 @@ func intArrayTo2BitArray(indices []int64, length int) (*big.Int, error) {
 
 // TODO Documentation
 func (t *TokenExchangeController) validateAssetDID(did string, req *PermissionTokenRequest) (bool, error) {
-	decodedDID, err := DecodeNFTDID(did)
+	decodedDID, err := cloudevent.DecodeNFTDID(did)
 	if err != nil {
 		return false, fmt.Errorf("failed to decode DID: %w", err)
 	}
@@ -317,51 +326,4 @@ func (t *TokenExchangeController) validateAssetDID(did string, req *PermissionTo
 
 	// If we get here, the DID is valid for the given request
 	return true, nil
-}
-
-type DID struct {
-	Type            string         `json:"type"`
-	ChainID         uint64         `json:"chainId"`
-	ContractAddress common.Address `json:"contract"`
-	TokenID         uint32         `json:"tokenId"` // TODO Should it be big.int?
-}
-
-// TODO Remove it to use cloudevent repo
-func DecodeNFTDID(did string) (DID, error) {
-	var errInvalidDID = fmt.Errorf("invalid DID")
-
-	// sample did "did:nft:1:0xbA5738a18d83D41847dfFbDC6101d37C69c9B0cF_1"
-	parts := strings.Split(did, ":")
-	if len(parts) != 4 {
-		return DID{}, errInvalidDID
-	}
-	if parts[0] != "did" {
-		return DID{}, fmt.Errorf("%w, incorrect DID prefix %s", errInvalidDID, parts[0])
-	}
-	if parts[1] != "nft" {
-		return DID{}, fmt.Errorf("%w, incorrect DID method %s", errInvalidDID, parts[1])
-	}
-	nftParts := strings.Split(parts[3], "_")
-	if len(nftParts) != 2 {
-		return DID{}, fmt.Errorf("%w, incorrect NFT format %s", errInvalidDID, parts[3])
-	}
-	tokenID, err := strconv.ParseUint(nftParts[1], 10, 32)
-	if err != nil {
-		return DID{}, fmt.Errorf("%w, invalid token ID %s", errInvalidDID, nftParts[1])
-	}
-	addrBytes := nftParts[0]
-	if !common.IsHexAddress(addrBytes) {
-		return DID{}, fmt.Errorf("%w, invalid contract address %s", errInvalidDID, addrBytes)
-	}
-	chainID, err := strconv.ParseUint(parts[2], 10, 32)
-	if err != nil {
-		return DID{}, fmt.Errorf("%w, invalid chain ID %s", errInvalidDID, parts[2])
-	}
-
-	return DID{
-		Type:            parts[1],
-		ChainID:         chainID,
-		ContractAddress: common.HexToAddress(addrBytes),
-		TokenID:         uint32(tokenID),
-	}, nil
 }
