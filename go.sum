@@ -2,8 +2,6 @@ github.com/DIMO-Network/dex/api/v2 v2.0.1-0.20240402140037-3b70843c1bed h1:ulkk+
 github.com/DIMO-Network/dex/api/v2 v2.0.1-0.20240402140037-3b70843c1bed/go.mod h1:SGI/PPXRgfBj1WTzM3ShtkmNO6gnKLQ3VgncBEMI4Xc=
 github.com/DIMO-Network/shared v0.10.9-go121 h1:Xeud6Jkg8t4LLFxX4AJAJLjSWdc7SN3O9fA5ugDaRFE=
 github.com/DIMO-Network/shared v0.10.9-go121/go.mod h1:fWNbnrltsVtj63LsecOkdIY3AGpn04StrFNUq39eTHk=
-github.com/DIMO-Network/users-api v0.7.1 h1:VxTvBy4FC83Zi6gh+iYG3Gm0phPFtP3SOyjyjSeOaUY=
-github.com/DIMO-Network/users-api v0.7.1/go.mod h1:Yf3GbL8jmMCYxpEAoZnxG7bH+LS4B0bdb8Hd7yv3tiA=
 github.com/DataDog/zstd v1.4.5 h1:EndNeuB0l9syBZhut0wns3gV1hL8zX8LIu6ZiVHWLIQ=
 github.com/DataDog/zstd v1.4.5/go.mod h1:1jcaCB/ufaK+sKp1NBhlGmpz41jOoPQ35bpF36t7BBo=
 github.com/KyleBanks/depth v1.2.1 h1:5h8fQADFrWtarTdtDudMmGsC7GPbOAu6RVB3ffsVFHc=
