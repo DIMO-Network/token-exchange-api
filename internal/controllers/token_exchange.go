@@ -37,6 +37,8 @@ type PermissionTokenRequest struct {
 	NFTContractAddress string `json:"nftContractAddress" example:"0xbA5738a18d83D41847dfFbDC6101d37C69c9B0cF" validate:"required"`
 	// Audience is the intended audience for the token.
 	Audience []string `json:"audience" validate:"optional"`
+	// Attestations
+	Attestations []services.Attestation `json:"attestations"`
 }
 
 type PermissionTokenResponse struct {
@@ -79,8 +81,8 @@ func (t *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.C
 
 	t.logger.Debug().Interface("request", pr).Msg("Got request.")
 
-	if len(pr.Privileges) == 0 {
-		return fiber.NewError(fiber.StatusBadRequest, "Please provide at least one privilege.")
+	if len(pr.Privileges) == 0 && len(pr.Attestations) == 0 {
+		return fiber.NewError(fiber.StatusBadRequest, "Please provide at least one privilege or attestation claim.")
 	}
 
 	// Contract address has been validated in the middleware
@@ -116,6 +118,13 @@ func (t *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.C
 		ethAddr = &e
 	}
 
+	// TODO(ae): check that attestation claims are valid in SACD contract
+	// for _, a := range pr.Attestations {
+	// fetch URI from SACD
+	// read contract from ipfs
+	// err if any inconsistencies; populate and mising infos (like exp date)
+	// }
+
 	for _, p := range pr.Privileges {
 		if p < 0 || p >= 128 {
 			return fiber.NewError(fiber.StatusBadRequest, fmt.Sprintf("Invalid permission id %d. These must be non-negative and less than 128.", p))
@@ -150,6 +159,7 @@ func (t *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.C
 		UserEthAddress:     ethAddr.Hex(),
 		TokenID:            strconv.FormatInt(pr.TokenID, 10),
 		PrivilegeIDs:       pr.Privileges,
+		Attestations:       pr.Attestations,
 		NFTContractAddress: nftAddr.Hex(),
 		Audience:           aud,
 	})
