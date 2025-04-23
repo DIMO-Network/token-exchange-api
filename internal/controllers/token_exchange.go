@@ -135,6 +135,8 @@ func (t *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.C
 				return fiber.NewError(fiber.StatusBadRequest, fmt.Sprintf("Address %s lacks privilege %d on token id %d for asset %s.", ethAddr.Hex(), p, pr.TokenID, nftAddr))
 			}
 		}
+
+		t.logger.Warn().Msgf("Still using privileges %v for %s_%d", pr.Privileges, nftAddr.Hex(), pr.TokenID)
 	}
 
 	aud := pr.Audience
