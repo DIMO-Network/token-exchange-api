@@ -2,7 +2,7 @@ replicaCount: 1
 image:
   repository: dimozone/token-exchange-api
   pullPolicy: IfNotPresent
-  tag: e7d9dd1
+  tag: b75ed77
 imagePullSecrets: []
 serviceAccount:
   create: true
@@ -32,6 +32,7 @@ env:
   CONTRACT_ADDRESS_WHITELIST: 0x45fbcd3ef7361d156e8b16f5538ae36dedf61da8,0xA4ad0F9c722588910791A9BAC63ADbB365614Bc7
   CONTRACT_ADDRESS_SACD: '0x4E5F9320b1c7cB3DE5ebDD760aD67375B66cF8a3'
   IDENTITY_URL: http://identity-api-dev:8080/query
+  IPFS_BASE_URL: https://assets.dimo.xyz/ipfs
   DEV_LICENSE_VALIDATOR_FEATURE_FLAG: true
 service:
   type: ClusterIP
@@ -59,7 +60,7 @@ ingress:
     nginx.ingress.kubernetes.io/auth-tls-verify-client: 'on'
     nginx.ingress.kubernetes.io/enable-cors: 'true'
     nginx.ingress.kubernetes.io/cors-allow-origin: '*'
-    nginx.ingress.kubernetes.io/limit-rps: '3'
+    nginx.ingress.kubernetes.io/limit-rps: '100'
     external-dns.alpha.kubernetes.io/hostname: token-exchange-api.dev.dimo.zone
   hosts:
     - host: token-exchange-api.dev.dimo.zone

@@ -1,21 +1,41 @@
 package controllers
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
+	"io"
 	"math/big"
+	"net/http"
+	"net/url"
 	"strconv"
+	"strings"
+	"time"
 
-	"github.com/ethereum/go-ethereum/common"
-
+	"github.com/DIMO-Network/cloudevent"
 	"github.com/DIMO-Network/token-exchange-api/internal/api"
 	"github.com/DIMO-Network/token-exchange-api/internal/config"
 	"github.com/DIMO-Network/token-exchange-api/internal/contracts"
 	"github.com/DIMO-Network/token-exchange-api/internal/services"
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/gofiber/fiber/v2"
 	"github.com/rs/zerolog"
 )
 
 var defaultAudience = []string{"dimo.zone"}
+
+// privilege prefix to denote the 1:1 mapping to bit values and to make them easier to deprecate if desired in the future
+var PermissionMap = map[int]string{
+	1: "privilege:GetNonLocationHistory",  // All-time non-location data
+	2: "privilege:ExecuteCommands",        // Commands
+	3: "privilege:GetCurrentLocation",     // Current location
+	4: "privilege:GetLocationHistory",     // All-time location
+	5: "privilege:GetVinCredential",       // View VIN credential
+	6: "privilege:GetLiveData",            // Subscribe live data
+	7: "privilege:GetRawData",             // Raw data
+	8: "privilege:GetApproximateLocation", // Approximate location
+}
 
 type TokenExchangeController struct {
 	logger       *zerolog.Logger
@@ -23,7 +43,7 @@ type TokenExchangeController struct {
 	dexService   services.DexService
 	usersService services.UsersService
 	ctmr         contracts.Manager
-	ctinit       contracts.ContractCallInitializer
+	ethClient    bind.ContractBackend
 }
 
 type PermissionTokenRequest struct {
@@ -44,16 +64,38 @@ type PermissionTokenRequest struct {
 type PermissionTokenResponse struct {
 	Token string `json:"token"`
 }
+type PermissionRecord struct {
+	SpecVersion string    `json:"specversion"`
+	Timestamp   time.Time `json:"timestamp"`
+	Type        string    `json:"type"`
+	Data        struct {
+		Grantor struct {
+			Address string `json:"address"`
+		} `json:"grantor"`
+		Grantee struct {
+			Address string `json:"address"`
+		} `json:"grantee"`
+		EffectiveAt time.Time `json:"effectiveAt"`
+		ExpiresAt   time.Time `json:"expiresAt"`
+		Agreements  []struct {
+			Type        string `json:"type"`
+			Asset       string `json:"asset"`
+			Permissions []struct {
+				Name string `json:"name"`
+			} `json:"permissions"`
+		} `json:"agreement"`
+	} `json:"data"`
+}
 
 func NewTokenExchangeController(logger *zerolog.Logger, settings *config.Settings, dexService services.DexService,
-	usersService services.UsersService, contractsMgr contracts.Manager, contractsInit contracts.ContractCallInitializer) *TokenExchangeController {
+	usersService services.UsersService, contractsMgr contracts.Manager, ethClient bind.ContractBackend) *TokenExchangeController {
 	return &TokenExchangeController{
 		logger:       logger,
 		settings:     settings,
 		dexService:   dexService,
 		usersService: usersService,
 		ctmr:         contractsMgr,
-		ctinit:       contractsInit,
+		ethClient:    ethClient,
 	}
 }
 
@@ -85,23 +127,6 @@ func (t *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.C
 		return fiber.NewError(fiber.StatusBadRequest, "Please provide at least one privilege or attestation claim.")
 	}
 
-	// Contract address has been validated in the middleware
-	// TODO(elffjs): Stop constructing these every darned time.
-	client, err := t.ctinit.InitContractCall(t.settings.BlockchainNodeURL)
-	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, "Could not connect to blockchain node")
-	}
-
-	m, err := t.ctmr.GetMultiPrivilege(nftAddr.Hex(), client)
-	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, "Could not connect to blockchain node")
-	}
-
-	s, err := t.ctmr.GetSacd(t.settings.ContractAddressSacd, client)
-	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, "Could not connect to blockchain node")
-	}
-
 	ethAddr := api.GetUserEthAddr(c)
 	if ethAddr == nil {
 		// If eth addr not in JWT, use userID to fetch user
@@ -118,38 +143,28 @@ func (t *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.C
 		ethAddr = &e
 	}
 
-	// TODO(ae): check that attestation claims are valid in SACD contract
-	// for _, a := range pr.Attestations {
-	// fetch URI from SACD
-	// read contract from ipfs
-	// err if any inconsistencies; populate and mising infos (like exp date)
-	// }
-
-	for _, p := range pr.Privileges {
-		if p < 0 || p >= 128 {
-			return fiber.NewError(fiber.StatusBadRequest, fmt.Sprintf("Invalid permission id %d. These must be non-negative and less than 128.", p))
-		}
-
-		resMulti, err := m.HasPrivilege(nil, big.NewInt(pr.TokenID), big.NewInt(p), *ethAddr)
-		if err != nil {
-			return fiber.NewError(fiber.StatusInternalServerError, err.Error())
-		}
-
-		if resMulti {
-			continue
-		}
-
-		// TODO(elffjs): Get this down to one call.
-		resSacd, err := s.HasPermission(nil, nftAddr, big.NewInt(pr.TokenID), *ethAddr, uint8(p))
-		if err != nil {
-			return fiber.NewError(fiber.StatusInternalServerError, err.Error())
-		}
-
-		if !resSacd {
-			return fiber.NewError(fiber.StatusForbidden, fmt.Sprintf("Address %s lacks permission %d on token id %d for asset %s.", *ethAddr, p, pr.TokenID, nftAddr))
-		}
+	// TODO(elffjs): Still silly to create this every time.
+	s, err := t.ctmr.GetSacd(t.settings.ContractAddressSacd, t.ethClient)
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, "Could not connect to blockchain node")
 	}
 
+	resPermRecord, err := s.CurrentPermissionRecord(nil, nftAddr, big.NewInt(pr.TokenID), *ethAddr)
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+	}
+
+	record := t.hasValidSacdDoc(c.Context(), resPermRecord.Source)
+	if record != nil {
+		return t.evaluateSacdDoc(c, *record, pr, ethAddr)
+	}
+
+	// If the user doesn't have all permissions from IPFS doc, check bitstring
+	return t.evaluatePermissionsBits(c, s, nftAddr, pr, ethAddr)
+}
+
+// Helper function to create and return the token
+func (t *TokenExchangeController) createAndReturnToken(c *fiber.Ctx, pr *PermissionTokenRequest, ethAddr *common.Address) error {
 	aud := pr.Audience
 	if len(aud) == 0 {
 		aud = defaultAudience
@@ -159,8 +174,7 @@ func (t *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.C
 		UserEthAddress:     ethAddr.Hex(),
 		TokenID:            strconv.FormatInt(pr.TokenID, 10),
 		PrivilegeIDs:       pr.Privileges,
-		Attestations:       pr.Attestations,
-		NFTContractAddress: nftAddr.Hex(),
+		NFTContractAddress: pr.NFTContractAddress,
 		Audience:           aud,
 	})
 	if err != nil {
@@ -170,4 +184,258 @@ func (t *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.C
 	return c.JSON(PermissionTokenResponse{
 		Token: tk,
 	})
+}
+
+// hasValidSacdDoc fetches and validates a SACD from IPFS.
+// It retrieves the document using the provided source identifier, attempts to parse it as JSON,
+// and verifies that it has the correct type for a DIMO SACD document.
+//
+// Parameters:
+//   - ctx: The context for the IPFS request, which can be used for cancellation and timeouts
+//   - source: The IPFS content identifier (CID) for the SACD document, typically with an "ipfs://" prefix
+//
+// Returns:
+//   - *PermissionRecord: A pointer to the parsed permission record if valid, or nil if the document
+//     could not be fetched, parsed, or doesn't have the correct type
+func (t *TokenExchangeController) hasValidSacdDoc(ctx context.Context, source string) *PermissionRecord {
+	sacdDoc, err := t.fetchFromIPFS(ctx, source)
+	if err != nil {
+		t.logger.Warn().Err(err).Msg("Failed to fetch JSON from IPFS")
+		return nil
+	}
+
+	var record PermissionRecord
+	if err := json.Unmarshal(sacdDoc, &record); err != nil {
+		t.logger.Warn().Err(err).Msg(fmt.Sprintf("invalid JSON format: %v", err))
+		return nil
+	}
+
+	if record.Type != "dimo.sacd" {
+		t.logger.Warn().Msg(fmt.Sprintf("invalid type: expected 'dimo.sacd', got '%s'", record.Type))
+		return nil
+	}
+
+	return &record
+}
+
+// fetchFromIPFS retrieves content from IPFS using the provided content identifier (CID).
+// It constructs a URL using the configured IPFS base URL and the CID, then makes an HTTP GET
+// request to fetch the content.
+//
+// Parameters:
+//   - ctx: The context for the HTTP request, which can be used for cancellation and timeouts
+//   - cid: The IPFS content identifier, with or without the "ipfs://" prefix
+//
+// Returns:
+//   - []byte: The content retrieved from IPFS as a byte slice
+//   - error: An error if the request fails at any stage (URL construction, HTTP request creation,
+//     request execution, or response reading)
+func (t *TokenExchangeController) fetchFromIPFS(ctx context.Context, cid string) ([]byte, error) {
+	cid = strings.TrimPrefix(cid, "ipfs://")
+
+	ipfsURL, err := url.JoinPath(t.settings.IPFSBaseURL, cid)
+	if err != nil {
+		return nil, fmt.Errorf("failed to join URL paths: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, ipfsURL, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create HTTP request: %w", err)
+	}
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to execute request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read IPFS response: %w", err)
+	}
+
+	return body, nil
+}
+
+// evaluateSacdDoc validates a SACD to determine if the requesting user has all the requested privileges.
+// It checks the validity period of the document, verifies the grantee address matches the requester,
+// and confirms all requested privileges are granted in the document.
+//
+// Parameters:
+//   - c: The Fiber context for the HTTP request
+//   - record: The SACD permission record containing the granted permissions and validity period
+//   - pr: The permission token request containing the requested privileges and token information
+//   - grantee: The Ethereum address of the user requesting permissions
+//
+// Returns:
+//   - error: An error if the document is invalid, expired, or missing requested permissions;
+//     nil if all permissions are valid and the token is successfully created and returned
+func (t *TokenExchangeController) evaluateSacdDoc(c *fiber.Ctx, record PermissionRecord, pr *PermissionTokenRequest, grantee *common.Address) error {
+	now := time.Now()
+	if now.Before(record.Data.EffectiveAt) || now.After(record.Data.ExpiresAt) {
+		return fiber.NewError(fiber.StatusBadRequest, "Permission record is expired or not yet effective")
+	}
+
+	if record.Data.Grantee.Address != grantee.Hex() {
+		return fiber.NewError(fiber.StatusBadRequest, "Grantee address in permission record doesn't match requester")
+	}
+
+	// Aggregates all the permissions the user has.
+	userPermissions := make(map[string]bool)
+	for _, agreement := range record.Data.Agreements {
+		// Skip non permission types
+		if agreement.Type != "permissions" {
+			continue
+		}
+
+		// Validate the asset DID if it exists in the record
+		valid, err := t.validateAssetDID(agreement.Asset, pr)
+		if err != nil || !valid {
+			continue
+		}
+
+		// Add permissions from this agreement
+		for _, permission := range agreement.Permissions {
+			userPermissions[permission.Name] = true
+		}
+	}
+
+	// Check if all requested privileges are present in the permissions
+	var missingPermissions []int64
+
+	for _, privID := range pr.Privileges {
+		// Look up the permission name for this privilege ID
+		permName, exists := PermissionMap[int(privID)]
+		if !exists {
+			// If we don't have a mapping for this privilege ID, consider it missing
+			missingPermissions = append(missingPermissions, privID)
+			continue
+		}
+
+		// Check if the user has this permission
+		if !userPermissions[permName] {
+			missingPermissions = append(missingPermissions, privID)
+		}
+	}
+
+	// If any permissions are missing, return an error
+	if len(missingPermissions) > 0 {
+		return fiber.NewError(fiber.StatusBadRequest,
+			fmt.Sprintf("Address %s lacks permissions %v on token id %d for asset %s.",
+				grantee.Hex(), missingPermissions, pr.TokenID, pr.NFTContractAddress))
+	}
+
+	// If we get here, all permissions are valid
+	return t.createAndReturnToken(c, pr, grantee)
+}
+
+func intArrayTo2BitArray(indices []int64, length int) (*big.Int, error) {
+	mask := big.NewInt(0)
+
+	for _, index := range indices {
+		if index < 0 && index >= int64(length) {
+			return big.NewInt(0), fmt.Errorf("invalid index %d. These must be non-negative and less than %d", index, length)
+		}
+		mask.SetBit(mask, int(index*2), 1)
+		mask.SetBit(mask, int(index*2+1), 1)
+	}
+
+	return mask, nil
+}
+
+// validateAssetDID verifies that the provided DID matches the NFT contract address
+// and token ID specified in the permission token request.
+//
+// Parameters:
+//   - did: The decentralized identifier string to validate, typically in the format "did:nft:..."
+//   - req: The permission token request containing the NFT contract address and token ID to match against
+//
+// Returns:
+//   - bool: true if the DID is valid and matches the request parameters, false otherwise
+//   - error: An error describing why validation failed, or nil if validation succeeded
+func (t *TokenExchangeController) validateAssetDID(did string, req *PermissionTokenRequest) (bool, error) {
+	decodedDID, err := cloudevent.DecodeNFTDID(did)
+	if err != nil {
+		return false, fmt.Errorf("failed to decode DID: %w", err)
+	}
+
+	requestNFTAddr := common.HexToAddress(req.NFTContractAddress)
+
+	if decodedDID.ContractAddress != requestNFTAddr {
+		return false, fmt.Errorf("DID contract address %s does not match request contract address %s",
+			decodedDID.ContractAddress.Hex(), requestNFTAddr.Hex())
+	}
+
+	if int64(decodedDID.TokenID) != req.TokenID {
+		return false, fmt.Errorf("DID token ID %d does not match request token ID %d",
+			decodedDID.TokenID, req.TokenID)
+	}
+
+	// If we get here, the DID is valid for the given request
+	return true, nil
+}
+
+// evaluatePermissionsBits checks if the user has the requested privileges using the on-chain permission bits system.
+// It first checks permissions using the SACD contract's 2-bit permission system. If any permissions are missing,
+// it falls back to checking the legacy MultiPrivilege contract. If all permissions are valid, it creates and returns
+// a signed token.
+//
+// Parameters:
+//   - c: The Fiber context for the HTTP request
+//   - s: The SACD contract instance used to check permissions
+//   - nftAddr: The Ethereum address of the NFT contract
+//   - pr: The permission token request containing token ID and requested privileges
+//   - ethAddr: The Ethereum address of the user requesting permissions
+//
+// Returns:
+//   - error: An error if the user lacks any requested permissions or if there's a system error,
+//     otherwise nil if the token is successfully created and returned
+func (t *TokenExchangeController) evaluatePermissionsBits(
+	c *fiber.Ctx,
+	s contracts.Sacd,
+	nftAddr common.Address,
+	pr *PermissionTokenRequest,
+	ethAddr *common.Address,
+) error {
+	// Convert pr.Privileges to 2-bit array format
+	mask, err := intArrayTo2BitArray(pr.Privileges, 128) // Assuming max privilege is 128
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, err.Error())
+	}
+
+	ret, err := s.GetPermissions(nil, nftAddr, big.NewInt(pr.TokenID), *ethAddr, mask)
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+	}
+
+	// Collecting these because in the future we'd like to list all of them.
+	var lack []int64
+
+	for _, p := range pr.Privileges {
+		if ret.Bit(2*int(p)) != 1 || ret.Bit(2*int(p)+1) != 1 {
+			lack = append(lack, p)
+		}
+	}
+
+	if len(lack) != 0 {
+		// Fall back to checking old-style privileges.
+		// TODO(elffjs): If the whitelist is going to stick around, then we can probably pre-construct these.
+		m, err := t.ctmr.GetMultiPrivilege(nftAddr.Hex(), t.ethClient)
+		if err != nil {
+			return fiber.NewError(fiber.StatusInternalServerError, "Could not connect to blockchain node")
+		}
+
+		for _, p := range pr.Privileges {
+			hasPriv, err := m.HasPrivilege(nil, big.NewInt(pr.TokenID), big.NewInt(p), *ethAddr)
+			if err != nil {
+				return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+			}
+
+			if !hasPriv {
+				return fiber.NewError(fiber.StatusBadRequest, fmt.Sprintf("Address %s lacks permission %d on token id %d for asset %s.", ethAddr.Hex(), p, pr.TokenID, nftAddr))
+			}
+		}
+	}
+
+	return t.createAndReturnToken(c, pr, ethAddr)
 }
