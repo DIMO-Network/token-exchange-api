@@ -16,6 +16,7 @@ import (
 	"github.com/DIMO-Network/token-exchange-api/internal/api"
 	"github.com/DIMO-Network/token-exchange-api/internal/config"
 	"github.com/DIMO-Network/token-exchange-api/internal/contracts"
+	"github.com/DIMO-Network/token-exchange-api/internal/models"
 	"github.com/DIMO-Network/token-exchange-api/internal/services"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
@@ -31,7 +32,7 @@ var PermissionMap = map[int]string{
 	2: "privilege:ExecuteCommands",        // Commands
 	3: "privilege:GetCurrentLocation",     // Current location
 	4: "privilege:GetLocationHistory",     // All-time location
-	5: "privilege:GetVinCredential",       // View VIN credential
+	5: "privilege:GetVINCredential",       // View VIN credential
 	6: "privilege:GetLiveData",            // Subscribe live data
 	7: "privilege:GetRawData",             // Raw data
 	8: "privilege:GetApproximateLocation", // Approximate location
@@ -61,28 +62,6 @@ type PermissionTokenRequest struct {
 
 type PermissionTokenResponse struct {
 	Token string `json:"token"`
-}
-type PermissionRecord struct {
-	SpecVersion string    `json:"specversion"`
-	Timestamp   time.Time `json:"timestamp"`
-	Type        string    `json:"type"`
-	Data        struct {
-		Grantor struct {
-			Address string `json:"address"`
-		} `json:"grantor"`
-		Grantee struct {
-			Address string `json:"address"`
-		} `json:"grantee"`
-		EffectiveAt time.Time `json:"effectiveAt"`
-		ExpiresAt   time.Time `json:"expiresAt"`
-		Agreements  []struct {
-			Type        string `json:"type"`
-			Asset       string `json:"asset"`
-			Permissions []struct {
-				Name string `json:"name"`
-			} `json:"permissions"`
-		} `json:"agreement"`
-	} `json:"data"`
 }
 
 func NewTokenExchangeController(logger *zerolog.Logger, settings *config.Settings, dexService services.DexService,
@@ -152,13 +131,14 @@ func (t *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.C
 		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 	}
 
-	record := t.hasValidSacdDoc(c.Context(), resPermRecord.Source)
-	if record != nil {
-		return t.evaluateSacdDoc(c, *record, pr, ethAddr)
+	record, err := t.getValidSacdDoc(c.Context(), resPermRecord.Source)
+	if err != nil {
+		t.logger.Warn().Err(err)
+		// If the user doesn't have a valid IPFS doc, check bitstring
+		return t.evaluatePermissionsBits(c, s, nftAddr, pr, ethAddr)
 	}
 
-	// If the user doesn't have all permissions from IPFS doc, check bitstring
-	return t.evaluatePermissionsBits(c, s, nftAddr, pr, ethAddr)
+	return t.evaluateSacdDoc(c, record, pr, ethAddr)
 }
 
 // Helper function to create and return the token
@@ -184,7 +164,7 @@ func (t *TokenExchangeController) createAndReturnToken(c *fiber.Ctx, pr *Permiss
 	})
 }
 
-// hasValidSacdDoc fetches and validates a SACD from IPFS.
+// getValidSacdDoc fetches and validates a SACD from IPFS.
 // It retrieves the document using the provided source identifier, attempts to parse it as JSON,
 // and verifies that it has the correct type for a DIMO SACD document.
 //
@@ -195,25 +175,22 @@ func (t *TokenExchangeController) createAndReturnToken(c *fiber.Ctx, pr *Permiss
 // Returns:
 //   - *PermissionRecord: A pointer to the parsed permission record if valid, or nil if the document
 //     could not be fetched, parsed, or doesn't have the correct type
-func (t *TokenExchangeController) hasValidSacdDoc(ctx context.Context, source string) *PermissionRecord {
+func (t *TokenExchangeController) getValidSacdDoc(ctx context.Context, source string) (*models.PermissionRecord, error) {
 	sacdDoc, err := t.fetchFromIPFS(ctx, source)
 	if err != nil {
-		t.logger.Warn().Err(err).Msg("Failed to fetch JSON from IPFS")
-		return nil
+		return nil, fmt.Errorf("failed to fetch JSON from IPFS")
 	}
 
-	var record PermissionRecord
+	var record models.PermissionRecord
 	if err := json.Unmarshal(sacdDoc, &record); err != nil {
-		t.logger.Warn().Err(err).Msg(fmt.Sprintf("invalid JSON format: %v", err))
-		return nil
+		return nil, fmt.Errorf("invalid JSON format: %v", err)
 	}
 
 	if record.Type != "dimo.sacd" {
-		t.logger.Warn().Msg(fmt.Sprintf("invalid type: expected 'dimo.sacd', got '%s'", record.Type))
-		return nil
+		return nil, fmt.Errorf("invalid type: expected 'dimo.sacd', got '%s'", record.Type)
 	}
 
-	return &record
+	return &record, nil
 }
 
 // fetchFromIPFS retrieves content from IPFS using the provided content identifier (CID).
@@ -245,7 +222,7 @@ func (t *TokenExchangeController) fetchFromIPFS(ctx context.Context, cid string)
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer resp.Body.Close() //nolint:errcheck
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -268,7 +245,7 @@ func (t *TokenExchangeController) fetchFromIPFS(ctx context.Context, cid string)
 // Returns:
 //   - error: An error if the document is invalid, expired, or missing requested permissions;
 //     nil if all permissions are valid and the token is successfully created and returned
-func (t *TokenExchangeController) evaluateSacdDoc(c *fiber.Ctx, record PermissionRecord, pr *PermissionTokenRequest, grantee *common.Address) error {
+func (t *TokenExchangeController) evaluateSacdDoc(c *fiber.Ctx, record *models.PermissionRecord, pr *PermissionTokenRequest, grantee *common.Address) error {
 	now := time.Now()
 	if now.Before(record.Data.EffectiveAt) || now.After(record.Data.ExpiresAt) {
 		return fiber.NewError(fiber.StatusBadRequest, "Permission record is expired or not yet effective")
@@ -331,7 +308,7 @@ func intArrayTo2BitArray(indices []int64, length int) (*big.Int, error) {
 	mask := big.NewInt(0)
 
 	for _, index := range indices {
-		if index < 0 && index >= int64(length) {
+		if index < 0 || index >= int64(length) {
 			return big.NewInt(0), fmt.Errorf("invalid index %d. These must be non-negative and less than %d", index, length)
 		}
 		mask.SetBit(mask, int(index*2), 1)
