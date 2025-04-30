@@ -45,6 +45,7 @@ type TokenExchangeController struct {
 	usersService services.UsersService
 	ctmr         contracts.Manager
 	ethClient    bind.ContractBackend
+	ipfsBaseURL  *url.URL
 }
 
 type PermissionTokenRequest struct {
@@ -65,7 +66,16 @@ type PermissionTokenResponse struct {
 }
 
 func NewTokenExchangeController(logger *zerolog.Logger, settings *config.Settings, dexService services.DexService,
-	usersService services.UsersService, contractsMgr contracts.Manager, ethClient bind.ContractBackend) *TokenExchangeController {
+	usersService services.UsersService, contractsMgr contracts.Manager, ethClient bind.ContractBackend) (*TokenExchangeController, error) {
+	ipfsBaseURL, err := url.Parse(settings.IPFSBaseURL)
+	if err != nil {
+		return nil, fmt.Errorf("invalid IPFS base URL: %w", err)
+	}
+
+	// Ensure the URL ends with a trailing slash for proper path joining
+	if !strings.HasSuffix(ipfsBaseURL.Path, "/") {
+		ipfsBaseURL.Path += "/"
+	}
 	return &TokenExchangeController{
 		logger:       logger,
 		settings:     settings,
@@ -73,7 +83,8 @@ func NewTokenExchangeController(logger *zerolog.Logger, settings *config.Setting
 		usersService: usersService,
 		ctmr:         contractsMgr,
 		ethClient:    ethClient,
-	}
+		ipfsBaseURL:  ipfsBaseURL,
+	}, nil
 }
 
 // GetDeviceCommandPermissionWithScope godoc
@@ -208,10 +219,7 @@ func (t *TokenExchangeController) getValidSacdDoc(ctx context.Context, source st
 func (t *TokenExchangeController) fetchFromIPFS(ctx context.Context, cid string) ([]byte, error) {
 	cid = strings.TrimPrefix(cid, "ipfs://")
 
-	ipfsURL, err := url.JoinPath(t.settings.IPFSBaseURL, cid)
-	if err != nil {
-		return nil, fmt.Errorf("failed to join URL paths: %w", err)
-	}
+	ipfsURL := t.ipfsBaseURL.ResolveReference(&url.URL{Path: cid}).String()
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, ipfsURL, nil)
 	if err != nil {
