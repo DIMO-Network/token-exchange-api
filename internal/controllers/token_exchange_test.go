@@ -51,11 +51,14 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 	client := ethclient.Client{}
 
 	// setup app and route req
-	c := NewTokenExchangeController(&logger, &config.Settings{
+	c, err := NewTokenExchangeController(&logger, &config.Settings{
 		BlockchainNodeURL:        "http://testurl.com/mock",
 		ContractAddressWhitelist: "",
 		ContractAddressSacd:      "0xa6",
 	}, dexService, usersSvc, contractsMgr, &client)
+	if err != nil {
+		require.NoError(t, err, "Failed to initialize token exchange controller")
+	}
 	userEthAddr := common.HexToAddress("0x20Ca3bE69a8B95D3093383375F0473A8c6341727")
 
 	// Create a mock empty permission record to return

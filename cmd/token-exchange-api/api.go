@@ -52,7 +52,10 @@ func startWebAPI(ctx context.Context, logger zerolog.Logger, settings *config.Se
 		logger.Fatal().Err(err).Msg("Failed to dial Ethereum RPC.")
 	}
 
-	vtxController := vtx.NewTokenExchangeController(&logger, settings, dxS, userService, contractsMgr, ethClient)
+	vtxController, err := vtx.NewTokenExchangeController(&logger, settings, dxS, userService, contractsMgr, ethClient)
+	if err != nil {
+		logger.Fatal().Err(err).Msg("Failed to initialize token exchange controller")
+	}
 	idSvc := services.NewIdentityController(&logger, settings)
 
 	devLicenseMiddleware := middleware.NewDevLicenseValidator(idSvc, logger)
