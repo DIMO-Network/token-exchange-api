@@ -37,7 +37,8 @@ type PrivilegeTokenDTO struct {
 type Attestation struct {
 	EventType      string    `json:"eventType"`
 	Source         string    `json:"source"`
-	AttestationIDs []string  `json:"ids"`
+	AttestationIDs []string  `json:"id"`
+	EffectiveAt    time.Time `json:"effectiveAt"`
 	ExpiresAt      time.Time `json:"expiresAt"`
 }
 

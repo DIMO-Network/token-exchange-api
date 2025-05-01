@@ -46,6 +46,7 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 	contractsMgr := mock_contracts.NewMockManager(mockCtrl)
 	mockMultiPriv := mock_contracts.NewMockMultiPriv(mockCtrl)
 	mockSacd := mock_contracts.NewMockSacd(mockCtrl)
+	mockipfs := mock_services.NewMockIPFSService(mockCtrl)
 
 	// This never gets called.
 	client := ethclient.Client{}
@@ -55,7 +56,7 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 		BlockchainNodeURL:        "http://testurl.com/mock",
 		ContractAddressWhitelist: "",
 		ContractAddressSacd:      "0xa6",
-	}, dexService, usersSvc, contractsMgr, &client)
+	}, dexService, usersSvc, mockipfs, contractsMgr, &client)
 	if err != nil {
 		require.NoError(t, err, "Failed to initialize token exchange controller")
 	}
@@ -90,7 +91,7 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 			},
 			mockSetup: func() {
 				contractsMgr.EXPECT().GetSacd(c.settings.ContractAddressSacd, &client).Return(mockSacd, nil)
-
+				mockipfs.EXPECT().FetchFromIPFS(gomock.Any(), gomock.Any()).Return(nil, errors.New("no valid doc"))
 				dexService.EXPECT().SignPrivilegePayload(gomock.Any(), services.PrivilegeTokenDTO{
 					UserEthAddress:     userEthAddr.Hex(),
 					TokenID:            strconv.FormatInt(123, 10),
@@ -117,7 +118,7 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 			},
 			mockSetup: func() {
 				contractsMgr.EXPECT().GetSacd(c.settings.ContractAddressSacd, &client).Return(mockSacd, nil)
-
+				mockipfs.EXPECT().FetchFromIPFS(gomock.Any(), gomock.Any()).Return(nil, errors.New("no valid doc"))
 				dexService.EXPECT().SignPrivilegePayload(gomock.Any(), services.PrivilegeTokenDTO{
 					UserEthAddress:     userEthAddr.Hex(),
 					TokenID:            strconv.FormatInt(123, 10),
@@ -144,7 +145,7 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 			},
 			mockSetup: func() {
 				contractsMgr.EXPECT().GetSacd(c.settings.ContractAddressSacd, &client).Return(mockSacd, nil)
-
+				mockipfs.EXPECT().FetchFromIPFS(gomock.Any(), gomock.Any()).Return(nil, errors.New("no valid doc"))
 				mockSacd.EXPECT().CurrentPermissionRecord(nil, common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr).Return(emptyPermRecord, nil)
 				mockSacd.EXPECT().GetPermissions(nil, common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr, big.NewInt(0b111100111100)).Return(big.NewInt(0b111100001100), nil)
 
@@ -167,7 +168,7 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 			},
 			mockSetup: func() {
 				contractsMgr.EXPECT().GetSacd(c.settings.ContractAddressSacd, &client).Return(mockSacd, nil)
-
+				mockipfs.EXPECT().FetchFromIPFS(gomock.Any(), gomock.Any()).Return(nil, errors.New("no valid doc"))
 				mockSacd.EXPECT().CurrentPermissionRecord(nil, common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr).Return(emptyPermRecord, nil)
 				mockSacd.EXPECT().GetPermissions(nil, common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr, big.NewInt(0b111100111100)).Return(big.NewInt(0b111100001100), nil)
 
@@ -198,7 +199,7 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 			},
 			mockSetup: func() {
 				contractsMgr.EXPECT().GetSacd(c.settings.ContractAddressSacd, &client).Return(mockSacd, nil)
-
+				mockipfs.EXPECT().FetchFromIPFS(gomock.Any(), gomock.Any()).Return(nil, errors.New("no valid doc"))
 				dexService.EXPECT().SignPrivilegePayload(gomock.Any(), services.PrivilegeTokenDTO{
 					UserEthAddress:     userEthAddr.Hex(),
 					TokenID:            strconv.FormatInt(123, 10),
@@ -230,6 +231,7 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 				Audience:           []string{"my-app", "foo"},
 			},
 			mockSetup: func() {
+				mockipfs.EXPECT().FetchFromIPFS(gomock.Any(), gomock.Any()).Return(nil, errors.New("no valid doc"))
 				contractsMgr.EXPECT().GetSacd(c.settings.ContractAddressSacd, &client).Return(mockSacd, nil)
 				dexService.EXPECT().SignPrivilegePayload(gomock.Any(), services.PrivilegeTokenDTO{
 					UserEthAddress:     userEthAddr.Hex(),
