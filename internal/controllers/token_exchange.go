@@ -71,11 +71,6 @@ func NewTokenExchangeController(logger *zerolog.Logger, settings *config.Setting
 	if err != nil {
 		return nil, fmt.Errorf("invalid IPFS base URL: %w", err)
 	}
-
-	// Ensure the URL ends with a trailing slash for proper path joining
-	if !strings.HasSuffix(ipfsBaseURL.Path, "/") {
-		ipfsBaseURL.Path += "/"
-	}
 	return &TokenExchangeController{
 		logger:       logger,
 		settings:     settings,
@@ -189,12 +184,12 @@ func (t *TokenExchangeController) createAndReturnToken(c *fiber.Ctx, pr *Permiss
 func (t *TokenExchangeController) getValidSacdDoc(ctx context.Context, source string) (*models.PermissionRecord, error) {
 	sacdDoc, err := t.fetchFromIPFS(ctx, source)
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch JSON from IPFS")
+		return nil, fmt.Errorf("failed to fetch JSON from IPFS: %w", err)
 	}
 
 	var record models.PermissionRecord
 	if err := json.Unmarshal(sacdDoc, &record); err != nil {
-		return nil, fmt.Errorf("invalid JSON format: %v", err)
+		return nil, fmt.Errorf("invalid JSON format: %w", err)
 	}
 
 	if record.Type != "dimo.sacd" {
@@ -219,7 +214,7 @@ func (t *TokenExchangeController) getValidSacdDoc(ctx context.Context, source st
 func (t *TokenExchangeController) fetchFromIPFS(ctx context.Context, cid string) ([]byte, error) {
 	cid = strings.TrimPrefix(cid, "ipfs://")
 
-	ipfsURL := t.ipfsBaseURL.ResolveReference(&url.URL{Path: cid}).String()
+	ipfsURL := t.ipfsBaseURL.JoinPath(cid).String()
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, ipfsURL, nil)
 	if err != nil {

@@ -57,7 +57,7 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 		ContractAddressSacd:      "0xa6",
 	}, dexService, usersSvc, contractsMgr, &client)
 	if err != nil {
-		logger.Fatal().Err(err).Msg("Failed to initialize token exchange controller")
+		require.NoError(t, err, "Failed to initialize token exchange controller")
 	}
 	userEthAddr := common.HexToAddress("0x20Ca3bE69a8B95D3093383375F0473A8c6341727")
 
