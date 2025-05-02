@@ -106,18 +106,7 @@ func (t *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.C
 
 	ethAddr := api.GetUserEthAddr(c)
 	if ethAddr == nil {
-		// If eth addr not in JWT, use userID to fetch user
-		userID := api.GetUserID(c)
-		user, err := t.usersService.GetUserByID(c.Context(), userID)
-		if err != nil {
-			// TODO(elffjs): If there's no record here, it's a client error.
-			return fiber.NewError(fiber.StatusInternalServerError, "Failed to get user by ID")
-		}
-		if user.EthereumAddress == nil || !common.IsHexAddress(*user.EthereumAddress) {
-			return fiber.NewError(fiber.StatusBadRequest, "No Ethereum address in JWT or on record.")
-		}
-		e := common.HexToAddress(*user.EthereumAddress)
-		ethAddr = &e
+		return fiber.NewError(fiber.StatusUnauthorized, "Ethereum address required in JWT.")
 	}
 
 	// TODO(elffjs): Still silly to create this every time.
@@ -421,6 +410,8 @@ func (t *TokenExchangeController) evaluatePermissionsBits(
 				return fiber.NewError(fiber.StatusBadRequest, fmt.Sprintf("Address %s lacks permission %d on token id %d for asset %s.", ethAddr.Hex(), p, pr.TokenID, nftAddr))
 			}
 		}
+
+		t.logger.Warn().Msgf("Still using privileges %v for %s_%d", pr.Privileges, nftAddr.Hex(), pr.TokenID)
 	}
 
 	return t.createAndReturnToken(c, pr, ethAddr)

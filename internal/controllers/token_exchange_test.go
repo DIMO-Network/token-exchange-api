@@ -42,7 +42,6 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 		Logger()
 
 	dexService := mock_services.NewMockDexService(mockCtrl)
-	usersSvc := mock_services.NewMockUsersService(mockCtrl)
 	contractsMgr := mock_contracts.NewMockManager(mockCtrl)
 	mockMultiPriv := mock_contracts.NewMockMultiPriv(mockCtrl)
 	mockSacd := mock_contracts.NewMockSacd(mockCtrl)
@@ -208,7 +207,7 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 			expectedCode: fiber.StatusOK,
 		},
 		{
-			name: "auth jwt with userId",
+			name: "auth jwt with userId but no ethereum address",
 			tokenClaims: jwt.MapClaims{
 				"sub": "user-id-123",
 				"nbf": time.Now().Unix(),
@@ -266,23 +265,6 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 				mockSacd.EXPECT().GetPermissions(nil, common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr, big.NewInt(0b1100000000)).Return(big.NewInt(0b1100000000), nil)
 			},
 			expectedCode: fiber.StatusOK,
-		},
-		{
-			name: "auth jwt with userId no user found",
-			tokenClaims: jwt.MapClaims{
-				"sub": "user-id-123",
-				"nbf": time.Now().Unix(),
-			},
-			userEthAddr: &userEthAddr,
-			permissionTokenRequest: &PermissionTokenRequest{
-				TokenID:            123,
-				Privileges:         []int64{4},
-				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
-			},
-			mockSetup: func() {
-				usersSvc.EXPECT().GetUserByID(gomock.Any(), "user-id-123").Return(nil, fmt.Errorf("not found"))
-			},
-			expectedCode: fiber.StatusInternalServerError,
 		},
 		// {
 		// 	name: "valid sacd",
