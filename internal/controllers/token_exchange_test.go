@@ -20,7 +20,6 @@ import (
 	mock_middleware "github.com/DIMO-Network/token-exchange-api/internal/middleware/mocks"
 	"github.com/DIMO-Network/token-exchange-api/internal/services"
 	mock_services "github.com/DIMO-Network/token-exchange-api/internal/services/mocks"
-	"github.com/DIMO-Network/users-api/pkg/grpc"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/gofiber/fiber/v2"
@@ -55,7 +54,7 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 		BlockchainNodeURL:        "http://testurl.com/mock",
 		ContractAddressWhitelist: "",
 		ContractAddressSacd:      "0xa6",
-	}, dexService, usersSvc, mockipfs, contractsMgr, &client)
+	}, dexService, mockipfs, contractsMgr, &client)
 	if err != nil {
 		require.NoError(t, err, "Failed to initialize token exchange controller")
 	}
@@ -230,10 +229,6 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 				}).Return("jwt", nil)
 				mockSacd.EXPECT().CurrentPermissionRecord(nil, common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr).Return(emptyPermRecord, nil)
 				mockSacd.EXPECT().GetPermissions(nil, common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr, big.NewInt(0b1100000000)).Return(big.NewInt(0b1100000000), nil)
-				e := userEthAddr.Hex()
-				usersSvc.EXPECT().GetUserByID(gomock.Any(), "user-id-123").Return(&grpc.User{
-					EthereumAddress: &e,
-				}, nil)
 			},
 			expectedCode: fiber.StatusOK,
 		},

@@ -35,13 +35,12 @@ var PermissionMap = map[int]string{
 }
 
 type TokenExchangeController struct {
-	logger       *zerolog.Logger
-	settings     *config.Settings
-	dexService   services.DexService
-	usersService services.UsersService
-	ctmr         contracts.Manager
-	ethClient    bind.ContractBackend
-	ipfsService  services.IPFSService
+	logger      *zerolog.Logger
+	settings    *config.Settings
+	dexService  services.DexService
+	ctmr        contracts.Manager
+	ethClient   bind.ContractBackend
+	ipfsService services.IPFSService
 }
 
 type PermissionTokenRequest struct {
@@ -63,16 +62,14 @@ type PermissionTokenResponse struct {
 	Token string `json:"token"`
 }
 
-func NewTokenExchangeController(logger *zerolog.Logger, settings *config.Settings, dexService services.DexService,
-	usersService services.UsersService, ipfsService services.IPFSService, contractsMgr contracts.Manager, ethClient bind.ContractBackend) (*TokenExchangeController, error) {
+func NewTokenExchangeController(logger *zerolog.Logger, settings *config.Settings, dexService services.DexService, ipfsService services.IPFSService, contractsMgr contracts.Manager, ethClient bind.ContractBackend) (*TokenExchangeController, error) {
 	return &TokenExchangeController{
-		logger:       logger,
-		settings:     settings,
-		dexService:   dexService,
-		usersService: usersService,
-		ctmr:         contractsMgr,
-		ethClient:    ethClient,
-		ipfsService:  ipfsService,
+		logger:      logger,
+		settings:    settings,
+		dexService:  dexService,
+		ctmr:        contractsMgr,
+		ethClient:   ethClient,
+		ipfsService: ipfsService,
 	}, nil
 }
 
