@@ -20,7 +20,6 @@ import (
 	mock_middleware "github.com/DIMO-Network/token-exchange-api/internal/middleware/mocks"
 	"github.com/DIMO-Network/token-exchange-api/internal/services"
 	mock_services "github.com/DIMO-Network/token-exchange-api/internal/services/mocks"
-	"github.com/DIMO-Network/users-api/pkg/grpc"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/gofiber/fiber/v2"
@@ -42,7 +41,6 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 		Logger()
 
 	dexService := mock_services.NewMockDexService(mockCtrl)
-	usersSvc := mock_services.NewMockUsersService(mockCtrl)
 	contractsMgr := mock_contracts.NewMockManager(mockCtrl)
 	mockMultiPriv := mock_contracts.NewMockMultiPriv(mockCtrl)
 	mockSacd := mock_contracts.NewMockSacd(mockCtrl)
@@ -55,10 +53,9 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 		BlockchainNodeURL:        "http://testurl.com/mock",
 		ContractAddressWhitelist: "",
 		ContractAddressSacd:      "0xa6",
-	}, dexService, usersSvc, contractsMgr, &client)
-	if err != nil {
-		require.NoError(t, err, "Failed to initialize token exchange controller")
-	}
+	}, dexService, contractsMgr, &client)
+	require.NoError(t, err, "Failed to initialize token exchange controller")
+
 	userEthAddr := common.HexToAddress("0x20Ca3bE69a8B95D3093383375F0473A8c6341727")
 
 	// Create a mock empty permission record to return
@@ -185,7 +182,7 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 			expectedCode: fiber.StatusOK,
 		},
 		{
-			name: "auth jwt with userId",
+			name: "auth jwt with userId but no ethereum address",
 			tokenClaims: jwt.MapClaims{
 				"sub": "user-id-123",
 				"nbf": time.Now().Unix(),
@@ -196,24 +193,8 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 				Privileges:         []int64{4},
 				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
 			},
-			mockSetup: func() {
-				contractsMgr.EXPECT().GetSacd(c.settings.ContractAddressSacd, &client).Return(mockSacd, nil)
-
-				dexService.EXPECT().SignPrivilegePayload(gomock.Any(), services.PrivilegeTokenDTO{
-					UserEthAddress:     userEthAddr.Hex(),
-					TokenID:            strconv.FormatInt(123, 10),
-					PrivilegeIDs:       []int64{4},
-					NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
-					Audience:           defaultAudience,
-				}).Return("jwt", nil)
-				mockSacd.EXPECT().CurrentPermissionRecord(nil, common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr).Return(emptyPermRecord, nil)
-				mockSacd.EXPECT().GetPermissions(nil, common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr, big.NewInt(0b1100000000)).Return(big.NewInt(0b1100000000), nil)
-				e := userEthAddr.Hex()
-				usersSvc.EXPECT().GetUserByID(gomock.Any(), "user-id-123").Return(&grpc.User{
-					EthereumAddress: &e,
-				}, nil)
-			},
-			expectedCode: fiber.StatusOK,
+			mockSetup:    func() {},
+			expectedCode: fiber.StatusUnauthorized,
 		},
 		{
 			name: "auth jwt with audience",
@@ -242,23 +223,6 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 				mockSacd.EXPECT().GetPermissions(nil, common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr, big.NewInt(0b1100000000)).Return(big.NewInt(0b1100000000), nil)
 			},
 			expectedCode: fiber.StatusOK,
-		},
-		{
-			name: "auth jwt with userId no user found",
-			tokenClaims: jwt.MapClaims{
-				"sub": "user-id-123",
-				"nbf": time.Now().Unix(),
-			},
-			userEthAddr: &userEthAddr,
-			permissionTokenRequest: &PermissionTokenRequest{
-				TokenID:            123,
-				Privileges:         []int64{4},
-				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
-			},
-			mockSetup: func() {
-				usersSvc.EXPECT().GetUserByID(gomock.Any(), "user-id-123").Return(nil, fmt.Errorf("not found"))
-			},
-			expectedCode: fiber.StatusInternalServerError,
 		},
 	}
 	for _, tc := range tests {
