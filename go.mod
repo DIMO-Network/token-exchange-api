@@ -7,7 +7,7 @@ toolchain go1.24.1
 replace github.com/dexidp/dex/api/v2 => github.com/DIMO-Network/dex/api/v2 v2.0.1-0.20240402140037-3b70843c1bed
 
 require (
-	github.com/DIMO-Network/shared v0.10.9-go121
+	github.com/DIMO-Network/shared v0.12.10
 	github.com/dexidp/dex/api/v2 v2.35.3
 	github.com/ethereum/go-ethereum v1.15.7
 	github.com/gofiber/fiber/v2 v2.52.6
@@ -25,16 +25,23 @@ require (
 require golang.org/x/exp v0.0.0-20240213143201-ec583247a57a // indirect
 
 require (
+	github.com/DIMO-Network/yaml v0.1.0 // indirect
+	github.com/tidwall/sjson v1.2.5 // indirect
+	golang.org/x/time v0.9.0 // indirect
+)
+
+require (
+	github.com/DIMO-Network/cloudevent v0.0.4
 	github.com/KyleBanks/depth v1.2.1 // indirect
 	github.com/MicahParks/keyfunc/v2 v2.1.0 // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect
-	github.com/andybalholm/brotli v1.1.0 // indirect
+	github.com/andybalholm/brotli v1.1.1 // indirect
 	github.com/avast/retry-go/v4 v4.5.1 // indirect
-	github.com/aws/aws-sdk-go-v2 v1.25.0 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/configsources v1.3.0 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.6.0 // indirect
+	github.com/aws/aws-sdk-go-v2 v1.32.7 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/configsources v1.3.26 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.6.26 // indirect
 	github.com/aws/aws-sdk-go-v2/service/kms v1.28.1 // indirect
-	github.com/aws/smithy-go v1.20.0 // indirect
+	github.com/aws/smithy-go v1.22.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bits-and-blooms/bitset v1.17.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
