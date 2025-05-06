@@ -14,8 +14,8 @@ type PermissionRecord struct {
 
 // PermissionData contains the core permission data
 type PermissionData struct {
-	Grantor     Addr        `json:"grantor"`
-	Grantee     Addr        `json:"grantee"`
+	Grantor     Address     `json:"grantor"`
+	Grantee     Address     `json:"grantee"`
 	EffectiveAt time.Time   `json:"effectiveAt"`
 	ExpiresAt   time.Time   `json:"expiresAt"`
 	Asset       string      `json:"asset,omitempty"`
@@ -40,6 +40,6 @@ type Permission struct {
 }
 
 // Address represents a blockchain address
-type Addr struct {
+type Address struct {
 	Address string `json:"address"`
 }

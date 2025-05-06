@@ -16,6 +16,7 @@ import (
 	"github.com/DIMO-Network/token-exchange-api/internal/config"
 	mock_contracts "github.com/DIMO-Network/token-exchange-api/internal/contracts/mocks"
 	"github.com/DIMO-Network/token-exchange-api/internal/contracts/sacd"
+	mock_controller "github.com/DIMO-Network/token-exchange-api/internal/controllers/mocks"
 	"github.com/DIMO-Network/token-exchange-api/internal/middleware"
 	mock_middleware "github.com/DIMO-Network/token-exchange-api/internal/middleware/mocks"
 	"github.com/DIMO-Network/token-exchange-api/internal/models"
@@ -45,7 +46,7 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 	contractsMgr := mock_contracts.NewMockManager(mockCtrl)
 	mockMultiPriv := mock_contracts.NewMockMultiPriv(mockCtrl)
 	mockSacd := mock_contracts.NewMockSacd(mockCtrl)
-	mockipfs := mock_services.NewMockIPFSService(mockCtrl)
+	mockipfs := mock_controller.NewMockIPFSService(mockCtrl)
 
 	// This never gets called.
 	client := ethclient.Client{}
@@ -71,10 +72,10 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 	ipfsRecord := models.PermissionRecord{
 		Type: "dimo.sacd",
 		Data: models.PermissionData{
-			Grantor: models.Addr{
+			Grantor: models.Address{
 				Address: common.BigToAddress(big.NewInt(1)).Hex(),
 			},
-			Grantee: models.Addr{
+			Grantee: models.Address{
 				Address: userEthAddr.Hex(),
 			},
 			EffectiveAt: time.Now().Add(-5 * time.Hour),

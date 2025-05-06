@@ -22,6 +22,11 @@ import (
 	"github.com/rs/zerolog"
 )
 
+//go:generate mockgen -source ./token_exchange.go -destination mocks/ipfs_service_mock.go
+type IPFSService interface {
+	FetchFromIPFS(ctx context.Context, cid string) ([]byte, error)
+}
+
 var defaultAudience = []string{"dimo.zone"}
 
 // privilege prefix to denote the 1:1 mapping to bit values and to make them easier to deprecate if desired in the future
@@ -42,7 +47,7 @@ type TokenExchangeController struct {
 	dexService  services.DexService
 	ctmr        contracts.Manager
 	ethClient   bind.ContractBackend
-	ipfsService services.IPFSService
+	ipfsService IPFSService
 }
 
 type PermissionTokenRequest struct {
@@ -64,7 +69,7 @@ type PermissionTokenResponse struct {
 	Token string `json:"token"`
 }
 
-func NewTokenExchangeController(logger *zerolog.Logger, settings *config.Settings, dexService services.DexService, ipfsService services.IPFSService, contractsMgr contracts.Manager, ethClient bind.ContractBackend) (*TokenExchangeController, error) {
+func NewTokenExchangeController(logger *zerolog.Logger, settings *config.Settings, dexService services.DexService, ipfsService IPFSService, contractsMgr contracts.Manager, ethClient bind.ContractBackend) (*TokenExchangeController, error) {
 	return &TokenExchangeController{
 		logger:      logger,
 		settings:    settings,

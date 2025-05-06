@@ -12,10 +12,10 @@ import (
 	"github.com/rs/zerolog"
 )
 
-//go:generate mockgen -source ./ipfs_service.go -destination mocks/ipfs_service_mock.go
-type IPFSService interface {
-	FetchFromIPFS(ctx context.Context, cid string) ([]byte, error)
-}
+// //go:generate mockgen -source ./ipfs_service.go -destination mocks/ipfs_service_mock.go
+// type IPFSService interface {
+// 	FetchFromIPFS(ctx context.Context, cid string) ([]byte, error)
+// }
 
 type IPFSController struct {
 	logger      *zerolog.Logger
@@ -23,7 +23,7 @@ type IPFSController struct {
 	ipfsBaseURL *url.URL
 }
 
-func NewIPFSController(logger *zerolog.Logger, settings *config.Settings) (IPFSService, error) {
+func NewIPFSController(logger *zerolog.Logger, settings *config.Settings) (*IPFSController, error) {
 	ipfsBaseURL, err := url.Parse(settings.IPFSBaseURL)
 	if err != nil {
 		return nil, fmt.Errorf("invalid IPFS base URL: %w", err)
