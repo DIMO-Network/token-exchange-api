@@ -120,7 +120,10 @@ func (t *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.C
 	}
 
 	record, err := t.getValidSacdDoc(c.Context(), resPermRecord.Source)
+	fmt.Println("Record: ", record)
+	fmt.Println("error: ", err)
 	if err != nil {
+		fmt.Println("we're getting here but we shouldnt be")
 		t.logger.Err(err).Msg("failed to validate sacd doc")
 		// If the user doesn't have a valid IPFS doc, check bitstring
 		return t.evaluatePermissionsBits(c, s, nftAddr, pr, ethAddr)
@@ -140,6 +143,7 @@ func (t *TokenExchangeController) createAndReturnToken(c *fiber.Ctx, pr *Permiss
 		UserEthAddress:     ethAddr.Hex(),
 		TokenID:            strconv.FormatInt(pr.TokenID, 10),
 		PrivilegeIDs:       pr.Privileges,
+		Attestations:       pr.Attestations,
 		NFTContractAddress: pr.NFTContractAddress,
 		Audience:           aud,
 	})
@@ -197,19 +201,23 @@ func (t *TokenExchangeController) getValidSacdDoc(ctx context.Context, source st
 func (t *TokenExchangeController) evaluateSacdDoc(c *fiber.Ctx, record *models.PermissionRecord, pr *PermissionTokenRequest, grantee *common.Address) error {
 	now := time.Now()
 	if now.Before(record.Data.EffectiveAt) || now.After(record.Data.ExpiresAt) {
+		fmt.Println(1)
 		return fiber.NewError(fiber.StatusBadRequest, "Permission record is expired or not yet effective")
 	}
 
 	if record.Data.Grantee.Address != grantee.Hex() {
+		fmt.Println(2)
 		return fiber.NewError(fiber.StatusBadRequest, "Grantee address in permission record doesn't match requester")
 	}
 
 	if err := t.evaluatePermissions(record, pr); err != nil {
+		fmt.Println(3)
 		t.logger.Err(err).Str("grantee", grantee.Hex()).Msg("failed to validate requested permissions")
 		return fiber.NewError(fiber.StatusBadRequest, "failed to validate requested permissions")
 	}
 
 	if err := t.evaluateAttestations(record, pr); err != nil {
+		fmt.Println(4)
 		t.logger.Err(err).Str("grantee", grantee.Hex()).Msg("failed to validate requested attestations")
 		return fiber.NewError(fiber.StatusBadRequest, "failed to validate requested permissions")
 	}
@@ -267,21 +275,26 @@ func (t *TokenExchangeController) evaluatePermissions(record *models.PermissionR
 
 func (t *TokenExchangeController) evaluateAttestations(record *models.PermissionRecord, tokenReq *PermissionTokenRequest) error {
 	if valid, err := t.validateAssetDID(record.Data.Asset, tokenReq); err != nil || !valid {
+		fmt.Println(11)
 		return fmt.Errorf("failed to validate attestation asset: %s", record.Data.Asset)
 	}
 
 	attestations := make(map[string]map[string]struct{})
 	for _, agreement := range record.Data.Agreements {
 		if agreement.EventType != "dimo.attestation" {
+			fmt.Println(22)
 			continue
 		}
 
+		// TODO, overwrite in order of which we care most about
 		if agreement.ExpiresAt.Before(time.Now()) || time.Now().Before(agreement.EffectiveAt) {
+			fmt.Println(33)
 			continue
 		}
 
 		attestations[agreement.Source] = make(map[string]struct{})
 		for _, id := range agreement.ID {
+			fmt.Println(44)
 			attestations[agreement.Source][id] = struct{}{}
 		}
 	}
@@ -290,6 +303,7 @@ func (t *TokenExchangeController) evaluateAttestations(record *models.Permission
 	for _, claim := range tokenReq.Attestations {
 		att, ok := attestations[claim.Source]
 		if !ok {
+			fmt.Println(55)
 			errs = append(errs, fmt.Errorf("missing grant for source: %s", claim.Source))
 			continue
 		}
@@ -299,6 +313,7 @@ func (t *TokenExchangeController) evaluateAttestations(record *models.Permission
 			_, ok := att[attID]
 
 			if !ok {
+				fmt.Println(66)
 				missing = append(missing, attID)
 			}
 		}

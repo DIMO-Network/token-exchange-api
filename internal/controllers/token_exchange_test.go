@@ -18,6 +18,7 @@ import (
 	"github.com/DIMO-Network/token-exchange-api/internal/contracts/sacd"
 	"github.com/DIMO-Network/token-exchange-api/internal/middleware"
 	mock_middleware "github.com/DIMO-Network/token-exchange-api/internal/middleware/mocks"
+	"github.com/DIMO-Network/token-exchange-api/internal/models"
 	"github.com/DIMO-Network/token-exchange-api/internal/services"
 	mock_services "github.com/DIMO-Network/token-exchange-api/internal/services/mocks"
 	"github.com/ethereum/go-ethereum/common"
@@ -67,27 +68,30 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 		Source:      "",
 	}
 
-	// ipfsRecord := models.PermissionRecord{
-	// 	Type: "dimo.sacd",
-	// 	Data: models.PermissionData{
-	// 		Grantor: models.Addr{
-	// 			Address: common.BigToAddress(big.NewInt(1)).Hex(),
-	// 		},
-	// 		Grantee: models.Addr{
-	// 			Address: common.BigToAddress(big.NewInt(2)).Hex(),
-	// 		},
-	// 		EffectiveAt: time.Now(),
-	// 		ExpiresAt:   time.Now().Add(5 * time.Hour),
-	// 		Asset:       "",
-	// 		Agreements: []models.Agreement{
-	// 			{
-	// 				Type: "dimo.attestation",
-	// 			},
-	// 		},
-	// 	},
-	// }
+	ipfsRecord := models.PermissionRecord{
+		Type: "dimo.sacd",
+		Data: models.PermissionData{
+			Grantor: models.Addr{
+				Address: common.BigToAddress(big.NewInt(1)).Hex(),
+			},
+			Grantee: models.Addr{
+				Address: userEthAddr.Hex(),
+			},
+			EffectiveAt: time.Now().Add(-5 * time.Hour),
+			ExpiresAt:   time.Now().Add(5 * time.Hour),
+			Asset:       "did:nft:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144_123",
+			Agreements: []models.Agreement{
+				{
+					EffectiveAt: time.Now().Add(-5 * time.Hour),
+					ExpiresAt:   time.Now().Add(5 * time.Hour),
+					EventType:   "dimo.attestation",
+					Source:      "0x123",
+				},
+			},
+		},
+	}
 
-	// ipfsBytes, _ := json.Marshal(ipfsRecord)
+	ipfsBytes, _ := json.Marshal(ipfsRecord)
 
 	tests := []struct {
 		name                   string
@@ -249,37 +253,42 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 			},
 			expectedCode: fiber.StatusOK,
 		},
-		// {
-		// 	name: "valid sacd",
-		// 	tokenClaims: jwt.MapClaims{
-		// 		"ethereum_address": userEthAddr.Hex(),
-		// 		"nbf":              time.Now().Unix(),
-		// 	},
-		// 	userEthAddr: &userEthAddr,
-		// 	permissionTokenRequest: &PermissionTokenRequest{
-		// 		TokenID: 123,
-		// 		Attestations: []services.Attestation{
-		// 			{
-		// 				EventType: "dimo.attestation",
-		// 				Source:    "0x123",
-		// 			},
-		// 		},
-		// 		NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
-		// 	},
-		// 	mockSetup: func() {
-		// 		contractsMgr.EXPECT().GetSacd(c.settings.ContractAddressSacd, &client).Return(mockSacd, nil)
-		// 		mockipfs.EXPECT().FetchFromIPFS(gomock.Any(), gomock.Any()).Return(ipfsBytes, nil)
-		// 		dexService.EXPECT().SignPrivilegePayload(gomock.Any(), services.PrivilegeTokenDTO{
-		// 			UserEthAddress:     userEthAddr.Hex(),
-		// 			TokenID:            strconv.FormatInt(123, 10),
-		// 			NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
-		// 			Audience:           defaultAudience,
-		// 		}).Return("jwt", nil)
-		// 		mockSacd.EXPECT().CurrentPermissionRecord(nil, common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr).Return(emptyPermRecord, nil)
-		// 		mockSacd.EXPECT().GetPermissions(nil, common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr, big.NewInt(0b1100000000)).Return(big.NewInt(0b1100000000), nil)
-		// 	},
-		// 	expectedCode: fiber.StatusOK,
-		// },
+		{
+			name: "valid sacd",
+			tokenClaims: jwt.MapClaims{
+				"ethereum_address": userEthAddr.Hex(),
+				"nbf":              time.Now().Unix(),
+			},
+			userEthAddr: &userEthAddr,
+			permissionTokenRequest: &PermissionTokenRequest{
+				TokenID: 123,
+				Attestations: []services.Attestation{
+					{
+						EventType: "dimo.attestation",
+						Source:    "0x123",
+					},
+				},
+				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
+			},
+			mockSetup: func() {
+				contractsMgr.EXPECT().GetSacd(c.settings.ContractAddressSacd, &client).Return(mockSacd, nil)
+				mockipfs.EXPECT().FetchFromIPFS(gomock.Any(), gomock.Any()).Return(ipfsBytes, nil)
+				dexService.EXPECT().SignPrivilegePayload(gomock.Any(), services.PrivilegeTokenDTO{
+					UserEthAddress: userEthAddr.Hex(),
+					TokenID:        strconv.FormatInt(123, 10),
+					Attestations: []services.Attestation{
+						{
+							EventType: "dimo.attestation",
+							Source:    "0x123",
+						},
+					},
+					NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
+					Audience:           defaultAudience,
+				}).Return("jwt", nil)
+				mockSacd.EXPECT().CurrentPermissionRecord(nil, common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr).Return(emptyPermRecord, nil)
+			},
+			expectedCode: fiber.StatusOK,
+		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
