@@ -3,9 +3,11 @@ package controllers
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math/big"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/DIMO-Network/cloudevent"
@@ -284,21 +286,29 @@ func (t *TokenExchangeController) evaluateAttestations(record *models.Permission
 		}
 	}
 
+	var errs []error
 	for _, claim := range tokenReq.Attestations {
 		att, ok := attestations[claim.Source]
 		if !ok {
-			return fmt.Errorf("missing grant for source: %s", claim.Source)
+			errs = append(errs, fmt.Errorf("missing grant for source: %s", claim.Source))
+			continue
 		}
 
+		var missing []string
 		for _, attID := range claim.AttestationIDs {
 			_, ok := att[attID]
+
 			if !ok {
-				return fmt.Errorf("missing grant for attestation id %s from source %s", attID, claim.Source)
+				missing = append(missing, attID)
 			}
+		}
+
+		if len(missing) >= 1 {
+			errs = append(errs, fmt.Errorf("for source %s missing grants for attestation ids: %d", strings.Join(missing, ", ")))
 		}
 	}
 
-	return nil
+	return errors.Join(errs...)
 }
 
 func intArrayTo2BitArray(indices []int64, length int) (*big.Int, error) {
