@@ -304,7 +304,7 @@ func (t *TokenExchangeController) evaluateAttestations(record *models.Permission
 		}
 
 		if len(missing) >= 1 {
-			errs = append(errs, fmt.Errorf("for source %s missing grants for attestation ids: %d", strings.Join(missing, ", ")))
+			errs = append(errs, fmt.Errorf("for source %s missing grants for attestation ids: %s", claim.Source, strings.Join(missing, ", ")))
 		}
 	}
 
