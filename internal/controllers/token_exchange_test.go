@@ -217,20 +217,8 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 				Privileges:         []int64{4},
 				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
 			},
-			mockSetup: func() {
-				contractsMgr.EXPECT().GetSacd(c.settings.ContractAddressSacd, &client).Return(mockSacd, nil)
-				mockipfs.EXPECT().FetchFromIPFS(gomock.Any(), gomock.Any()).Return(nil, errors.New("no valid doc"))
-				dexService.EXPECT().SignPrivilegePayload(gomock.Any(), services.PrivilegeTokenDTO{
-					UserEthAddress:     userEthAddr.Hex(),
-					TokenID:            strconv.FormatInt(123, 10),
-					PrivilegeIDs:       []int64{4},
-					NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
-					Audience:           defaultAudience,
-				}).Return("jwt", nil)
-				mockSacd.EXPECT().CurrentPermissionRecord(nil, common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr).Return(emptyPermRecord, nil)
-				mockSacd.EXPECT().GetPermissions(nil, common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr, big.NewInt(0b1100000000)).Return(big.NewInt(0b1100000000), nil)
-			},
-			expectedCode: fiber.StatusOK,
+			mockSetup:    func() {},
+			expectedCode: fiber.StatusUnauthorized,
 		},
 		{
 			name: "auth jwt with audience",
@@ -247,8 +235,8 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 				Audience:           []string{"my-app", "foo"},
 			},
 			mockSetup: func() {
-				mockipfs.EXPECT().FetchFromIPFS(gomock.Any(), gomock.Any()).Return(nil, errors.New("no valid doc"))
 				contractsMgr.EXPECT().GetSacd(c.settings.ContractAddressSacd, &client).Return(mockSacd, nil)
+				mockipfs.EXPECT().FetchFromIPFS(gomock.Any(), gomock.Any()).Return(nil, errors.New("no valid doc"))
 				dexService.EXPECT().SignPrivilegePayload(gomock.Any(), services.PrivilegeTokenDTO{
 					UserEthAddress:     userEthAddr.Hex(),
 					TokenID:            strconv.FormatInt(123, 10),
