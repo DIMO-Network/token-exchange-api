@@ -126,7 +126,7 @@ func (t *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.C
 
 	record, err := t.getValidSacdDoc(c.Context(), resPermRecord.Source)
 	if err != nil {
-		t.logger.Err(err).Msg("failed to validate sacd doc")
+		t.logger.Warn().Err(err).Msg("failed to get valid SACD document")
 		// If the user doesn't have a valid IPFS doc, check bitstring
 		return t.evaluatePermissionsBits(c, s, nftAddr, pr, ethAddr)
 	}
@@ -276,28 +276,62 @@ func (t *TokenExchangeController) evaluateAttestations(record *models.Permission
 		return fmt.Errorf("failed to validate attestation asset: %s", record.Data.Asset)
 	}
 
+	if time.Now().Before(record.Data.EffectiveAt) {
+		return fmt.Errorf("agreement inactive, effective starting at: %s", record.Data.EffectiveAt.String())
+	}
+
+	if record.Data.ExpiresAt.Before(time.Now()) {
+		return fmt.Errorf("agreement inactive, expired at: %s", record.Data.ExpiresAt.String())
+	}
+
+	var allAttestations bool
 	attestations := make(map[string]map[string]struct{})
 	for _, agreement := range record.Data.Agreements {
-		if agreement.EventType != "dimo.attestation" {
+		if agreement.Type != "cloudevent" || agreement.EventType != cloudevent.TypeAttestation {
+			return errors.New("unexpected types in attestation agreement")
+		}
+
+		if agreement.Source == nil {
+			allAttestations = true
 			continue
 		}
 
-		// TODO, overwrite in order of which we care most about
-		if agreement.ExpiresAt.Before(time.Now()) || time.Now().Before(agreement.EffectiveAt) {
-			continue
+		if agreement.EffectiveAt != nil && !agreement.EffectiveAt.IsZero() {
+			if time.Now().Before(*agreement.EffectiveAt) {
+				return fmt.Errorf("sacd agreement not yet in effect: %s", agreement.EffectiveAt.String())
+			}
 		}
 
-		attestations[agreement.Source] = make(map[string]struct{})
-		for _, id := range agreement.ID {
-			attestations[agreement.Source][id] = struct{}{}
+		if agreement.ExpiresAt != nil && !agreement.ExpiresAt.IsZero() {
+			if agreement.ExpiresAt.Before(time.Now()) {
+				return fmt.Errorf("sacd agreement expired: %s", agreement.ExpiresAt.String())
+			}
 		}
+
+		if agreement.Source != nil {
+			attestations[*agreement.Source] = make(map[string]struct{})
+			for _, id := range agreement.ID {
+				attestations[*agreement.Source][id] = struct{}{}
+			}
+		}
+	}
+
+	if allAttestations {
+		return nil
 	}
 
 	var errs []error
 	for _, claim := range tokenReq.Attestations {
-		att, ok := attestations[claim.Source]
+		// if no source specified,
+		// user can view all asset attestations
+		if claim.Source == nil {
+			continue
+		}
+
+		// if we get there the soure should be included
+		att, ok := attestations[*claim.Source]
 		if !ok {
-			errs = append(errs, fmt.Errorf("missing grant for source: %s", claim.Source))
+			errs = append(errs, fmt.Errorf("missing grant for source: %s", *claim.Source))
 			continue
 		}
 
@@ -311,7 +345,7 @@ func (t *TokenExchangeController) evaluateAttestations(record *models.Permission
 		}
 
 		if len(missing) >= 1 {
-			errs = append(errs, fmt.Errorf("for source %s missing grants for attestation ids: %s", claim.Source, strings.Join(missing, ", ")))
+			errs = append(errs, fmt.Errorf("for source %s missing grants for attestation ids: %s", *claim.Source, strings.Join(missing, ", ")))
 		}
 	}
 
