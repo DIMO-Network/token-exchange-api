@@ -354,6 +354,7 @@ func TestTokenExchangeController_ValidAttestations(t *testing.T) {
 	}
 
 	source := "0x123"
+	invalidSource := "0x456"
 
 	oneMinAgo := time.Now().Add(-1 * time.Minute)
 	oneMinFuture := time.Now().Add(1 * time.Minute)
@@ -384,6 +385,7 @@ func TestTokenExchangeController_ValidAttestations(t *testing.T) {
 		mockSetup              func([]models.Agreement)
 		expectedCode           int
 		agreement              []models.Agreement
+		err                    error
 	}{
 		{
 			name: "valid sacd-- all attestations",
@@ -649,6 +651,39 @@ func TestTokenExchangeController_ValidAttestations(t *testing.T) {
 			},
 			expectedCode: fiber.StatusBadRequest,
 		},
+		{
+			name: "invalid attestation- user asking for all attestations but they're only granted by source",
+			tokenClaims: jwt.MapClaims{
+				"ethereum_address": userEthAddr.Hex(),
+				"nbf":              time.Now().Unix(),
+			},
+			userEthAddr: &userEthAddr,
+			permissionTokenRequest: &PermissionTokenRequest{
+				TokenID: 123,
+				Attestations: []services.Attestation{
+					{
+						EventType: "dimo.attestation",
+					},
+				},
+				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
+			},
+			mockSetup: func(agg []models.Agreement) {
+				ipfsRecord.Data.Agreements = agg
+				ipfsBytes, _ := json.Marshal(ipfsRecord)
+				contractsMgr.EXPECT().GetSacd(c.settings.ContractAddressSacd, &client).Return(mockSacd, nil)
+				mockipfs.EXPECT().FetchFromIPFS(gomock.Any(), gomock.Any()).Return(ipfsBytes, nil)
+				mockSacd.EXPECT().CurrentPermissionRecord(nil, common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr).Return(emptyPermRecord, nil)
+			},
+			agreement: []models.Agreement{
+				{
+					Type:      "cloudevent",
+					EventType: "dimo.attestation",
+					Source:    &invalidSource,
+				},
+			},
+			expectedCode: fiber.StatusBadRequest,
+			err:          fiber.NewError(fiber.StatusBadRequest, "failed to validate requested permissions"),
+		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
@@ -657,10 +692,11 @@ func TestTokenExchangeController_ValidAttestations(t *testing.T) {
 			app.Post("/tokens/exchange", authInjectorTestHandler(tc.tokenClaims), c.GetDeviceCommandPermissionWithScope)
 			// setup mock expectations
 			tc.mockSetup(tc.agreement)
-
 			request := buildRequest("POST", "/tokens/exchange", string(jsonBytes))
 			response, err := app.Test(request)
-			require.NoError(t, err)
+			if err != nil {
+				assert.Equal(t, err, tc.err)
+			}
 
 			body, _ := io.ReadAll(response.Body)
 			assert.Equal(t, tc.expectedCode, response.StatusCode, "expected success")

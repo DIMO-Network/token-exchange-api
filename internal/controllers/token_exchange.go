@@ -320,18 +320,19 @@ func (t *TokenExchangeController) evaluateAttestations(record *models.Permission
 		return nil
 	}
 
-	var errs []error
+	var errs error
 	for _, claim := range tokenReq.Attestations {
 		// if no source specified,
 		// user can view all asset attestations
 		if claim.Source == nil {
+			errs = errors.Join(errs, errors.New("requesting access to all attestations but granted limited set"))
 			continue
 		}
 
 		// if we get there the soure should be included
 		att, ok := attestations[*claim.Source]
 		if !ok {
-			errs = append(errs, fmt.Errorf("missing grant for source: %s", *claim.Source))
+			errs = errors.Join(fmt.Errorf("missing grant for source: %s", *claim.Source))
 			continue
 		}
 
@@ -345,11 +346,11 @@ func (t *TokenExchangeController) evaluateAttestations(record *models.Permission
 		}
 
 		if len(missing) >= 1 {
-			errs = append(errs, fmt.Errorf("for source %s missing grants for attestation ids: %s", *claim.Source, strings.Join(missing, ", ")))
+			errs = errors.Join(fmt.Errorf("for source %s missing grants for attestation ids: %s", *claim.Source, strings.Join(missing, ", ")))
 		}
 	}
 
-	return errors.Join(errs...)
+	return errs
 }
 
 func intArrayTo2BitArray(indices []int64, length int) (*big.Int, error) {
