@@ -22,7 +22,7 @@ import (
 	"github.com/rs/zerolog"
 )
 
-//go:generate mockgen -source ./token_exchange.go -destination mocks/ipfs_service_mock.go
+//go:generate mockgen -source ./token_exchange.go -destination mocks/token_exchange_mock.go
 type IPFSService interface {
 	FetchFromIPFS(ctx context.Context, cid string) ([]byte, error)
 }
