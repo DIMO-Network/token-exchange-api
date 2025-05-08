@@ -11,3 +11,4 @@ CONTRACT_ADDRESS_SACD: 0x123
 IDENTITY_URL: https://identity-api.dimo.zone/query
 IPFS_BASE_URL: https://assets.dimo.xyz/ipfs
 DEV_LICENSE_VALIDATOR_FEATURE_FLAG: true
+IPFS_TIMEOUT: 30
