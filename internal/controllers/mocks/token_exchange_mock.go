@@ -40,17 +40,17 @@ func (m *MockIPFSService) EXPECT() *MockIPFSServiceMockRecorder {
 	return m.recorder
 }
 
-// FetchFromIPFS mocks base method.
-func (m *MockIPFSService) FetchFromIPFS(ctx context.Context, cid string) ([]byte, error) {
+// Fetch mocks base method.
+func (m *MockIPFSService) Fetch(ctx context.Context, cid string) ([]byte, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FetchFromIPFS", ctx, cid)
+	ret := m.ctrl.Call(m, "Fetch", ctx, cid)
 	ret0, _ := ret[0].([]byte)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// FetchFromIPFS indicates an expected call of FetchFromIPFS.
-func (mr *MockIPFSServiceMockRecorder) FetchFromIPFS(ctx, cid any) *gomock.Call {
+// Fetch indicates an expected call of Fetch.
+func (mr *MockIPFSServiceMockRecorder) Fetch(ctx, cid any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FetchFromIPFS", reflect.TypeOf((*MockIPFSService)(nil).FetchFromIPFS), ctx, cid)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Fetch", reflect.TypeOf((*MockIPFSService)(nil).Fetch), ctx, cid)
 }

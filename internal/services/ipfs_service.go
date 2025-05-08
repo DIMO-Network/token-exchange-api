@@ -52,7 +52,7 @@ func NewIPFSClient(logger *zerolog.Logger, settings *config.Settings) (*IPFSClie
 //   - []byte: The content retrieved from IPFS as a byte slice
 //   - error: An error if the request fails at any stage (URL construction, HTTP request creation,
 //     request execution, or response reading)
-func (i *IPFSClient) FetchFromIPFS(ctx context.Context, cid string) ([]byte, error) {
+func (i *IPFSClient) Fetch(ctx context.Context, cid string) ([]byte, error) {
 	cid = strings.TrimPrefix(cid, "ipfs://")
 	ipfsURL := i.ipfsBaseURL.JoinPath(cid).String()
 

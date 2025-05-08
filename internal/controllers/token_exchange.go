@@ -25,7 +25,7 @@ import (
 
 //go:generate mockgen -source ./token_exchange.go -destination mocks/token_exchange_mock.go -package mock_controller_test
 type IPFSService interface {
-	FetchFromIPFS(ctx context.Context, cid string) ([]byte, error)
+	Fetch(ctx context.Context, cid string) ([]byte, error)
 }
 
 var defaultAudience = []string{"dimo.zone"}
@@ -171,7 +171,7 @@ func (t *TokenExchangeController) createAndReturnToken(c *fiber.Ctx, pr *Permiss
 //   - *PermissionRecord: A pointer to the parsed permission record if valid, or nil if the document
 //     could not be fetched, parsed, or doesn't have the correct type
 func (t *TokenExchangeController) getValidSacdDoc(ctx context.Context, source string) (*models.PermissionRecord, error) {
-	sacdDoc, err := t.ipfsService.FetchFromIPFS(ctx, source)
+	sacdDoc, err := t.ipfsService.Fetch(ctx, source)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch JSON from IPFS: %w", err)
 	}

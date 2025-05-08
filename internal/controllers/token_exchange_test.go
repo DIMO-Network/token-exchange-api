@@ -122,7 +122,7 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 			},
 			mockSetup: func() {
 				contractsMgr.EXPECT().GetSacd(c.settings.ContractAddressSacd, &client).Return(mockSacd, nil)
-				mockipfs.EXPECT().FetchFromIPFS(gomock.Any(), gomock.Any()).Return(nil, errors.New("no valid doc"))
+				mockipfs.EXPECT().Fetch(gomock.Any(), gomock.Any()).Return(nil, errors.New("no valid doc"))
 				dexService.EXPECT().SignPrivilegePayload(gomock.Any(), services.PrivilegeTokenDTO{
 					UserEthAddress:     userEthAddr.Hex(),
 					TokenID:            strconv.FormatInt(123, 10),
@@ -149,7 +149,7 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 			},
 			mockSetup: func() {
 				contractsMgr.EXPECT().GetSacd(c.settings.ContractAddressSacd, &client).Return(mockSacd, nil)
-				mockipfs.EXPECT().FetchFromIPFS(gomock.Any(), gomock.Any()).Return(nil, errors.New("no valid doc"))
+				mockipfs.EXPECT().Fetch(gomock.Any(), gomock.Any()).Return(nil, errors.New("no valid doc"))
 				dexService.EXPECT().SignPrivilegePayload(gomock.Any(), services.PrivilegeTokenDTO{
 					UserEthAddress:     userEthAddr.Hex(),
 					TokenID:            strconv.FormatInt(123, 10),
@@ -176,7 +176,7 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 			},
 			mockSetup: func() {
 				contractsMgr.EXPECT().GetSacd(c.settings.ContractAddressSacd, &client).Return(mockSacd, nil)
-				mockipfs.EXPECT().FetchFromIPFS(gomock.Any(), gomock.Any()).Return(nil, errors.New("no valid doc"))
+				mockipfs.EXPECT().Fetch(gomock.Any(), gomock.Any()).Return(nil, errors.New("no valid doc"))
 				mockSacd.EXPECT().CurrentPermissionRecord(nil, common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr).Return(emptyPermRecord, nil)
 				mockSacd.EXPECT().GetPermissions(nil, common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr, big.NewInt(0b111100111100)).Return(big.NewInt(0b111100001100), nil)
 
@@ -199,7 +199,7 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 			},
 			mockSetup: func() {
 				contractsMgr.EXPECT().GetSacd(c.settings.ContractAddressSacd, &client).Return(mockSacd, nil)
-				mockipfs.EXPECT().FetchFromIPFS(gomock.Any(), gomock.Any()).Return(nil, errors.New("no valid doc"))
+				mockipfs.EXPECT().Fetch(gomock.Any(), gomock.Any()).Return(nil, errors.New("no valid doc"))
 				mockSacd.EXPECT().CurrentPermissionRecord(nil, common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr).Return(emptyPermRecord, nil)
 				mockSacd.EXPECT().GetPermissions(nil, common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr, big.NewInt(0b111100111100)).Return(big.NewInt(0b111100001100), nil)
 
@@ -247,7 +247,7 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 			},
 			mockSetup: func() {
 				contractsMgr.EXPECT().GetSacd(c.settings.ContractAddressSacd, &client).Return(mockSacd, nil)
-				mockipfs.EXPECT().FetchFromIPFS(gomock.Any(), gomock.Any()).Return(nil, errors.New("no valid doc"))
+				mockipfs.EXPECT().Fetch(gomock.Any(), gomock.Any()).Return(nil, errors.New("no valid doc"))
 				dexService.EXPECT().SignPrivilegePayload(gomock.Any(), services.PrivilegeTokenDTO{
 					UserEthAddress:     userEthAddr.Hex(),
 					TokenID:            strconv.FormatInt(123, 10),
@@ -279,7 +279,7 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 			},
 			mockSetup: func() {
 				contractsMgr.EXPECT().GetSacd(c.settings.ContractAddressSacd, &client).Return(mockSacd, nil)
-				mockipfs.EXPECT().FetchFromIPFS(gomock.Any(), gomock.Any()).Return(ipfsBytes, nil)
+				mockipfs.EXPECT().Fetch(gomock.Any(), gomock.Any()).Return(ipfsBytes, nil)
 				dexService.EXPECT().SignPrivilegePayload(gomock.Any(), services.PrivilegeTokenDTO{
 					UserEthAddress: userEthAddr.Hex(),
 					TokenID:        strconv.FormatInt(123, 10),
@@ -409,7 +409,7 @@ func TestTokenExchangeController_ValidAttestations(t *testing.T) {
 				ipfsRecord.Data.Agreements = agg
 				ipfsBytes, _ := json.Marshal(ipfsRecord)
 				contractsMgr.EXPECT().GetSacd(c.settings.ContractAddressSacd, &client).Return(mockSacd, nil)
-				mockipfs.EXPECT().FetchFromIPFS(gomock.Any(), gomock.Any()).Return(ipfsBytes, nil)
+				mockipfs.EXPECT().Fetch(gomock.Any(), gomock.Any()).Return(ipfsBytes, nil)
 				dexService.EXPECT().SignPrivilegePayload(gomock.Any(), services.PrivilegeTokenDTO{
 					UserEthAddress: userEthAddr.Hex(),
 					TokenID:        strconv.FormatInt(123, 10),
@@ -452,7 +452,7 @@ func TestTokenExchangeController_ValidAttestations(t *testing.T) {
 				ipfsRecord.Data.Agreements = agg
 				ipfsBytes, _ := json.Marshal(ipfsRecord)
 				contractsMgr.EXPECT().GetSacd(c.settings.ContractAddressSacd, &client).Return(mockSacd, nil)
-				mockipfs.EXPECT().FetchFromIPFS(gomock.Any(), gomock.Any()).Return(ipfsBytes, nil)
+				mockipfs.EXPECT().Fetch(gomock.Any(), gomock.Any()).Return(ipfsBytes, nil)
 				dexService.EXPECT().SignPrivilegePayload(gomock.Any(), services.PrivilegeTokenDTO{
 					UserEthAddress: userEthAddr.Hex(),
 					TokenID:        strconv.FormatInt(123, 10),
@@ -496,7 +496,7 @@ func TestTokenExchangeController_ValidAttestations(t *testing.T) {
 				ipfsRecord.Data.Agreements = agg
 				ipfsBytes, _ := json.Marshal(ipfsRecord)
 				contractsMgr.EXPECT().GetSacd(c.settings.ContractAddressSacd, &client).Return(mockSacd, nil)
-				mockipfs.EXPECT().FetchFromIPFS(gomock.Any(), gomock.Any()).Return(ipfsBytes, nil)
+				mockipfs.EXPECT().Fetch(gomock.Any(), gomock.Any()).Return(ipfsBytes, nil)
 				mockSacd.EXPECT().CurrentPermissionRecord(nil, common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr).Return(emptyPermRecord, nil)
 
 			},
@@ -531,7 +531,7 @@ func TestTokenExchangeController_ValidAttestations(t *testing.T) {
 				ipfsRecord.Data.Agreements = agg
 				ipfsBytes, _ := json.Marshal(ipfsRecord)
 				contractsMgr.EXPECT().GetSacd(c.settings.ContractAddressSacd, &client).Return(mockSacd, nil)
-				mockipfs.EXPECT().FetchFromIPFS(gomock.Any(), gomock.Any()).Return(ipfsBytes, nil)
+				mockipfs.EXPECT().Fetch(gomock.Any(), gomock.Any()).Return(ipfsBytes, nil)
 				dexService.EXPECT().SignPrivilegePayload(gomock.Any(), services.PrivilegeTokenDTO{
 					UserEthAddress: userEthAddr.Hex(),
 					TokenID:        strconv.FormatInt(123, 10),
@@ -579,7 +579,7 @@ func TestTokenExchangeController_ValidAttestations(t *testing.T) {
 				ipfsRecord.Data.Agreements = agg
 				ipfsBytes, _ := json.Marshal(ipfsRecord)
 				contractsMgr.EXPECT().GetSacd(c.settings.ContractAddressSacd, &client).Return(mockSacd, nil)
-				mockipfs.EXPECT().FetchFromIPFS(gomock.Any(), gomock.Any()).Return(ipfsBytes, nil)
+				mockipfs.EXPECT().Fetch(gomock.Any(), gomock.Any()).Return(ipfsBytes, nil)
 				dexService.EXPECT().SignPrivilegePayload(gomock.Any(), services.PrivilegeTokenDTO{
 					UserEthAddress: userEthAddr.Hex(),
 					TokenID:        strconv.FormatInt(123, 10),
@@ -625,7 +625,7 @@ func TestTokenExchangeController_ValidAttestations(t *testing.T) {
 				ipfsRecord.Data.Agreements = agg
 				ipfsBytes, _ := json.Marshal(ipfsRecord)
 				contractsMgr.EXPECT().GetSacd(c.settings.ContractAddressSacd, &client).Return(mockSacd, nil)
-				mockipfs.EXPECT().FetchFromIPFS(gomock.Any(), gomock.Any()).Return(ipfsBytes, nil)
+				mockipfs.EXPECT().Fetch(gomock.Any(), gomock.Any()).Return(ipfsBytes, nil)
 				dexService.EXPECT().SignPrivilegePayload(gomock.Any(), services.PrivilegeTokenDTO{
 					UserEthAddress: userEthAddr.Hex(),
 					TokenID:        strconv.FormatInt(123, 10),
@@ -674,7 +674,7 @@ func TestTokenExchangeController_ValidAttestations(t *testing.T) {
 				ipfsRecord.Data.ExpiresAt = time.Now()
 				ipfsBytes, _ := json.Marshal(ipfsRecord)
 				contractsMgr.EXPECT().GetSacd(c.settings.ContractAddressSacd, &client).Return(mockSacd, nil)
-				mockipfs.EXPECT().FetchFromIPFS(gomock.Any(), gomock.Any()).Return(ipfsBytes, nil)
+				mockipfs.EXPECT().Fetch(gomock.Any(), gomock.Any()).Return(ipfsBytes, nil)
 				mockSacd.EXPECT().CurrentPermissionRecord(nil, common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr).Return(emptyPermRecord, nil)
 			},
 			agreement: []models.Agreement{
@@ -707,7 +707,7 @@ func TestTokenExchangeController_ValidAttestations(t *testing.T) {
 				ipfsRecord.Data.Agreements = agg
 				ipfsBytes, _ := json.Marshal(ipfsRecord)
 				contractsMgr.EXPECT().GetSacd(c.settings.ContractAddressSacd, &client).Return(mockSacd, nil)
-				mockipfs.EXPECT().FetchFromIPFS(gomock.Any(), gomock.Any()).Return(ipfsBytes, nil)
+				mockipfs.EXPECT().Fetch(gomock.Any(), gomock.Any()).Return(ipfsBytes, nil)
 				mockSacd.EXPECT().CurrentPermissionRecord(nil, common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr).Return(emptyPermRecord, nil)
 			},
 			agreement: []models.Agreement{
@@ -744,7 +744,7 @@ func TestTokenExchangeController_ValidAttestations(t *testing.T) {
 				ipfsRecord.Data.Agreements = agg
 				ipfsBytes, _ := json.Marshal(ipfsRecord)
 				contractsMgr.EXPECT().GetSacd(c.settings.ContractAddressSacd, &client).Return(mockSacd, nil)
-				mockipfs.EXPECT().FetchFromIPFS(gomock.Any(), gomock.Any()).Return(ipfsBytes, nil)
+				mockipfs.EXPECT().Fetch(gomock.Any(), gomock.Any()).Return(ipfsBytes, nil)
 				mockSacd.EXPECT().CurrentPermissionRecord(nil, common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr).Return(emptyPermRecord, nil)
 			},
 			agreement: []models.Agreement{
