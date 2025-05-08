@@ -56,13 +56,7 @@ const docTemplate = `{
         "github_com_DIMO-Network_token-exchange-api_internal_services.Attestation": {
             "type": "object",
             "properties": {
-                "effectiveAt": {
-                    "type": "string"
-                },
                 "eventType": {
-                    "type": "string"
-                },
-                "expiresAt": {
                     "type": "string"
                 },
                 "id": {
