@@ -332,7 +332,7 @@ func (t *TokenExchangeController) evaluateAttestations(record *models.Permission
 		// if we get there the soure should be included
 		att, ok := attestations[*claim.Source]
 		if !ok {
-			errs = errors.Join(fmt.Errorf("missing grant for source: %s", *claim.Source))
+			errs = errors.Join(errs, fmt.Errorf("missing grant for source: %s", *claim.Source))
 			continue
 		}
 
@@ -346,7 +346,7 @@ func (t *TokenExchangeController) evaluateAttestations(record *models.Permission
 		}
 
 		if len(missing) >= 1 {
-			errs = errors.Join(fmt.Errorf("for source %s missing grants for attestation ids: %s", *claim.Source, strings.Join(missing, ", ")))
+			errs = errors.Join(errs, fmt.Errorf("for source %s missing grants for attestation ids: %s", *claim.Source, strings.Join(missing, ", ")))
 		}
 	}
 
