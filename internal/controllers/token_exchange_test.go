@@ -433,7 +433,50 @@ func TestTokenExchangeController_ValidAttestations(t *testing.T) {
 			expectedCode: fiber.StatusOK,
 		},
 		{
-			name: "valid sacd-- all attestations by source",
+			name: "valid sacd-- all attestations granted",
+			tokenClaims: jwt.MapClaims{
+				"ethereum_address": userEthAddr.Hex(),
+				"nbf":              time.Now().Unix(),
+			},
+			userEthAddr: &userEthAddr,
+			permissionTokenRequest: &PermissionTokenRequest{
+				TokenID: 123,
+				Attestations: []services.Attestation{
+					{
+						EventType: "dimo.attestation",
+					},
+				},
+				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
+			},
+			mockSetup: func(agg []models.Agreement) {
+				ipfsRecord.Data.Agreements = agg
+				ipfsBytes, _ := json.Marshal(ipfsRecord)
+				contractsMgr.EXPECT().GetSacd(c.settings.ContractAddressSacd, &client).Return(mockSacd, nil)
+				mockipfs.EXPECT().FetchFromIPFS(gomock.Any(), gomock.Any()).Return(ipfsBytes, nil)
+				dexService.EXPECT().SignPrivilegePayload(gomock.Any(), services.PrivilegeTokenDTO{
+					UserEthAddress: userEthAddr.Hex(),
+					TokenID:        strconv.FormatInt(123, 10),
+					Attestations: []services.Attestation{
+						{
+							EventType: "dimo.attestation",
+						},
+					},
+					NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
+					Audience:           defaultAudience,
+				}).Return("jwt", nil)
+				mockSacd.EXPECT().CurrentPermissionRecord(nil, common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr).Return(emptyPermRecord, nil)
+
+			},
+			agreement: []models.Agreement{
+				{
+					Type:      "cloudevent",
+					EventType: "dimo.attestation",
+				},
+			},
+			expectedCode: fiber.StatusOK,
+		},
+		{
+			name: "invalid sacd-- all attestations granted but asking for specific source",
 			tokenClaims: jwt.MapClaims{
 				"ethereum_address": userEthAddr.Hex(),
 				"nbf":              time.Now().Unix(),
@@ -454,18 +497,6 @@ func TestTokenExchangeController_ValidAttestations(t *testing.T) {
 				ipfsBytes, _ := json.Marshal(ipfsRecord)
 				contractsMgr.EXPECT().GetSacd(c.settings.ContractAddressSacd, &client).Return(mockSacd, nil)
 				mockipfs.EXPECT().FetchFromIPFS(gomock.Any(), gomock.Any()).Return(ipfsBytes, nil)
-				dexService.EXPECT().SignPrivilegePayload(gomock.Any(), services.PrivilegeTokenDTO{
-					UserEthAddress: userEthAddr.Hex(),
-					TokenID:        strconv.FormatInt(123, 10),
-					Attestations: []services.Attestation{
-						{
-							EventType: "dimo.attestation",
-							Source:    &source,
-						},
-					},
-					NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
-					Audience:           defaultAudience,
-				}).Return("jwt", nil)
 				mockSacd.EXPECT().CurrentPermissionRecord(nil, common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr).Return(emptyPermRecord, nil)
 
 			},
@@ -475,7 +506,8 @@ func TestTokenExchangeController_ValidAttestations(t *testing.T) {
 					EventType: "dimo.attestation",
 				},
 			},
-			expectedCode: fiber.StatusOK,
+			expectedCode: fiber.StatusBadRequest,
+			err:          fiber.NewError(fiber.StatusBadRequest, "failed to validate requested permissions"),
 		},
 		{
 			name: "valid sacd-- limited set of attestations by source",
@@ -567,6 +599,7 @@ func TestTokenExchangeController_ValidAttestations(t *testing.T) {
 				{
 					Type:      "cloudevent",
 					EventType: "dimo.attestation",
+					ID:        []string{"1", "2", "3"},
 				},
 			},
 			expectedCode: fiber.StatusOK,
@@ -612,6 +645,7 @@ func TestTokenExchangeController_ValidAttestations(t *testing.T) {
 				{
 					Type:        "cloudevent",
 					EventType:   "dimo.attestation",
+					ID:          []string{"1", "2", "3"},
 					EffectiveAt: &thirtySecAgo,
 					ExpiresAt:   &thirtySecFuture,
 				},

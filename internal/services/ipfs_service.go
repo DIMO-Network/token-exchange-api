@@ -7,27 +7,36 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/DIMO-Network/token-exchange-api/internal/config"
 	"github.com/rs/zerolog"
 )
 
-type IPFSController struct {
+var DefaultIPFSTimeout int = 30
+
+type IPFSClient struct {
 	logger      *zerolog.Logger
 	client      *http.Client
 	ipfsBaseURL *url.URL
+	timeout     time.Duration
 }
 
-func NewIPFSController(logger *zerolog.Logger, settings *config.Settings) (*IPFSController, error) {
+func NewIPFSClient(logger *zerolog.Logger, settings *config.Settings) (*IPFSClient, error) {
 	ipfsBaseURL, err := url.Parse(settings.IPFSBaseURL)
 	if err != nil {
 		return nil, fmt.Errorf("invalid IPFS base URL: %w", err)
 	}
 
-	return &IPFSController{
+	if settings.IPFSTimeout == 0 {
+		settings.IPFSTimeout = DefaultIPFSTimeout
+	}
+
+	return &IPFSClient{
 		logger:      logger,
 		client:      &http.Client{},
 		ipfsBaseURL: ipfsBaseURL,
+		timeout:     time.Duration(settings.IPFSTimeout) * time.Second,
 	}, nil
 }
 
@@ -43,10 +52,12 @@ func NewIPFSController(logger *zerolog.Logger, settings *config.Settings) (*IPFS
 //   - []byte: The content retrieved from IPFS as a byte slice
 //   - error: An error if the request fails at any stage (URL construction, HTTP request creation,
 //     request execution, or response reading)
-func (i *IPFSController) FetchFromIPFS(ctx context.Context, cid string) ([]byte, error) {
+func (i *IPFSClient) FetchFromIPFS(ctx context.Context, cid string) ([]byte, error) {
 	cid = strings.TrimPrefix(cid, "ipfs://")
-
 	ipfsURL := i.ipfsBaseURL.JoinPath(cid).String()
+
+	ctx, cancel := context.WithTimeout(context.Background(), i.timeout)
+	defer cancel()
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, ipfsURL, nil)
 	if err != nil {
@@ -58,6 +69,10 @@ func (i *IPFSController) FetchFromIPFS(ctx context.Context, cid string) ([]byte,
 		return nil, fmt.Errorf("failed to execute request: %w", err)
 	}
 	defer resp.Body.Close() //nolint:errcheck
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("invalid ipfs status code: %d", resp.StatusCode)
+	}
 
 	return io.ReadAll(resp.Body)
 }

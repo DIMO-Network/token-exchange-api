@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/DIMO-Network/cloudevent"
+	"github.com/DIMO-Network/shared"
 	"github.com/DIMO-Network/token-exchange-api/internal/api"
 	"github.com/DIMO-Network/token-exchange-api/internal/config"
 	"github.com/DIMO-Network/token-exchange-api/internal/contracts"
@@ -22,7 +23,7 @@ import (
 	"github.com/rs/zerolog"
 )
 
-//go:generate mockgen -source ./token_exchange.go -destination mocks/token_exchange_mock.go
+//go:generate mockgen -source ./token_exchange.go -destination mocks/token_exchange_mock.go -package mock_controller_test
 type IPFSService interface {
 	FetchFromIPFS(ctx context.Context, cid string) ([]byte, error)
 }
@@ -272,82 +273,94 @@ func (t *TokenExchangeController) evaluatePermissions(record *models.PermissionR
 }
 
 func (t *TokenExchangeController) evaluateAttestations(record *models.PermissionRecord, tokenReq *PermissionTokenRequest) error {
+	fmt.Println(1)
+
 	if valid, err := t.validateAssetDID(record.Data.Asset, tokenReq); err != nil || !valid {
 		return fmt.Errorf("failed to validate attestation asset: %s", record.Data.Asset)
 	}
-
+	fmt.Println(2)
 	if time.Now().Before(record.Data.EffectiveAt) {
 		return fmt.Errorf("agreement inactive, effective starting at: %s", record.Data.EffectiveAt.String())
 	}
-
+	fmt.Println(3)
 	if record.Data.ExpiresAt.Before(time.Now()) {
 		return fmt.Errorf("agreement inactive, expired at: %s", record.Data.ExpiresAt.String())
 	}
-
+	fmt.Println(4)
 	var allAttestations bool
-	attestations := make(map[string]map[string]struct{})
+	attestations := make(map[string]*shared.StringSet)
+	permissableIDs := shared.NewStringSet()
 	for _, agreement := range record.Data.Agreements {
+		fmt.Println(5)
 		if agreement.Type != "cloudevent" || agreement.EventType != cloudevent.TypeAttestation {
 			return errors.New("unexpected types in attestation agreement")
 		}
-
-		if agreement.Source == nil {
-			allAttestations = true
-			continue
-		}
-
+		fmt.Println(6)
 		if agreement.EffectiveAt != nil && !agreement.EffectiveAt.IsZero() {
 			if time.Now().Before(*agreement.EffectiveAt) {
 				return fmt.Errorf("sacd agreement not yet in effect: %s", agreement.EffectiveAt.String())
 			}
 		}
-
+		fmt.Println(7)
 		if agreement.ExpiresAt != nil && !agreement.ExpiresAt.IsZero() {
 			if agreement.ExpiresAt.Before(time.Now()) {
 				return fmt.Errorf("sacd agreement expired: %s", agreement.ExpiresAt.String())
 			}
 		}
-
-		if agreement.Source != nil {
-			attestations[*agreement.Source] = make(map[string]struct{})
-			for _, id := range agreement.ID {
-				attestations[*agreement.Source][id] = struct{}{}
+		fmt.Println(8)
+		if agreement.Source == nil {
+			allAttestations = true
+			for _, att := range agreement.ID {
+				permissableIDs.Add(att)
 			}
+			continue
 		}
-	}
-
-	if allAttestations {
-		return nil
+		fmt.Println(9)
+		attestations[*agreement.Source] = shared.NewStringSet()
+		for _, id := range agreement.ID {
+			attestations[*agreement.Source].Add(id)
+		}
+		fmt.Println(10)
 	}
 
 	var errs error
 	for _, claim := range tokenReq.Attestations {
+		fmt.Println(11)
+		if claim.Source == nil && allAttestations {
+			for _, attID := range claim.AttestationIDs {
+				if !permissableIDs.Contains(attID) {
+					errs = errors.Join(errs, fmt.Errorf("no access granted for universal attestation id: %s", attID))
+				}
+			}
+			continue
+		}
+		fmt.Println(12)
 		// if no source specified,
-		// user can view all asset attestations
+		// user asking to see all attestations
 		if claim.Source == nil {
 			errs = errors.Join(errs, errors.New("requesting access to all attestations but granted limited set"))
 			continue
 		}
-
-		// if we get there the soure should be included
+		fmt.Println(13)
+		// if we get here the source should be included
 		att, ok := attestations[*claim.Source]
 		if !ok {
+			fmt.Println("where here")
 			errs = errors.Join(errs, fmt.Errorf("missing grant for source: %s", *claim.Source))
 			continue
 		}
-
+		fmt.Println(14)
 		var missing []string
 		for _, attID := range claim.AttestationIDs {
-			_, ok := att[attID]
-
-			if !ok {
+			if !att.Contains(attID) {
 				missing = append(missing, attID)
 			}
 		}
-
+		fmt.Println(15)
 		if len(missing) >= 1 {
 			errs = errors.Join(errs, fmt.Errorf("for source %s missing grants for attestation ids: %s", *claim.Source, strings.Join(missing, ", ")))
 		}
+		fmt.Println(16)
 	}
 
 	return errs
