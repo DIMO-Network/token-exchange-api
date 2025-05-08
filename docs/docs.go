@@ -53,6 +53,29 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "github_com_DIMO-Network_token-exchange-api_internal_services.Attestation": {
+            "type": "object",
+            "properties": {
+                "effectiveAt": {
+                    "type": "string"
+                },
+                "eventType": {
+                    "type": "string"
+                },
+                "expiresAt": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "source": {
+                    "type": "string"
+                }
+            }
+        },
         "internal_controllers.PermissionTokenRequest": {
             "type": "object",
             "required": [
@@ -61,6 +84,13 @@ const docTemplate = `{
                 "tokenId"
             ],
             "properties": {
+                "attestations": {
+                    "description": "Attestations",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_DIMO-Network_token-exchange-api_internal_services.Attestation"
+                    }
+                },
                 "audience": {
                     "description": "Audience is the intended audience for the token.",
                     "type": "array",
