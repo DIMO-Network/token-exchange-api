@@ -13,7 +13,7 @@ import (
 	"github.com/rs/zerolog"
 )
 
-var DefaultIPFSTimeout int = 30
+var DefaultIPFSTimeout = 30
 
 type IPFSClient struct {
 	logger      *zerolog.Logger
@@ -56,7 +56,7 @@ func (i *IPFSClient) Fetch(ctx context.Context, cid string) ([]byte, error) {
 	cid = strings.TrimPrefix(cid, "ipfs://")
 	ipfsURL := i.ipfsBaseURL.JoinPath(cid).String()
 
-	ctx, cancel := context.WithTimeout(context.Background(), i.timeout)
+	ctx, cancel := context.WithTimeout(ctx, i.timeout)
 	defer cancel()
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, ipfsURL, nil)
