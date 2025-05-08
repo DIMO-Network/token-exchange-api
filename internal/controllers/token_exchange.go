@@ -332,13 +332,13 @@ func (t *TokenExchangeController) evaluateAttestations(agreement map[string]*sha
 
 		_, ok := agreement[*source]
 		if !ok {
-			err = errors.Join(err, fmt.Errorf("lacking grant for requested attestation source: %s", source))
+			err = errors.Join(err, fmt.Errorf("lacking grant for requested attestation source: %s", *source))
 			continue
 		}
 
 		for _, reqID := range req.AttestationIDs {
 			if !agreement[*source].Contains(reqID) {
-				err = errors.Join(err, fmt.Errorf("lacking grant for attestation id: %s from source %s", reqID, source))
+				err = errors.Join(err, fmt.Errorf("lacking grant for attestation id: %s from source %s", reqID, *source))
 			}
 		}
 	}
