@@ -283,11 +283,11 @@ func (t *TokenExchangeController) evaluateAttestations(record *models.Permission
 	}
 
 	if time.Now().Before(record.Data.EffectiveAt) {
-		return fmt.Errorf("agreement inactive, effective starting at: %s", record.Data.EffectiveAt.String())
+		return fmt.Errorf("agreement for asset %s inactive, effective starting at: %s", record.Data.Asset, record.Data.EffectiveAt.String())
 	}
 
 	if record.Data.ExpiresAt.Before(time.Now()) {
-		return fmt.Errorf("agreement inactive, expired at: %s", record.Data.ExpiresAt.String())
+		return fmt.Errorf("agreement for asset %s inactive, expired at: %s", record.Data.Asset, record.Data.ExpiresAt.String())
 	}
 
 	var allAttestations bool
