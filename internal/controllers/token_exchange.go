@@ -211,14 +211,19 @@ func (t *TokenExchangeController) evaluateSacdDoc(c *fiber.Ctx, record *models.P
 		return fiber.NewError(fiber.StatusBadRequest, "Grantee address in permission record doesn't match requester")
 	}
 
-	if err := t.evaluatePermissions(record, pr); err != nil {
-		t.logger.Err(err).Str("grantee", grantee.Hex()).Msg("failed to validate requested permissions")
-		return fiber.NewError(fiber.StatusBadRequest, "failed to validate requested permissions")
-	}
-
-	if err := t.evaluateAttestations(record, pr); err != nil {
-		t.logger.Err(err).Str("grantee", grantee.Hex()).Msg("failed to validate requested attestations")
-		return fiber.NewError(fiber.StatusBadRequest, "failed to validate requested permissions")
+	for _, agg := range record.Data.Agreements {
+		switch agg.Type {
+		case "cloudevent":
+			if err := t.evaluateAttestations(record, pr); err != nil {
+				t.logger.Err(err).Str("grantee", grantee.Hex()).Msg("failed to validate requested attestations")
+				return fiber.NewError(fiber.StatusBadRequest, "failed to validate requested permissions")
+			}
+		case "permissions":
+			if err := t.evaluatePermissions(record, pr); err != nil {
+				t.logger.Err(err).Str("grantee", grantee.Hex()).Msg("failed to validate requested permissions")
+				return fiber.NewError(fiber.StatusBadRequest, "failed to validate requested permissions")
+			}
+		}
 	}
 
 	// If we get here, all permissions are valid
@@ -289,8 +294,7 @@ func (t *TokenExchangeController) evaluateAttestations(record *models.Permission
 	attestations := make(map[string]*shared.StringSet)
 	permissableIDs := shared.NewStringSet()
 	for _, agreement := range record.Data.Agreements {
-
-		if agreement.Type != "cloudevent" || agreement.EventType != cloudevent.TypeAttestation {
+		if agreement.EventType != cloudevent.TypeAttestation {
 			return errors.New("unexpected types in attestation agreement")
 		}
 
