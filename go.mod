@@ -17,6 +17,7 @@ require (
 	github.com/rs/zerolog v1.32.0
 	github.com/stretchr/testify v1.10.0
 	github.com/swaggo/swag v1.16.3
+	github.com/tidwall/gjson v1.18.0
 	go.uber.org/mock v0.5.0
 	google.golang.org/grpc v1.71.0
 )
@@ -25,7 +26,6 @@ require golang.org/x/exp v0.0.0-20240213143201-ec583247a57a // indirect
 
 require (
 	github.com/DIMO-Network/yaml v0.1.0 // indirect
-	github.com/tidwall/gjson v1.18.0 // indirect
 	github.com/tidwall/sjson v1.2.5 // indirect
 	golang.org/x/time v0.9.0 // indirect
 )
