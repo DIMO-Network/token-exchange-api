@@ -226,7 +226,7 @@ func (t *TokenExchangeController) evaluateSacdDoc(c *fiber.Ctx, record *models.P
 		}
 	}
 
-	// If we get here, all permissions are valid
+	// If we get here, all permission and attestation claims are valid
 	return t.createAndReturnToken(c, pr, grantee)
 }
 
