@@ -2,7 +2,6 @@ package services
 
 import (
 	"context"
-	"time"
 
 	"github.com/DIMO-Network/shared/middleware/privilegetoken"
 	"github.com/DIMO-Network/shared/privileges"
@@ -35,11 +34,9 @@ type PrivilegeTokenDTO struct {
 }
 
 type Attestation struct {
-	EventType      string    `json:"eventType"`
-	Source         *string   `json:"source"`
-	AttestationIDs []string  `json:"id"`
-	EffectiveAt    time.Time `json:"effectiveAt"`
-	ExpiresAt      time.Time `json:"expiresAt"`
+	EventType      string   `json:"eventType"`
+	Source         *string  `json:"source"`
+	AttestationIDs []string `json:"id"`
 }
 
 func NewDexService(log *zerolog.Logger, settings *config.Settings) DexService {
