@@ -45,13 +45,17 @@ func getContractWhitelistedAddresses(wAddrs string) ([]string, error) {
 func startWebAPI(ctx context.Context, logger zerolog.Logger, settings *config.Settings) {
 	dxS := services.NewDexService(&logger, settings)
 	contractsMgr := contracts.NewContractsManager()
+	ipfsClient, err := services.NewIPFSClient(&logger, settings)
+	if err != nil {
+		logger.Fatal().Err(err).Msg("failed to create IPFS client")
+	}
 
 	ethClient, err := ethclient.Dial(settings.BlockchainNodeURL)
 	if err != nil {
 		logger.Fatal().Err(err).Msg("Failed to dial Ethereum RPC.")
 	}
 
-	vtxController, err := vtx.NewTokenExchangeController(&logger, settings, dxS, contractsMgr, ethClient)
+	vtxController, err := vtx.NewTokenExchangeController(&logger, settings, dxS, ipfsClient, contractsMgr, ethClient)
 	if err != nil {
 		logger.Fatal().Err(err).Msg("Failed to initialize token exchange controller")
 	}

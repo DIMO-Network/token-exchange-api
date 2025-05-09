@@ -30,6 +30,13 @@ type PrivilegeTokenDTO struct {
 	PrivilegeIDs       []int64
 	NFTContractAddress string
 	Audience           []string
+	Attestations       []Attestation
+}
+
+type Attestation struct {
+	EventType      string   `json:"eventType"`
+	Source         *string  `json:"source"`
+	AttestationIDs []string `json:"id"`
 }
 
 func NewDexService(log *zerolog.Logger, settings *config.Settings) DexService {
