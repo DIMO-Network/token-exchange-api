@@ -211,7 +211,7 @@ func (t *TokenExchangeController) evaluateSacdDoc(c *fiber.Ctx, record *models.P
 		return fiber.NewError(fiber.StatusBadRequest, "Grantee address in permission record doesn't match requester")
 	}
 
-	userPermissionGrants, userAttGrants, err := t.userGrantMap(record, tokenReq)
+	userPermissionGrants, userAttGrants, err := t.userGrantMap(record)
 	if err != nil {
 		t.logger.Err(err).Str("grantee", grantee.Hex()).Msg("failed to generate permission grants")
 		return fiber.NewError(fiber.StatusBadRequest)
@@ -221,23 +221,27 @@ func (t *TokenExchangeController) evaluateSacdDoc(c *fiber.Ctx, record *models.P
 		switch agg.Type {
 		case "cloudevent":
 			if agg.EventType != cloudevent.TypeAttestation {
-				err = errors.Join(err, errors.New("unexpected types in attestation agreement"))
+				t.logger.Err(err).Str("grantee", grantee.Hex()).Msgf("unexpected type in attestation agreement: %s", agg.EventType)
+				return fiber.NewError(fiber.StatusBadRequest, FailedToValidateRequest)
 			}
 
 			if agg.EffectiveAt != nil && !agg.EffectiveAt.IsZero() {
 				if time.Now().Before(*agg.EffectiveAt) {
-					err = errors.Join(err, fmt.Errorf("agreement not yet in effect: %s", agg.EffectiveAt.String()))
+					t.logger.Err(err).Str("grantee", grantee.Hex()).Msgf("agreement not yet in effect: %s", agg.EffectiveAt.String())
+					return fiber.NewError(fiber.StatusBadRequest, FailedToValidateRequest)
 				}
 			}
 
 			if agg.ExpiresAt != nil && !agg.ExpiresAt.IsZero() {
 				if agg.ExpiresAt.Before(time.Now()) {
-					err = errors.Join(err, fmt.Errorf("agreement expired: %s", agg.ExpiresAt.String()))
+					t.logger.Err(err).Str("grantee", grantee.Hex()).Msgf("agreement expired: %s", agg.ExpiresAt.String())
+					return fiber.NewError(fiber.StatusBadRequest, FailedToValidateRequest)
 				}
 			}
 
 			if valid, err := t.validateAssetDID(record.Data.Asset, tokenReq); err != nil || !valid {
-				err = errors.Join(err, fmt.Errorf("failed to validate attestation asset: %s", record.Data.Asset))
+				t.logger.Err(err).Str("grantee", grantee.Hex()).Msgf("failed to validate attestation asset: %s", record.Data.Asset)
+				return fiber.NewError(fiber.StatusBadRequest, FailedToValidateRequest)
 			}
 
 			if err := t.evaluateAttestations(userAttGrants, tokenReq); err != nil {
@@ -248,11 +252,12 @@ func (t *TokenExchangeController) evaluateSacdDoc(c *fiber.Ctx, record *models.P
 			// Validate the asset DID if it exists in the record
 			valid, err := t.validateAssetDID(agg.Asset, tokenReq)
 			if err != nil || !valid {
-				err = errors.Join(err, fmt.Errorf("failed to validate asset did: %w", err))
+				t.logger.Err(err).Str("grantee", grantee.Hex()).Msgf("failed to validate asset did %s in permission agreement", agg.Asset)
+				return fiber.NewError(fiber.StatusBadRequest, FailedToValidateRequest)
 			}
 
 			if err := t.evaluatePermissions(userPermissionGrants, tokenReq); err != nil {
-				t.logger.Err(err).Str("grantee", grantee.Hex()).Msg(FailedToValidateRequest)
+				t.logger.Err(err).Str("grantee", grantee.Hex()).Msg("failed to evaluate permissions agreement")
 				return fiber.NewError(fiber.StatusBadRequest, FailedToValidateRequest)
 			}
 		}
@@ -264,7 +269,7 @@ func (t *TokenExchangeController) evaluateSacdDoc(c *fiber.Ctx, record *models.P
 
 var AllAttestations = "ALL"
 
-func (t *TokenExchangeController) userGrantMap(record *models.PermissionRecord, tokenReq *PermissionTokenRequest) (map[string]bool, map[string]*shared.StringSet, error) {
+func (t *TokenExchangeController) userGrantMap(record *models.PermissionRecord) (map[string]bool, map[string]*shared.StringSet, error) {
 	var err error
 	userPermissions := make(map[string]bool)
 	attestations := make(map[string]*shared.StringSet)
