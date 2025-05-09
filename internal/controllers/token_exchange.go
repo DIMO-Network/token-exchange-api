@@ -278,7 +278,7 @@ func (t *TokenExchangeController) userGrantMap(record *models.PermissionRecord, 
 				source = &AllAttestations
 			}
 
-			attestations[*source] = &shared.StringSet{}
+			attestations[*source] = shared.NewStringSet()
 			for _, attID := range agreement.ID {
 				attestations[*source].Add(attID)
 			}
