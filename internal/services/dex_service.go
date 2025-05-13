@@ -56,7 +56,7 @@ func (d *DexClient) SignPrivilegePayload(ctx context.Context, req PrivilegeToken
 
 	ps, err := cc.Proto()
 	if err != nil {
-		return "", fmt.Errorf("failed to create custom claim proto: %w", err)
+		return "", fmt.Errorf("failed to convert custom claims to .Proto(): %w", err)
 	}
 
 	args := &dgrpc.SignTokenReq{
