@@ -22,8 +22,6 @@ require (
 	google.golang.org/grpc v1.71.0
 )
 
-require golang.org/x/exp v0.0.0-20240213143201-ec583247a57a // indirect
-
 require (
 	github.com/DIMO-Network/yaml v0.1.0 // indirect
 	github.com/tidwall/sjson v1.2.5 // indirect
