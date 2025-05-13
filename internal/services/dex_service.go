@@ -3,9 +3,7 @@ package services
 import (
 	"context"
 
-	"github.com/DIMO-Network/shared/middleware/privilegetoken"
 	"github.com/DIMO-Network/shared/privileges"
-	"github.com/DIMO-Network/token-exchange-api/internal/config"
 	dgrpc "github.com/dexidp/dex/api/v2"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/pkg/errors"
@@ -19,9 +17,9 @@ type DexService interface {
 	SignPrivilegePayload(ctx context.Context, req PrivilegeTokenDTO) (string, error)
 }
 
-type dexService struct {
-	log         *zerolog.Logger
-	dexGRPCAddr string
+type DexClient struct {
+	log    *zerolog.Logger
+	client dgrpc.DexClient
 }
 
 type PrivilegeTokenDTO struct {
@@ -30,46 +28,41 @@ type PrivilegeTokenDTO struct {
 	PrivilegeIDs       []int64
 	NFTContractAddress string
 	Audience           []string
-	Attestations       []Attestation
+	CloudEvents        CloudEvent
 }
 
-type Attestation struct {
-	EventType      string   `json:"eventType"`
-	Source         *string  `json:"source"`
-	AttestationIDs []string `json:"id"`
+type CloudEvent struct {
+	Attestations []AttestationClaims `json:"attestations"`
 }
 
-func NewDexService(log *zerolog.Logger, settings *config.Settings) DexService {
-	return &dexService{
-		log:         log,
-		dexGRPCAddr: settings.DexGRPCAdddress,
-	}
+type AttestationClaims struct {
+	Source *string  `json:"source"`
+	IDs    []string `json:"ids"`
 }
 
-func (d *dexService) getDexGrpcConnection() (dgrpc.DexClient, *grpc.ClientConn, error) {
-	conn, err := grpc.NewClient(d.dexGRPCAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+func NewDexService(log *zerolog.Logger, dexgRPCAddr string) (*DexClient, error) {
+	conn, err := grpc.NewClient(dexgRPCAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		return nil, conn, err
+		return nil, err
 	}
-	dexClient := dgrpc.NewDexClient(conn)
-	return dexClient, conn, nil
+
+	return &DexClient{
+		log:    log,
+		client: dgrpc.NewDexClient(conn),
+	}, nil
 }
 
-func (d *dexService) SignPrivilegePayload(ctx context.Context, req PrivilegeTokenDTO) (string, error) {
-	client, conn, err := d.getDexGrpcConnection()
-	if err != nil {
-		return "", errors.Wrap(err, "unable to get dex grpc connection")
-	}
-	defer conn.Close()
+func (d *DexClient) SignPrivilegePayload(ctx context.Context, req PrivilegeTokenDTO) (string, error) {
 	privs := make([]privileges.Privilege, len(req.PrivilegeIDs))
 	for i, iD := range req.PrivilegeIDs {
 		privs[i] = privileges.Privilege(iD)
 	}
 
-	cc := privilegetoken.CustomClaims{
+	cc := CustomClaims{
 		ContractAddress: common.HexToAddress(req.NFTContractAddress),
 		TokenID:         req.TokenID,
 		PrivilegeIDs:    privs,
+		CloudEvent:      req.CloudEvents,
 	}
 
 	ps, err := cc.Proto()
@@ -83,7 +76,7 @@ func (d *dexService) SignPrivilegePayload(ctx context.Context, req PrivilegeToke
 		Audience:     req.Audience,
 	}
 
-	resp, err := client.SignToken(ctx, args)
+	resp, err := d.client.SignToken(ctx, args)
 	if err != nil {
 		return "", errors.Wrap(err, "unable to sign token")
 	}

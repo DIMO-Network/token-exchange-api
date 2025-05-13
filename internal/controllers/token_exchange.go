@@ -62,8 +62,8 @@ type PermissionTokenRequest struct {
 	NFTContractAddress string `json:"nftContractAddress" example:"0xbA5738a18d83D41847dfFbDC6101d37C69c9B0cF" validate:"required"`
 	// Audience is the intended audience for the token.
 	Audience []string `json:"audience" validate:"optional"`
-	// Attestations
-	Attestations []services.Attestation `json:"attestations"`
+	// CloudEvent request, includes attestations
+	CloudEvents services.CloudEvent `json:"cloudevents"`
 }
 
 type PermissionTokenResponse struct {
@@ -105,8 +105,8 @@ func (t *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.C
 
 	t.logger.Debug().Interface("request", pr).Msg("Got request.")
 
-	if len(pr.Privileges) == 0 && len(pr.Attestations) == 0 {
-		return fiber.NewError(fiber.StatusBadRequest, "Please provide at least one privilege or attestation claim.")
+	if len(pr.Privileges) == 0 && len(pr.CloudEvents.Attestations) == 0 {
+		return fiber.NewError(fiber.StatusBadRequest, "Please provide at least one privilege or cloud event type claim.")
 	}
 
 	ethAddr := api.GetUserEthAddr(c)
@@ -146,7 +146,7 @@ func (t *TokenExchangeController) createAndReturnToken(c *fiber.Ctx, pr *Permiss
 		UserEthAddress:     ethAddr.Hex(),
 		TokenID:            strconv.FormatInt(pr.TokenID, 10),
 		PrivilegeIDs:       pr.Privileges,
-		Attestations:       pr.Attestations,
+		CloudEvents:        pr.CloudEvents,
 		NFTContractAddress: pr.NFTContractAddress,
 		Audience:           aud,
 	})
@@ -267,8 +267,6 @@ func (t *TokenExchangeController) evaluateSacdDoc(c *fiber.Ctx, record *models.P
 	return t.createAndReturnToken(c, tokenReq, grantee)
 }
 
-var AllAttestations = "ALL"
-
 func (t *TokenExchangeController) userGrantMap(record *models.PermissionRecord) (map[string]bool, map[string]*shared.StringSet, error) {
 	var err error
 	userPermissions := make(map[string]bool)
@@ -280,10 +278,13 @@ func (t *TokenExchangeController) userGrantMap(record *models.PermissionRecord) 
 		case "cloudevent":
 			source := agreement.Source
 			if agreement.Source == nil {
-				source = &AllAttestations
+				source = &services.GLOBAL_ATTESTATION_PERMISSION
 			}
 
-			attestations[*source] = shared.NewStringSet()
+			if _, ok := attestations[*source]; !ok {
+				attestations[*source] = shared.NewStringSet()
+			}
+
 			for _, attID := range agreement.ID {
 				attestations[*source].Add(attID)
 			}
@@ -329,19 +330,25 @@ func (t *TokenExchangeController) evaluatePermissions(userPermissions map[string
 
 func (t *TokenExchangeController) evaluateAttestations(agreement map[string]*shared.StringSet, tokenReq *PermissionTokenRequest) error {
 	var err error
-	for _, req := range tokenReq.Attestations {
+
+	if len(tokenReq.CloudEvents.Attestations) == 0 {
+		if _, ok := agreement[services.GLOBAL_ATTESTATION_PERMISSION]; !ok {
+			err = errors.Join(err, fmt.Errorf("requsting global vehicle permissions without grant"))
+		}
+	}
+
+	for _, req := range tokenReq.CloudEvents.Attestations {
 		source := req.Source
 		if source == nil {
-			source = &AllAttestations
+			source = &services.GLOBAL_ATTESTATION_PERMISSION
 		}
 
-		_, ok := agreement[*source]
-		if !ok {
+		if _, ok := agreement[*source]; !ok {
 			err = errors.Join(err, fmt.Errorf("lacking grant for requested attestation source: %s", *source))
 			continue
 		}
 
-		for _, reqID := range req.AttestationIDs {
+		for _, reqID := range req.IDs {
 			if !agreement[*source].Contains(reqID) {
 				err = errors.Join(err, fmt.Errorf("lacking grant for attestation id: %s from source %s", reqID, *source))
 			}
