@@ -43,7 +43,10 @@ func getContractWhitelistedAddresses(wAddrs string) ([]string, error) {
 }
 
 func startWebAPI(ctx context.Context, logger zerolog.Logger, settings *config.Settings) {
-	dxS := services.NewDexService(&logger, settings)
+	dexSvc, err := services.NewDexClient(&logger, settings.DexGRPCAdddress)
+	if err != nil {
+		logger.Fatal().Err(err).Msg("failed to create dex grpc client")
+	}
 	contractsMgr := contracts.NewContractsManager()
 
 	ethClient, err := ethclient.Dial(settings.BlockchainNodeURL)
@@ -51,7 +54,7 @@ func startWebAPI(ctx context.Context, logger zerolog.Logger, settings *config.Se
 		logger.Fatal().Err(err).Msg("Failed to dial Ethereum RPC.")
 	}
 
-	vtxController, err := vtx.NewTokenExchangeController(&logger, settings, dxS, contractsMgr, ethClient)
+	vtxController, err := vtx.NewTokenExchangeController(&logger, settings, dexSvc, contractsMgr, ethClient)
 	if err != nil {
 		logger.Fatal().Err(err).Msg("Failed to initialize token exchange controller")
 	}
