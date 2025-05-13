@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/DIMO-Network/shared/privileges"
+	"github.com/DIMO-Network/token-exchange-api/pkg/tokenclaims"
 	dgrpc "github.com/dexidp/dex/api/v2"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/rs/zerolog"
@@ -48,7 +49,7 @@ func (d *DexClient) SignPrivilegePayload(ctx context.Context, req PrivilegeToken
 		privs[i] = privileges.Privilege(iD)
 	}
 
-	cc := CustomClaims{
+	cc := tokenclaims.CustomClaims{
 		ContractAddress: common.HexToAddress(req.NFTContractAddress),
 		TokenID:         req.TokenID,
 		PrivilegeIDs:    privs,
