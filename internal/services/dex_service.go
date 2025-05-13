@@ -2,11 +2,11 @@ package services
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/DIMO-Network/shared/privileges"
 	dgrpc "github.com/dexidp/dex/api/v2"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -28,22 +28,12 @@ type PrivilegeTokenDTO struct {
 	PrivilegeIDs       []int64
 	NFTContractAddress string
 	Audience           []string
-	CloudEvents        CloudEvent
 }
 
-type CloudEvent struct {
-	Attestations []AttestationClaims `json:"attestations"`
-}
-
-type AttestationClaims struct {
-	Source *string  `json:"source"`
-	IDs    []string `json:"ids"`
-}
-
-func NewDexService(log *zerolog.Logger, dexgRPCAddr string) (*DexClient, error) {
+func NewDexClient(log *zerolog.Logger, dexgRPCAddr string) (*DexClient, error) {
 	conn, err := grpc.NewClient(dexgRPCAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to connect to dex gRPC server: %w", err)
 	}
 
 	return &DexClient{
@@ -66,7 +56,7 @@ func (d *DexClient) SignPrivilegePayload(ctx context.Context, req PrivilegeToken
 
 	ps, err := cc.Proto()
 	if err != nil {
-		return "", errors.Wrap(err, "unable to convert custom claims to .Proto()")
+		return "", fmt.Errorf("failed to create custom claim proto: %w", err)
 	}
 
 	args := &dgrpc.SignTokenReq{
@@ -77,7 +67,7 @@ func (d *DexClient) SignPrivilegePayload(ctx context.Context, req PrivilegeToken
 
 	resp, err := d.client.SignToken(ctx, args)
 	if err != nil {
-		return "", errors.Wrap(err, "unable to sign token")
+		return "", fmt.Errorf("failed to sign token: %w", err)
 	}
 
 	return resp.Token, nil
