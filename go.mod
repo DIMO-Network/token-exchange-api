@@ -13,7 +13,6 @@ require (
 	github.com/gofiber/fiber/v2 v2.52.6
 	github.com/gofiber/swagger v1.0.0
 	github.com/golang-jwt/jwt/v5 v5.2.2
-	github.com/pkg/errors v0.9.1
 	github.com/rs/zerolog v1.32.0
 	github.com/stretchr/testify v1.10.0
 	github.com/swaggo/swag v1.16.3
@@ -24,6 +23,7 @@ require (
 
 require (
 	github.com/DIMO-Network/yaml v0.1.0 // indirect
+	github.com/pkg/errors v0.9.1 // indirect
 	github.com/tidwall/sjson v1.2.5 // indirect
 	golang.org/x/time v0.9.0 // indirect
 )
