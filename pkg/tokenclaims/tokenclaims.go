@@ -1,4 +1,5 @@
-package services
+// Package tokenclaims provides a custom JWT token for token-exchange.
+package tokenclaims
 
 import (
 	"fmt"
@@ -10,17 +11,20 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
+// CustomClaims is the custom claims for token-exchange related information.
 type CustomClaims struct {
 	ContractAddress common.Address         `json:"contract_address"`
 	TokenID         string                 `json:"token_id"`
 	PrivilegeIDs    []privileges.Privilege `json:"privilege_ids"`
 }
 
+// Token is a JWT token created by token-exchange.
 type Token struct {
 	jwt.RegisteredClaims
 	CustomClaims
 }
 
+// Proto converts the CustomClaims to a protobuf struct.
 func (c *CustomClaims) Proto() (*structpb.Struct, error) {
 	ap := make([]any, len(c.PrivilegeIDs))
 
@@ -37,7 +41,7 @@ func (c *CustomClaims) Proto() (*structpb.Struct, error) {
 	)
 }
 
-// Conflicts with the field, whoops.
+// Sub returns the subject of the token.
 func (c *CustomClaims) Sub() string {
 	return fmt.Sprintf("%s/%s", c.ContractAddress, c.TokenID)
 }
