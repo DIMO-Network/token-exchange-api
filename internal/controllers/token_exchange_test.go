@@ -16,7 +16,6 @@ import (
 	"github.com/DIMO-Network/token-exchange-api/internal/config"
 	mock_contracts "github.com/DIMO-Network/token-exchange-api/internal/contracts/mocks"
 	"github.com/DIMO-Network/token-exchange-api/internal/contracts/sacd"
-	mock_controller "github.com/DIMO-Network/token-exchange-api/internal/controllers/mocks"
 	"github.com/DIMO-Network/token-exchange-api/internal/middleware"
 	mock_middleware "github.com/DIMO-Network/token-exchange-api/internal/middleware/mocks"
 	"github.com/DIMO-Network/token-exchange-api/internal/services"
@@ -32,6 +31,8 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
+//go:generate mockgen -source ./token_exchange.go -destination ./token_exchange_mock_test.go -package controllers
+
 func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
@@ -45,7 +46,7 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 	contractsMgr := mock_contracts.NewMockManager(mockCtrl)
 	mockMultiPriv := mock_contracts.NewMockMultiPriv(mockCtrl)
 	mockSacd := mock_contracts.NewMockSacd(mockCtrl)
-	mockipfs := mock_controller.NewMockIPFSService(mockCtrl)
+	mockipfs := NewMockIPFSService(mockCtrl)
 
 	// This never gets called.
 	client := ethclient.Client{}

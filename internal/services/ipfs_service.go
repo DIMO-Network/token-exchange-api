@@ -12,9 +12,10 @@ import (
 	"github.com/rs/zerolog"
 )
 
-var DefaultIPFSTimeout = 30
-
-const DefaultIPFSPrefix = "ipfs://"
+const (
+	DefaultIPFSPrefix  = "ipfs://"
+	DefaultIPFSTimeout = "30s"
+)
 
 type IPFSClient struct {
 	logger      *zerolog.Logger
@@ -23,21 +24,24 @@ type IPFSClient struct {
 	timeout     time.Duration
 }
 
-func NewIPFSClient(logger *zerolog.Logger, ipfsBaseURL string, ipfsTimeout int) (*IPFSClient, error) {
+func NewIPFSClient(logger *zerolog.Logger, ipfsBaseURL string, ipfsTimeout time.Duration) (*IPFSClient, error) {
 	ipfsURL, err := url.Parse(ipfsBaseURL)
 	if err != nil {
 		return nil, fmt.Errorf("invalid IPFS base URL: %w", err)
 	}
 
-	if ipfsTimeout == 0 {
-		ipfsTimeout = DefaultIPFSTimeout
+	if ipfsTimeout.Seconds() == 0 {
+		ipfsTimeout, err = time.ParseDuration(DefaultIPFSTimeout)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return &IPFSClient{
 		logger:      logger,
 		client:      &http.Client{},
 		ipfsBaseURL: ipfsURL,
-		timeout:     time.Duration(ipfsTimeout) * time.Second,
+		timeout:     ipfsTimeout,
 	}, nil
 }
 
