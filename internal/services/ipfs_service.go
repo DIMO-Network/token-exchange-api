@@ -14,7 +14,7 @@ import (
 
 var DefaultIPFSTimeout = 30
 
-const IPFS_PREFIX = "ipfs://"
+const DefaultIPFSPrefix = "ipfs://"
 
 type IPFSClient struct {
 	logger      *zerolog.Logger
@@ -54,7 +54,7 @@ func NewIPFSClient(logger *zerolog.Logger, ipfsBaseURL string, ipfsTimeout int) 
 //   - error: An error if the request fails at any stage (URL construction, HTTP request creation,
 //     request execution, or response reading)
 func (i *IPFSClient) Fetch(ctx context.Context, cid string) ([]byte, error) {
-	cid = strings.TrimPrefix(cid, IPFS_PREFIX)
+	cid = strings.TrimPrefix(cid, DefaultIPFSPrefix)
 	ipfsURL := i.ipfsBaseURL.JoinPath(cid).String()
 
 	ctx, cancel := context.WithTimeout(ctx, i.timeout)
