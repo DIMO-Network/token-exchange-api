@@ -14,7 +14,7 @@ import (
 
 const (
 	DefaultIPFSPrefix  = "ipfs://"
-	DefaultIPFSTimeout = "30s"
+	DefaultIPFSTimeout = 30 * time.Second
 )
 
 type IPFSClient struct {
@@ -24,24 +24,26 @@ type IPFSClient struct {
 	timeout     time.Duration
 }
 
-func NewIPFSClient(logger *zerolog.Logger, ipfsBaseURL string, ipfsTimeout time.Duration) (*IPFSClient, error) {
+func NewIPFSClient(logger *zerolog.Logger, ipfsBaseURL, ipfsTimeout string) (*IPFSClient, error) {
 	ipfsURL, err := url.Parse(ipfsBaseURL)
 	if err != nil {
 		return nil, fmt.Errorf("invalid IPFS base URL: %w", err)
 	}
 
-	if ipfsTimeout.Seconds() == 0 {
-		ipfsTimeout, err = time.ParseDuration(DefaultIPFSTimeout)
-		if err != nil {
-			return nil, err
-		}
+	timout, err := time.ParseDuration(ipfsTimeout)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse ipfs duration: %w", err)
+	}
+
+	if timout.Seconds() == 0 {
+		timout = DefaultIPFSTimeout
 	}
 
 	return &IPFSClient{
 		logger:      logger,
 		client:      &http.Client{},
 		ipfsBaseURL: ipfsURL,
-		timeout:     ipfsTimeout,
+		timeout:     timout,
 	}, nil
 }
 
@@ -75,9 +77,14 @@ func (i *IPFSClient) Fetch(ctx context.Context, cid string) ([]byte, error) {
 	}
 	defer resp.Body.Close() //nolint:errcheck
 
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("invalid ipfs status code: %d", resp.StatusCode)
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
 	}
 
-	return io.ReadAll(resp.Body)
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("invalid ipfs status code: %d, body: %s", resp.StatusCode, string(body))
+	}
+
+	return body, nil
 }
