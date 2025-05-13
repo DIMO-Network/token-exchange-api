@@ -43,7 +43,7 @@ func getContractWhitelistedAddresses(wAddrs string) ([]string, error) {
 }
 
 func startWebAPI(ctx context.Context, logger zerolog.Logger, settings *config.Settings) {
-	dexSvc, err := services.NewDexService(&logger, settings.DexGRPCAdddress)
+	dexSvc, err := services.NewDexClient(&logger, settings.DexGRPCAdddress)
 	if err != nil {
 		logger.Fatal().Err(err).Msg("failed to create dex grpc client")
 	}
