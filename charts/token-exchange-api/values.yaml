@@ -34,6 +34,7 @@ env:
   IDENTITY_URL: http://identity-api-dev:8080/query
   IPFS_BASE_URL: https://assets.dimo.xyz/ipfs
   DEV_LICENSE_VALIDATOR_FEATURE_FLAG: true
+  IPFS_TIMEOUT: 30s
 service:
   type: ClusterIP
   ports:

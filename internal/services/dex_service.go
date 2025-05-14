@@ -34,7 +34,7 @@ type PrivilegeTokenDTO struct {
 func NewDexClient(log *zerolog.Logger, dexgRPCAddr string) (*DexClient, error) {
 	conn, err := grpc.NewClient(dexgRPCAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		return nil, fmt.Errorf("failed to connect to dex gRPC server: %w", err)
+		return nil, fmt.Errorf("failed to create dex gRPC client: %w", err)
 	}
 
 	return &DexClient{

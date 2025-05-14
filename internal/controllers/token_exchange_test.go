@@ -31,6 +31,8 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
+//go:generate mockgen -source ./token_exchange.go -destination ./token_exchange_mock_test.go -package controllers
+
 func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
@@ -44,6 +46,7 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 	contractsMgr := mock_contracts.NewMockManager(mockCtrl)
 	mockMultiPriv := mock_contracts.NewMockMultiPriv(mockCtrl)
 	mockSacd := mock_contracts.NewMockSacd(mockCtrl)
+	mockipfs := NewMockIPFSService(mockCtrl)
 
 	// This never gets called.
 	client := ethclient.Client{}
@@ -53,7 +56,7 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 		BlockchainNodeURL:        "http://testurl.com/mock",
 		ContractAddressWhitelist: "",
 		ContractAddressSacd:      "0xa6",
-	}, dexService, contractsMgr, &client)
+	}, dexService, mockipfs, contractsMgr, &client)
 	require.NoError(t, err, "Failed to initialize token exchange controller")
 
 	userEthAddr := common.HexToAddress("0x20Ca3bE69a8B95D3093383375F0473A8c6341727")
@@ -87,7 +90,7 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 			},
 			mockSetup: func() {
 				contractsMgr.EXPECT().GetSacd(c.settings.ContractAddressSacd, &client).Return(mockSacd, nil)
-
+				mockipfs.EXPECT().Fetch(gomock.Any(), gomock.Any()).Return(nil, errors.New("no valid doc"))
 				dexService.EXPECT().SignPrivilegePayload(gomock.Any(), services.PrivilegeTokenDTO{
 					UserEthAddress:     userEthAddr.Hex(),
 					TokenID:            strconv.FormatInt(123, 10),
@@ -114,7 +117,7 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 			},
 			mockSetup: func() {
 				contractsMgr.EXPECT().GetSacd(c.settings.ContractAddressSacd, &client).Return(mockSacd, nil)
-
+				mockipfs.EXPECT().Fetch(gomock.Any(), gomock.Any()).Return(nil, errors.New("no valid doc"))
 				dexService.EXPECT().SignPrivilegePayload(gomock.Any(), services.PrivilegeTokenDTO{
 					UserEthAddress:     userEthAddr.Hex(),
 					TokenID:            strconv.FormatInt(123, 10),
@@ -141,7 +144,7 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 			},
 			mockSetup: func() {
 				contractsMgr.EXPECT().GetSacd(c.settings.ContractAddressSacd, &client).Return(mockSacd, nil)
-
+				mockipfs.EXPECT().Fetch(gomock.Any(), gomock.Any()).Return(nil, errors.New("no valid doc"))
 				mockSacd.EXPECT().CurrentPermissionRecord(nil, common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr).Return(emptyPermRecord, nil)
 				mockSacd.EXPECT().GetPermissions(nil, common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr, big.NewInt(0b111100111100)).Return(big.NewInt(0b111100001100), nil)
 
@@ -164,7 +167,7 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 			},
 			mockSetup: func() {
 				contractsMgr.EXPECT().GetSacd(c.settings.ContractAddressSacd, &client).Return(mockSacd, nil)
-
+				mockipfs.EXPECT().Fetch(gomock.Any(), gomock.Any()).Return(nil, errors.New("no valid doc"))
 				mockSacd.EXPECT().CurrentPermissionRecord(nil, common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr).Return(emptyPermRecord, nil)
 				mockSacd.EXPECT().GetPermissions(nil, common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr, big.NewInt(0b111100111100)).Return(big.NewInt(0b111100001100), nil)
 
@@ -212,6 +215,7 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 			},
 			mockSetup: func() {
 				contractsMgr.EXPECT().GetSacd(c.settings.ContractAddressSacd, &client).Return(mockSacd, nil)
+				mockipfs.EXPECT().Fetch(gomock.Any(), gomock.Any()).Return(nil, errors.New("no valid doc"))
 				dexService.EXPECT().SignPrivilegePayload(gomock.Any(), services.PrivilegeTokenDTO{
 					UserEthAddress:     userEthAddr.Hex(),
 					TokenID:            strconv.FormatInt(123, 10),

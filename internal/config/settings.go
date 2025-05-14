@@ -16,4 +16,5 @@ type Settings struct {
 	IdentityURL              string `yaml:"IDENTITY_URL"`
 	IPFSBaseURL              string `yaml:"IPFS_BASE_URL"`
 	DevLiscFeatureFlag       bool   `yaml:"DEV_LICENSE_VALIDATOR_FEATURE_FLAG"`
+	IPFSTimeout              string `yaml:"IPFS_TIMEOUT"`
 }

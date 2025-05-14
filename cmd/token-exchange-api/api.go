@@ -54,7 +54,12 @@ func startWebAPI(ctx context.Context, logger zerolog.Logger, settings *config.Se
 		logger.Fatal().Err(err).Msg("Failed to dial Ethereum RPC.")
 	}
 
-	vtxController, err := vtx.NewTokenExchangeController(&logger, settings, dexSvc, contractsMgr, ethClient)
+	ipfsService, err := services.NewIPFSClient(&logger, settings.IPFSBaseURL, settings.IPFSTimeout)
+	if err != nil {
+		logger.Fatal().Err(err).Msg("failed to create IPFS client")
+	}
+
+	vtxController, err := vtx.NewTokenExchangeController(&logger, settings, dexSvc, ipfsService, contractsMgr, ethClient)
 	if err != nil {
 		logger.Fatal().Err(err).Msg("Failed to initialize token exchange controller")
 	}

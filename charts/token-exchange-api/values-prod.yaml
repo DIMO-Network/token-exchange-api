@@ -16,6 +16,7 @@ env:
   IDENTITY_URL: http://identity-api-prod:8080/query
   IPFS_BASE_URL: https://assets.dimo.xyz/ipfs
   DEV_LICENSE_VALIDATOR_FEATURE_FLAG: false
+  IPFS_TIMEOUT: 30s
 resources:
   limits:
     cpu: 1
