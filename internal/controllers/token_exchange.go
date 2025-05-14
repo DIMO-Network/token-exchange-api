@@ -3,14 +3,12 @@ package controllers
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"math/big"
 	"strconv"
 	"time"
 
 	"github.com/DIMO-Network/cloudevent"
-	"github.com/DIMO-Network/shared"
 	"github.com/DIMO-Network/token-exchange-api/internal/api"
 	"github.com/DIMO-Network/token-exchange-api/internal/config"
 	"github.com/DIMO-Network/token-exchange-api/internal/contracts"
@@ -28,7 +26,6 @@ type IPFSService interface {
 }
 
 var defaultAudience = []string{"dimo.zone"}
-var FailedToValidateRequest = "failed to validate requested permissions"
 
 // privilege prefix to denote the 1:1 mapping to bit values and to make them easier to deprecate if desired in the future
 var PermissionMap = map[int]string{
@@ -63,7 +60,7 @@ type PermissionTokenRequest struct {
 	// Audience is the intended audience for the token.
 	Audience []string `json:"audience" validate:"optional"`
 	// CloudEvent request, includes attestations
-	CloudEvents tokenclaims.CloudEvent `json:"cloudevents"`
+	CloudEvents *tokenclaims.CloudEvent `json:"cloudEvents"`
 }
 
 type PermissionTokenResponse struct {
@@ -94,21 +91,21 @@ func NewTokenExchangeController(logger *zerolog.Logger, settings *config.Setting
 // @Security    BearerAuth
 // @Router      /tokens/exchange [post]
 func (t *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.Ctx) error {
-	pr := &PermissionTokenRequest{}
-	if err := c.BodyParser(pr); err != nil {
+	tokenReq := &PermissionTokenRequest{}
+	if err := c.BodyParser(tokenReq); err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "Couldn't parse request body.")
 	}
 
-	if !common.IsHexAddress(pr.NFTContractAddress) {
-		return fiber.NewError(fiber.StatusBadRequest, fmt.Sprintf("Invalid NFT contract address %q.", pr.NFTContractAddress))
+	if !common.IsHexAddress(tokenReq.NFTContractAddress) {
+		return fiber.NewError(fiber.StatusBadRequest, fmt.Sprintf("Invalid NFT contract address %q.", tokenReq.NFTContractAddress))
 	}
 
-	nftAddr := common.HexToAddress(pr.NFTContractAddress)
+	nftAddr := common.HexToAddress(tokenReq.NFTContractAddress)
 
-	t.logger.Debug().Interface("request", pr).Msg("Got request.")
+	t.logger.Debug().Interface("request", tokenReq).Msg("Got request.")
 
-	if len(pr.Privileges) == 0 && len(pr.CloudEvents.Attestations) == 0 {
-		return fiber.NewError(fiber.StatusBadRequest, "Please provide at least one privilege or cloud event type claim.")
+	if len(tokenReq.Privileges) == 0 && tokenReq.CloudEvents == nil {
+		return fiber.NewError(fiber.StatusBadRequest, "Please provide at least one privilege.")
 	}
 
 	ethAddr := api.GetUserEthAddr(c)
@@ -122,19 +119,19 @@ func (t *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.C
 		return fiber.NewError(fiber.StatusInternalServerError, "Could not connect to blockchain node")
 	}
 
-	resPermRecord, err := s.CurrentPermissionRecord(nil, nftAddr, big.NewInt(pr.TokenID), *ethAddr)
+	resPermRecord, err := s.CurrentPermissionRecord(nil, nftAddr, big.NewInt(tokenReq.TokenID), *ethAddr)
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 	}
 
 	record, err := t.getValidSacdDoc(c.Context(), resPermRecord.Source)
 	if err != nil {
-		t.logger.Warn().Err(err).Msg("failed to get valid SACD document")
+		t.logger.Warn().Err(err).Msg("Failed to get valid SACD document")
 		// If the user doesn't have a valid IPFS doc, check bitstring
-		return t.evaluatePermissionsBits(c, s, nftAddr, pr, ethAddr)
+		return t.evaluatePermissionsBits(c, s, nftAddr, tokenReq, ethAddr)
 	}
 
-	return t.evaluateSacdDoc(c, record, pr, ethAddr)
+	return t.evaluateSacdDoc(c, record, tokenReq, ethAddr)
 }
 
 // Helper function to create and return the token
@@ -203,7 +200,7 @@ func (t *TokenExchangeController) getValidSacdDoc(ctx context.Context, source st
 // Returns:
 //   - error: An error if the document is invalid, expired, or missing requested permissions;
 //     nil if all permissions are valid and the token is successfully created and returned
-func (t *TokenExchangeController) evaluateSacdDoc(c *fiber.Ctx, record *models.PermissionRecord, tokenReq *PermissionTokenRequest, grantee *common.Address) error {
+func (t *TokenExchangeController) evaluateSacdDoc(c *fiber.Ctx, record *models.PermissionRecord, pr *PermissionTokenRequest, grantee *common.Address) error {
 	now := time.Now()
 	if now.Before(record.Data.EffectiveAt) || now.After(record.Data.ExpiresAt) {
 		return fiber.NewError(fiber.StatusBadRequest, "Permission record is expired or not yet effective")
@@ -213,97 +210,26 @@ func (t *TokenExchangeController) evaluateSacdDoc(c *fiber.Ctx, record *models.P
 		return fiber.NewError(fiber.StatusBadRequest, "Grantee address in permission record doesn't match requester")
 	}
 
-	userPermissionGrants, userAttGrants, err := t.userGrantMap(record)
-	if err != nil {
-		t.logger.Err(err).Str("grantee", grantee.Hex()).Msg("failed to generate permission grants")
-		return fiber.NewError(fiber.StatusBadRequest)
-	}
-
-	for _, agg := range record.Data.Agreements {
-		switch agg.Type {
-		case "cloudevent":
-			if agg.EventType != cloudevent.TypeAttestation {
-				t.logger.Err(err).Str("grantee", grantee.Hex()).Msgf("unexpected type in attestation agreement: %s", agg.EventType)
-				return fiber.NewError(fiber.StatusBadRequest, FailedToValidateRequest)
-			}
-
-			if agg.EffectiveAt != nil && !agg.EffectiveAt.IsZero() {
-				if time.Now().Before(*agg.EffectiveAt) {
-					t.logger.Err(err).Str("grantee", grantee.Hex()).Msgf("agreement not yet in effect: %s", agg.EffectiveAt.String())
-					return fiber.NewError(fiber.StatusBadRequest, FailedToValidateRequest)
-				}
-			}
-
-			if agg.ExpiresAt != nil && !agg.ExpiresAt.IsZero() {
-				if agg.ExpiresAt.Before(time.Now()) {
-					t.logger.Err(err).Str("grantee", grantee.Hex()).Msgf("agreement expired: %s", agg.ExpiresAt.String())
-					return fiber.NewError(fiber.StatusBadRequest, FailedToValidateRequest)
-				}
-			}
-
-			if valid, err := t.validateAssetDID(record.Data.Asset, tokenReq); err != nil || !valid {
-				t.logger.Err(err).Str("grantee", grantee.Hex()).Msgf("failed to validate attestation asset: %s", record.Data.Asset)
-				return fiber.NewError(fiber.StatusBadRequest, FailedToValidateRequest)
-			}
-
-			if err := t.evaluateAttestations(userAttGrants, tokenReq); err != nil {
-				t.logger.Err(err).Str("grantee", grantee.Hex()).Msg(FailedToValidateRequest)
-				return fiber.NewError(fiber.StatusBadRequest, FailedToValidateRequest)
-			}
-		case "permissions":
-			// Validate the asset DID if it exists in the record
-			valid, err := t.validateAssetDID(agg.Asset, tokenReq)
-			if err != nil || !valid {
-				t.logger.Err(err).Str("grantee", grantee.Hex()).Msgf("failed to validate asset did %s in permission agreement", agg.Asset)
-				return fiber.NewError(fiber.StatusBadRequest, FailedToValidateRequest)
-			}
-
-			if err := t.evaluatePermissions(userPermissionGrants, tokenReq); err != nil {
-				t.logger.Err(err).Str("grantee", grantee.Hex()).Msg("failed to evaluate permissions agreement")
-				return fiber.NewError(fiber.StatusBadRequest, FailedToValidateRequest)
-			}
-		}
-	}
-
-	// If we get here, all permission and attestation claims are valid
-	return t.createAndReturnToken(c, tokenReq, grantee)
-}
-
-func (t *TokenExchangeController) userGrantMap(record *models.PermissionRecord) (map[string]bool, map[string]*shared.StringSet, error) {
-	var err error
+	// Aggregates all the permissions the user has.
 	userPermissions := make(map[string]bool)
-	attestations := make(map[string]*shared.StringSet)
-
-	// Aggregates all the permission and attestation grants the user has.
 	for _, agreement := range record.Data.Agreements {
-		switch agreement.Type {
-		case "cloudevent":
-			source := agreement.Source
-			if agreement.Source == nil {
-				source = &services.GLOBAL_ATTESTATION_PERMISSION
-			}
+		// Skip non permission types
+		if agreement.Type != "permissions" {
+			continue
+		}
 
-			if _, ok := attestations[*source]; !ok {
-				attestations[*source] = shared.NewStringSet()
-			}
+		// Validate the asset DID if it exists in the record
+		valid, err := t.validateAssetDID(agreement.Asset, pr)
+		if err != nil || !valid {
+			continue
+		}
 
-			for _, attID := range agreement.ID {
-				attestations[*source].Add(attID)
-			}
-
-		case "permissions":
-			// Add permissions from this agreement
-			for _, permission := range agreement.Permissions {
-				userPermissions[permission.Name] = true
-			}
+		// Add permissions from this agreement
+		for _, permission := range agreement.Permissions {
+			userPermissions[permission.Name] = true
 		}
 	}
 
-	return userPermissions, attestations, err
-
-}
-
-func (t *TokenExchangeController) evaluatePermissions(userPermissions map[string]bool, pr *PermissionTokenRequest) error {
 	// Check if all requested privileges are present in the permissions
 	var missingPermissions []int64
 
@@ -324,40 +250,13 @@ func (t *TokenExchangeController) evaluatePermissions(userPermissions map[string
 
 	// If any permissions are missing, return an error
 	if len(missingPermissions) > 0 {
-		return fmt.Errorf("missing permissions: %v on token id %d for asset %s", missingPermissions, pr.TokenID, pr.NFTContractAddress)
+		return fiber.NewError(fiber.StatusBadRequest,
+			fmt.Sprintf("Address %s lacks permissions %v on token id %d for asset %s.",
+				grantee.Hex(), missingPermissions, pr.TokenID, pr.NFTContractAddress))
 	}
 
-	return nil
-}
-
-func (t *TokenExchangeController) evaluateAttestations(agreement map[string]*shared.StringSet, tokenReq *PermissionTokenRequest) error {
-	var err error
-
-	if len(tokenReq.CloudEvents.Attestations) == 0 {
-		if _, ok := agreement[services.GLOBAL_ATTESTATION_PERMISSION]; !ok {
-			err = errors.Join(err, fmt.Errorf("requsting global vehicle permissions without grant"))
-		}
-	}
-
-	for _, req := range tokenReq.CloudEvents.Attestations {
-		source := req.Source
-		if source == nil {
-			source = &services.GLOBAL_ATTESTATION_PERMISSION
-		}
-
-		if _, ok := agreement[*source]; !ok {
-			err = errors.Join(err, fmt.Errorf("lacking grant for requested attestation source: %s", *source))
-			continue
-		}
-
-		for _, reqID := range req.IDs {
-			if !agreement[*source].Contains(reqID) {
-				err = errors.Join(err, fmt.Errorf("lacking grant for attestation id: %s from source %s", reqID, *source))
-			}
-		}
-	}
-
-	return err
+	// If we get here, all permissions are valid
+	return t.createAndReturnToken(c, pr, grantee)
 }
 
 func intArrayTo2BitArray(indices []int64, length int) (*big.Int, error) {

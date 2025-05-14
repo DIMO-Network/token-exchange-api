@@ -16,7 +16,7 @@ type CustomClaims struct {
 	ContractAddress common.Address         `json:"contract_address"`
 	TokenID         string                 `json:"token_id"`
 	PrivilegeIDs    []privileges.Privilege `json:"privilege_ids"`
-	CloudEvents     CloudEvent             `json:"cloud_event"`
+	CloudEvents     *CloudEvent            `json:"cloud_event"`
 }
 
 type CloudEvent struct {

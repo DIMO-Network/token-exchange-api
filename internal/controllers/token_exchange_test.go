@@ -13,15 +13,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/DIMO-Network/cloudevent"
 	"github.com/DIMO-Network/token-exchange-api/internal/config"
 	mock_contracts "github.com/DIMO-Network/token-exchange-api/internal/contracts/mocks"
 	"github.com/DIMO-Network/token-exchange-api/internal/contracts/sacd"
-	"github.com/DIMO-Network/token-exchange-api/pkg/tokenclaims"
 
 	"github.com/DIMO-Network/token-exchange-api/internal/middleware"
 	mock_middleware "github.com/DIMO-Network/token-exchange-api/internal/middleware/mocks"
-	"github.com/DIMO-Network/token-exchange-api/internal/models"
 	"github.com/DIMO-Network/token-exchange-api/internal/services"
 	mock_services "github.com/DIMO-Network/token-exchange-api/internal/services/mocks"
 	"github.com/ethereum/go-ethereum/common"
@@ -71,35 +68,6 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 		Expiration:  big.NewInt(0),
 		Source:      "",
 	}
-
-	source := "0x123"
-	effectiveAt := time.Now().Add(-5 * time.Hour)
-	expiresAt := time.Now().Add(5 * time.Hour)
-	ipfsRecord := models.PermissionRecord{
-		Type: "dimo.sacd",
-		Data: models.PermissionData{
-			Grantor: models.Address{
-				Address: common.BigToAddress(big.NewInt(1)).Hex(),
-			},
-			Grantee: models.Address{
-				Address: userEthAddr.Hex(),
-			},
-			EffectiveAt: time.Now().Add(-5 * time.Hour),
-			ExpiresAt:   time.Now().Add(5 * time.Hour),
-			Asset:       "did:nft:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144_123",
-			Agreements: []models.Agreement{
-				{
-					Type:        "cloudevent",
-					EffectiveAt: &effectiveAt,
-					ExpiresAt:   &expiresAt,
-					EventType:   cloudevent.TypeAttestation,
-					Source:      &source,
-				},
-			},
-		},
-	}
-
-	ipfsBytes, _ := json.Marshal(ipfsRecord)
 
 	tests := []struct {
 		name                   string
@@ -258,44 +226,6 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 				}).Return("jwt", nil)
 				mockSacd.EXPECT().CurrentPermissionRecord(nil, common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr).Return(emptyPermRecord, nil)
 				mockSacd.EXPECT().GetPermissions(nil, common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr, big.NewInt(0b1100000000)).Return(big.NewInt(0b1100000000), nil)
-			},
-			expectedCode: fiber.StatusOK,
-		},
-		{
-			name: "valid sacd",
-			tokenClaims: jwt.MapClaims{
-				"ethereum_address": userEthAddr.Hex(),
-				"nbf":              time.Now().Unix(),
-			},
-			userEthAddr: &userEthAddr,
-			permissionTokenRequest: &PermissionTokenRequest{
-				TokenID: 123,
-				CloudEvents: tokenclaims.CloudEvent{
-					Attestations: []tokenclaims.Attestation{
-						{
-							Source: &source,
-						},
-					},
-				},
-				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
-			},
-			mockSetup: func() {
-				contractsMgr.EXPECT().GetSacd(c.settings.ContractAddressSacd, &client).Return(mockSacd, nil)
-				mockipfs.EXPECT().Fetch(gomock.Any(), gomock.Any()).Return(ipfsBytes, nil)
-				dexService.EXPECT().SignPrivilegePayload(gomock.Any(), services.PrivilegeTokenDTO{
-					UserEthAddress: userEthAddr.Hex(),
-					TokenID:        strconv.FormatInt(123, 10),
-					CloudEvents: tokenclaims.CloudEvent{
-						Attestations: []tokenclaims.Attestation{
-							{
-								Source: &source,
-							},
-						},
-					},
-					NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
-					Audience:           defaultAudience,
-				}).Return("jwt", nil)
-				mockSacd.EXPECT().CurrentPermissionRecord(nil, common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr).Return(emptyPermRecord, nil)
 			},
 			expectedCode: fiber.StatusOK,
 		},
