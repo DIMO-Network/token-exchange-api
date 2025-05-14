@@ -35,6 +35,8 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
+//go:generate mockgen -source ./token_exchange.go -destination ./token_exchange_mock_test.go -package controllers
+
 func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
@@ -48,7 +50,7 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 	contractsMgr := mock_contracts.NewMockManager(mockCtrl)
 	mockMultiPriv := mock_contracts.NewMockMultiPriv(mockCtrl)
 	mockSacd := mock_contracts.NewMockSacd(mockCtrl)
-	mockipfs := mock_controller.NewMockIPFSService(mockCtrl)
+	mockipfs := NewMockIPFSService(mockCtrl)
 
 	// This never gets called.
 	client := ethclient.Client{}
@@ -59,9 +61,8 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 		ContractAddressWhitelist: "",
 		ContractAddressSacd:      "0xa6",
 	}, dexService, mockipfs, contractsMgr, &client)
-	if err != nil {
-		require.NoError(t, err, "Failed to initialize token exchange controller")
-	}
+	require.NoError(t, err, "Failed to initialize token exchange controller")
+
 	userEthAddr := common.HexToAddress("0x20Ca3bE69a8B95D3093383375F0473A8c6341727")
 
 	// Create a mock empty permission record to return

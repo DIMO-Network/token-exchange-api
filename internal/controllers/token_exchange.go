@@ -22,7 +22,6 @@ import (
 	"github.com/rs/zerolog"
 )
 
-//go:generate mockgen -source ./token_exchange.go -destination mocks/token_exchange_mock.go -package mock_controller_test
 type IPFSService interface {
 	Fetch(ctx context.Context, cid string) ([]byte, error)
 }
@@ -70,7 +69,9 @@ type PermissionTokenResponse struct {
 	Token string `json:"token"`
 }
 
-func NewTokenExchangeController(logger *zerolog.Logger, settings *config.Settings, dexService services.DexService, ipfsService IPFSService, contractsMgr contracts.Manager, ethClient bind.ContractBackend) (*TokenExchangeController, error) {
+func NewTokenExchangeController(logger *zerolog.Logger, settings *config.Settings, dexService services.DexService, ipfsService IPFSService,
+	contractsMgr contracts.Manager, ethClient bind.ContractBackend) (*TokenExchangeController, error) {
+
 	return &TokenExchangeController{
 		logger:      logger,
 		settings:    settings,

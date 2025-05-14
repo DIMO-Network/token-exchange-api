@@ -9,11 +9,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/DIMO-Network/token-exchange-api/internal/config"
 	"github.com/rs/zerolog"
 )
 
-var DefaultIPFSTimeout = 30
+const (
+	DefaultIPFSPrefix  = "ipfs://"
+	DefaultIPFSTimeout = 30 * time.Second
+)
 
 type IPFSClient struct {
 	logger      *zerolog.Logger
@@ -22,21 +24,26 @@ type IPFSClient struct {
 	timeout     time.Duration
 }
 
-func NewIPFSClient(logger *zerolog.Logger, settings *config.Settings) (*IPFSClient, error) {
-	ipfsBaseURL, err := url.Parse(settings.IPFSBaseURL)
+func NewIPFSClient(logger *zerolog.Logger, ipfsBaseURL, ipfsTimeout string) (*IPFSClient, error) {
+	ipfsURL, err := url.Parse(ipfsBaseURL)
 	if err != nil {
 		return nil, fmt.Errorf("invalid IPFS base URL: %w", err)
 	}
 
-	if settings.IPFSTimeout == 0 {
-		settings.IPFSTimeout = DefaultIPFSTimeout
+	timout, err := time.ParseDuration(ipfsTimeout)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse ipfs duration: %w", err)
+	}
+
+	if timout.Seconds() == 0 {
+		timout = DefaultIPFSTimeout
 	}
 
 	return &IPFSClient{
 		logger:      logger,
 		client:      &http.Client{},
-		ipfsBaseURL: ipfsBaseURL,
-		timeout:     time.Duration(settings.IPFSTimeout) * time.Second,
+		ipfsBaseURL: ipfsURL,
+		timeout:     timout,
 	}, nil
 }
 
@@ -53,7 +60,7 @@ func NewIPFSClient(logger *zerolog.Logger, settings *config.Settings) (*IPFSClie
 //   - error: An error if the request fails at any stage (URL construction, HTTP request creation,
 //     request execution, or response reading)
 func (i *IPFSClient) Fetch(ctx context.Context, cid string) ([]byte, error) {
-	cid = strings.TrimPrefix(cid, "ipfs://")
+	cid = strings.TrimPrefix(cid, DefaultIPFSPrefix)
 	ipfsURL := i.ipfsBaseURL.JoinPath(cid).String()
 
 	ctx, cancel := context.WithTimeout(ctx, i.timeout)
@@ -70,9 +77,14 @@ func (i *IPFSClient) Fetch(ctx context.Context, cid string) ([]byte, error) {
 	}
 	defer resp.Body.Close() //nolint:errcheck
 
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("invalid ipfs status code: %d", resp.StatusCode)
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
 	}
 
-	return io.ReadAll(resp.Body)
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("invalid ipfs status code: %d, body: %s", resp.StatusCode, string(body))
+	}
+
+	return body, nil
 }
