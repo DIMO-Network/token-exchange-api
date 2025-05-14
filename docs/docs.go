@@ -53,13 +53,10 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "github_com_DIMO-Network_token-exchange-api_internal_services.Attestation": {
+        "github_com_DIMO-Network_token-exchange-api_pkg_tokenclaims.Attestation": {
             "type": "object",
             "properties": {
-                "eventType": {
-                    "type": "string"
-                },
-                "id": {
+                "ids": {
                     "type": "array",
                     "items": {
                         "type": "string"
@@ -67,6 +64,17 @@ const docTemplate = `{
                 },
                 "source": {
                     "type": "string"
+                }
+            }
+        },
+        "github_com_DIMO-Network_token-exchange-api_pkg_tokenclaims.CloudEvent": {
+            "type": "object",
+            "properties": {
+                "attestations": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_DIMO-Network_token-exchange-api_pkg_tokenclaims.Attestation"
+                    }
                 }
             }
         },
@@ -78,19 +86,20 @@ const docTemplate = `{
                 "tokenId"
             ],
             "properties": {
-                "attestations": {
-                    "description": "Attestations",
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/github_com_DIMO-Network_token-exchange-api_internal_services.Attestation"
-                    }
-                },
                 "audience": {
                     "description": "Audience is the intended audience for the token.",
                     "type": "array",
                     "items": {
                         "type": "string"
                     }
+                },
+                "cloudevents": {
+                    "description": "CloudEvent request, includes attestations",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/github_com_DIMO-Network_token-exchange-api_pkg_tokenclaims.CloudEvent"
+                        }
+                    ]
                 },
                 "nftContractAddress": {
                     "description": "NFTContractAddress is the address of the NFT contract. Privileges will be checked\non-chain at this address. Address must be in the 0x format e.g. 0x5FbDB2315678afecb367f032d93F642f64180aa3.\nVarying case is okay.",
