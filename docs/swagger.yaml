@@ -1,28 +1,32 @@
 basePath: /v1
 definitions:
-  github_com_DIMO-Network_token-exchange-api_internal_services.Attestation:
+  github_com_DIMO-Network_token-exchange-api_pkg_tokenclaims.Attestation:
     properties:
-      eventType:
-        type: string
-      id:
+      ids:
         items:
           type: string
         type: array
       source:
         type: string
     type: object
-  internal_controllers.PermissionTokenRequest:
+  github_com_DIMO-Network_token-exchange-api_pkg_tokenclaims.CloudEvent:
     properties:
       attestations:
-        description: Attestations
         items:
-          $ref: '#/definitions/github_com_DIMO-Network_token-exchange-api_internal_services.Attestation'
+          $ref: '#/definitions/github_com_DIMO-Network_token-exchange-api_pkg_tokenclaims.Attestation'
         type: array
+    type: object
+  internal_controllers.PermissionTokenRequest:
+    properties:
       audience:
         description: Audience is the intended audience for the token.
         items:
           type: string
         type: array
+      cloudEvents:
+        allOf:
+        - $ref: '#/definitions/github_com_DIMO-Network_token-exchange-api_pkg_tokenclaims.CloudEvent'
+        description: CloudEvent request, includes attestations
       nftContractAddress:
         description: |-
           NFTContractAddress is the address of the NFT contract. Privileges will be checked
