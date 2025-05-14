@@ -2,7 +2,7 @@ replicaCount: 1
 image:
   repository: dimozone/token-exchange-api
   pullPolicy: IfNotPresent
-  tag: 8b98639
+  tag: 4cf6b6b
 imagePullSecrets: []
 serviceAccount:
   create: true
@@ -34,7 +34,7 @@ env:
   IDENTITY_URL: http://identity-api-dev:8080/query
   IPFS_BASE_URL: https://assets.dimo.xyz/ipfs
   DEV_LICENSE_VALIDATOR_FEATURE_FLAG: true
-  IPFS_TIMEOUT: 30
+  IPFS_TIMEOUT: 30s
 service:
   type: ClusterIP
   ports:

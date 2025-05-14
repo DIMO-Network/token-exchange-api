@@ -2,11 +2,12 @@ package services
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/DIMO-Network/shared/privileges"
+	"github.com/DIMO-Network/token-exchange-api/pkg/tokenclaims"
 	dgrpc "github.com/dexidp/dex/api/v2"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -28,22 +29,13 @@ type PrivilegeTokenDTO struct {
 	PrivilegeIDs       []int64
 	NFTContractAddress string
 	Audience           []string
-	CloudEvents        CloudEvent
+	CloudEvents        tokenclaims.CloudEvent
 }
 
-type CloudEvent struct {
-	Attestations []AttestationClaims `json:"attestations"`
-}
-
-type AttestationClaims struct {
-	Source *string  `json:"source"`
-	IDs    []string `json:"ids"`
-}
-
-func NewDexService(log *zerolog.Logger, dexgRPCAddr string) (*DexClient, error) {
+func NewDexClient(log *zerolog.Logger, dexgRPCAddr string) (*DexClient, error) {
 	conn, err := grpc.NewClient(dexgRPCAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create dex gRPC client: %w", err)
 	}
 
 	return &DexClient{
@@ -58,16 +50,16 @@ func (d *DexClient) SignPrivilegePayload(ctx context.Context, req PrivilegeToken
 		privs[i] = privileges.Privilege(iD)
 	}
 
-	cc := CustomClaims{
+	cc := tokenclaims.CustomClaims{
 		ContractAddress: common.HexToAddress(req.NFTContractAddress),
 		TokenID:         req.TokenID,
 		PrivilegeIDs:    privs,
-		CloudEvent:      req.CloudEvents,
+		CloudEvents:     req.CloudEvents,
 	}
 
 	ps, err := cc.Proto()
 	if err != nil {
-		return "", errors.Wrap(err, "unable to convert custom claims to .Proto()")
+		return "", fmt.Errorf("failed to convert custom claims to .Proto(): %w", err)
 	}
 
 	args := &dgrpc.SignTokenReq{
@@ -78,7 +70,7 @@ func (d *DexClient) SignPrivilegePayload(ctx context.Context, req PrivilegeToken
 
 	resp, err := d.client.SignToken(ctx, args)
 	if err != nil {
-		return "", errors.Wrap(err, "unable to sign token")
+		return "", fmt.Errorf("failed to sign token: %w", err)
 	}
 
 	return resp.Token, nil

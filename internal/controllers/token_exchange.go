@@ -16,13 +16,13 @@ import (
 	"github.com/DIMO-Network/token-exchange-api/internal/contracts"
 	"github.com/DIMO-Network/token-exchange-api/internal/models"
 	"github.com/DIMO-Network/token-exchange-api/internal/services"
+	"github.com/DIMO-Network/token-exchange-api/pkg/tokenclaims"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/gofiber/fiber/v2"
 	"github.com/rs/zerolog"
 )
 
-//go:generate mockgen -source ./token_exchange.go -destination mocks/token_exchange_mock.go -package mock_controller_test
 type IPFSService interface {
 	Fetch(ctx context.Context, cid string) ([]byte, error)
 }
@@ -63,14 +63,16 @@ type PermissionTokenRequest struct {
 	// Audience is the intended audience for the token.
 	Audience []string `json:"audience" validate:"optional"`
 	// CloudEvent request, includes attestations
-	CloudEvents services.CloudEvent `json:"cloudevents"`
+	CloudEvents tokenclaims.CloudEvent `json:"cloudevents"`
 }
 
 type PermissionTokenResponse struct {
 	Token string `json:"token"`
 }
 
-func NewTokenExchangeController(logger *zerolog.Logger, settings *config.Settings, dexService services.DexService, ipfsService IPFSService, contractsMgr contracts.Manager, ethClient bind.ContractBackend) (*TokenExchangeController, error) {
+func NewTokenExchangeController(logger *zerolog.Logger, settings *config.Settings, dexService services.DexService, ipfsService IPFSService,
+	contractsMgr contracts.Manager, ethClient bind.ContractBackend) (*TokenExchangeController, error) {
+
 	return &TokenExchangeController{
 		logger:      logger,
 		settings:    settings,

@@ -43,23 +43,23 @@ func getContractWhitelistedAddresses(wAddrs string) ([]string, error) {
 }
 
 func startWebAPI(ctx context.Context, logger zerolog.Logger, settings *config.Settings) {
-	dexSvc, err := services.NewDexService(&logger, settings.DexGRPCAdddress)
+	dexSvc, err := services.NewDexClient(&logger, settings.DexGRPCAdddress)
 	if err != nil {
-		logger.Fatal().Err(err).Msg("failed to connect to dex client")
+		logger.Fatal().Err(err).Msg("failed to create dex grpc client")
 	}
-
 	contractsMgr := contracts.NewContractsManager()
-	ipfsClient, err := services.NewIPFSClient(&logger, settings)
-	if err != nil {
-		logger.Fatal().Err(err).Msg("failed to create IPFS client")
-	}
 
 	ethClient, err := ethclient.Dial(settings.BlockchainNodeURL)
 	if err != nil {
 		logger.Fatal().Err(err).Msg("Failed to dial Ethereum RPC.")
 	}
 
-	vtxController, err := vtx.NewTokenExchangeController(&logger, settings, dexSvc, ipfsClient, contractsMgr, ethClient)
+	ipfsService, err := services.NewIPFSClient(&logger, settings.IPFSBaseURL, settings.IPFSTimeout)
+	if err != nil {
+		logger.Fatal().Err(err).Msg("failed to create IPFS client")
+	}
+
+	vtxController, err := vtx.NewTokenExchangeController(&logger, settings, dexSvc, ipfsService, contractsMgr, ethClient)
 	if err != nil {
 		logger.Fatal().Err(err).Msg("Failed to initialize token exchange controller")
 	}
