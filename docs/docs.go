@@ -93,7 +93,7 @@ const docTemplate = `{
                         "type": "string"
                     }
                 },
-                "cloudevents": {
+                "cloudEvents": {
                     "description": "CloudEvent request, includes attestations",
                     "allOf": [
                         {
