@@ -53,9 +53,23 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "github_com_DIMO-Network_token-exchange-api_pkg_tokenclaims.Attestation": {
+        "github_com_DIMO-Network_token-exchange-api_pkg_tokenclaims.CloudEvents": {
             "type": "object",
             "properties": {
+                "events": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_DIMO-Network_token-exchange-api_pkg_tokenclaims.Event"
+                    }
+                }
+            }
+        },
+        "github_com_DIMO-Network_token-exchange-api_pkg_tokenclaims.Event": {
+            "type": "object",
+            "properties": {
+                "eventType": {
+                    "type": "string"
+                },
                 "ids": {
                     "type": "array",
                     "items": {
@@ -64,17 +78,6 @@ const docTemplate = `{
                 },
                 "source": {
                     "type": "string"
-                }
-            }
-        },
-        "github_com_DIMO-Network_token-exchange-api_pkg_tokenclaims.CloudEvent": {
-            "type": "object",
-            "properties": {
-                "attestations": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/github_com_DIMO-Network_token-exchange-api_pkg_tokenclaims.Attestation"
-                    }
                 }
             }
         },
@@ -97,7 +100,7 @@ const docTemplate = `{
                     "description": "CloudEvent request, includes attestations",
                     "allOf": [
                         {
-                            "$ref": "#/definitions/github_com_DIMO-Network_token-exchange-api_pkg_tokenclaims.CloudEvent"
+                            "$ref": "#/definitions/github_com_DIMO-Network_token-exchange-api_pkg_tokenclaims.CloudEvents"
                         }
                     ]
                 },
