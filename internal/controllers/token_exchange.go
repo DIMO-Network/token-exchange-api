@@ -215,11 +215,7 @@ func (t *TokenExchangeController) evaluateSacdDoc(c *fiber.Ctx, record *models.P
 		return fiber.NewError(fiber.StatusBadRequest, "Grantee address in permission record doesn't match requester")
 	}
 
-	userPermGrants, cloudEvtGrants, err := t.userGrantMap(record)
-	if err != nil {
-		logger.Err(err).Msg("failed to generate permission grants")
-		return fiber.NewError(fiber.StatusBadRequest)
-	}
+	userPermGrants, cloudEvtGrants := t.userGrantMap(record)
 
 	for _, agg := range record.Data.Agreements {
 		switch agg.Type {
@@ -228,14 +224,14 @@ func (t *TokenExchangeController) evaluateSacdDoc(c *fiber.Ctx, record *models.P
 			case cloudevent.TypeAttestation:
 				if agg.EffectiveAt != nil && !agg.EffectiveAt.IsZero() {
 					if time.Now().Before(*agg.EffectiveAt) {
-						logger.Err(err).Msgf("agreement not yet in effect: %s", agg.EffectiveAt.String())
+						logger.Info().Msgf("agreement not yet in effect: %s", agg.EffectiveAt.String())
 						return fiber.NewError(fiber.StatusBadRequest, "failed to validate request")
 					}
 				}
 
 				if agg.ExpiresAt != nil && !agg.ExpiresAt.IsZero() {
 					if agg.ExpiresAt.Before(time.Now()) {
-						logger.Err(err).Msgf("agreement expired: %s", agg.ExpiresAt.String())
+						logger.Info().Msgf("agreement expired: %s", agg.ExpiresAt.String())
 						return fiber.NewError(fiber.StatusBadRequest, "failed to validate request")
 					}
 				}
@@ -271,8 +267,7 @@ func (t *TokenExchangeController) evaluateSacdDoc(c *fiber.Ctx, record *models.P
 	return t.createAndReturnToken(c, tokenReq, grantee)
 }
 
-func (t *TokenExchangeController) userGrantMap(record *models.PermissionRecord) (map[string]bool, map[string]*shared.StringSet, error) {
-	var err error
+func (t *TokenExchangeController) userGrantMap(record *models.PermissionRecord) (map[string]bool, map[string]*shared.StringSet) {
 	userPermGrants := make(map[string]bool)
 	cloudEvtGrants := make(map[string]*shared.StringSet)
 
@@ -304,7 +299,7 @@ func (t *TokenExchangeController) userGrantMap(record *models.PermissionRecord) 
 		}
 	}
 
-	return userPermGrants, cloudEvtGrants, err
+	return userPermGrants, cloudEvtGrants
 
 }
 
