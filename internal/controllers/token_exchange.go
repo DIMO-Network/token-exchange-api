@@ -60,7 +60,7 @@ type PermissionTokenRequest struct {
 	// Audience is the intended audience for the token.
 	Audience []string `json:"audience" validate:"optional"`
 	// CloudEvent request, includes attestations
-	CloudEvents *tokenclaims.CloudEvent `json:"cloudEvents"`
+	CloudEvents *tokenclaims.CloudEvents `json:"cloudEvents"`
 }
 
 type PermissionTokenResponse struct {
@@ -105,7 +105,7 @@ func (t *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.C
 	t.logger.Debug().Interface("request", tokenReq).Msg("Got request.")
 
 	if len(tokenReq.Privileges) == 0 && tokenReq.CloudEvents == nil {
-		return fiber.NewError(fiber.StatusBadRequest, "Please provide at least one privilege.")
+		return fiber.NewError(fiber.StatusBadRequest, "Please provide at least one privilege or cloudevent")
 	}
 
 	ethAddr := api.GetUserEthAddr(c)
