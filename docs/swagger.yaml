@@ -1,20 +1,22 @@
 basePath: /v1
 definitions:
-  github_com_DIMO-Network_token-exchange-api_pkg_tokenclaims.Attestation:
+  github_com_DIMO-Network_token-exchange-api_pkg_tokenclaims.CloudEvents:
     properties:
+      events:
+        items:
+          $ref: '#/definitions/github_com_DIMO-Network_token-exchange-api_pkg_tokenclaims.Event'
+        type: array
+    type: object
+  github_com_DIMO-Network_token-exchange-api_pkg_tokenclaims.Event:
+    properties:
+      eventType:
+        type: string
       ids:
         items:
           type: string
         type: array
       source:
         type: string
-    type: object
-  github_com_DIMO-Network_token-exchange-api_pkg_tokenclaims.CloudEvent:
-    properties:
-      attestations:
-        items:
-          $ref: '#/definitions/github_com_DIMO-Network_token-exchange-api_pkg_tokenclaims.Attestation'
-        type: array
     type: object
   internal_controllers.PermissionTokenRequest:
     properties:
@@ -25,7 +27,7 @@ definitions:
         type: array
       cloudEvents:
         allOf:
-        - $ref: '#/definitions/github_com_DIMO-Network_token-exchange-api_pkg_tokenclaims.CloudEvent'
+        - $ref: '#/definitions/github_com_DIMO-Network_token-exchange-api_pkg_tokenclaims.CloudEvents'
         description: CloudEvent request, includes attestations
       nftContractAddress:
         description: |-

@@ -29,7 +29,7 @@ type PrivilegeTokenDTO struct {
 	PrivilegeIDs       []int64
 	NFTContractAddress string
 	Audience           []string
-	CloudEvents        *tokenclaims.CloudEvent
+	CloudEvents        *tokenclaims.CloudEvents
 }
 
 func NewDexClient(log *zerolog.Logger, dexgRPCAddr string) (*DexClient, error) {
