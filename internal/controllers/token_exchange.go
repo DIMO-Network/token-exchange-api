@@ -104,7 +104,7 @@ func (t *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.C
 
 	t.logger.Debug().Interface("request", tokenReq).Msg("Got request.")
 
-	if len(tokenReq.Privileges) == 0 && tokenReq.CloudEvents == nil {
+	if len(tokenReq.Privileges) == 0 && (tokenReq.CloudEvents == nil || len(tokenReq.CloudEvents.Events) == 0) {
 		return fiber.NewError(fiber.StatusBadRequest, "Please provide at least one privilege or cloudevent")
 	}
 
@@ -267,6 +267,20 @@ func (t *TokenExchangeController) userGrantMap(record *models.PermissionRecord) 
 
 	// Aggregates all the permission and attestation grants the user has.
 	for _, agreement := range record.Data.Agreements {
+		// NOTE: these could lead to "failing" silently (not grabbing the grants)
+		// should this be more explicit?
+		if agreement.EffectiveAt != nil {
+			if agreement.EffectiveAt.After(time.Now()) {
+				continue
+			}
+		}
+
+		if agreement.ExpiresAt != nil {
+			if agreement.ExpiresAt.Before(time.Now()) {
+				continue
+			}
+		}
+
 		switch agreement.Type {
 		case "cloudevent":
 			if _, ok := cloudEvtGrants[agreement.EventType]; !ok {
@@ -346,6 +360,7 @@ func (t *TokenExchangeController) evaluateCloudEvents(agreement map[string]map[s
 
 		// NOTE: do we want to explicitly enforce that
 		// someone has to ask for the exact ids they've been granted?
+		// this is assuming we do not
 		if len(grantedAggs[*source].Slice()) == 0 {
 			continue
 		}
