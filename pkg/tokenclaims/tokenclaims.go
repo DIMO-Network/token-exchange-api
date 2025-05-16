@@ -18,7 +18,7 @@ type CustomClaims struct {
 	ContractAddress common.Address         `json:"contract_address"`
 	TokenID         string                 `json:"token_id"`
 	PrivilegeIDs    []privileges.Privilege `json:"privilege_ids"`
-	CloudEvents     *CloudEvents           `json:"cloud_event"`
+	CloudEvents     *CloudEvents           `json:"cloud_events"`
 }
 
 type CloudEvents struct {
@@ -45,19 +45,25 @@ func (c *CustomClaims) Proto() (*structpb.Struct, error) {
 		ap[i] = int64(c.PrivilegeIDs[i])
 	}
 
-	ces := make((map[string]map[string]any))
+	ces := make((map[string]map[string][]any))
 	for _, evt := range c.CloudEvents.Events {
 		if _, ok := ces[evt.EventType]; !ok {
-			ces[evt.EventType] = map[string]any{}
+			ces[evt.EventType] = map[string][]any{}
 		}
 
-		if _, ok := ces[evt.EventType][*evt.Source]; !ok {
-			// NOTE: this will overwrite, to avoid that, I think that prior
-			// to this point we should return an error if someone is passing
-			// multiple cloud event requests with the same source, directing them that
-			// all ids for the same source to be passed in the same event request
-			ces[evt.EventType][*evt.Source] = evt.IDs
+		source := evt.Source
+		if source == nil {
+			source = &GlobalAttestationPermission
 		}
+
+		if _, ok := ces[evt.EventType][*source]; !ok {
+			ces[evt.EventType][*source] = []any{}
+		}
+
+		for _, id := range evt.IDs {
+			ces[evt.EventType][*source] = append(ces[evt.EventType][*source], id)
+		}
+
 	}
 
 	return structpb.NewStruct(
