@@ -210,7 +210,7 @@ func (t *TokenExchangeController) evaluateSacdDoc(c *fiber.Ctx, record *models.P
 	userPermissions := make(map[string]bool)
 	for _, agreement := range record.Data.Agreements {
 		// Skip non permission types
-		if agreement.Type != "permissions" {
+		if agreement.Type != "permission" {
 			continue
 		}
 
