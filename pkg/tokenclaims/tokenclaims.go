@@ -11,6 +11,8 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
+var GlobalAttestationPermission = "GLOBAL_ATTESTATION_PERMISSION"
+
 // CustomClaims is the custom claims for token-exchange related information.
 type CustomClaims struct {
 	ContractAddress common.Address         `json:"contract_address"`
@@ -49,12 +51,17 @@ func (c *CustomClaims) Proto() (*structpb.Struct, error) {
 			ces[evt.EventType] = map[string][]any{}
 		}
 
-		if _, ok := ces[evt.EventType][*evt.Source]; !ok {
-			ces[evt.EventType][*evt.Source] = []any{}
+		source := evt.Source
+		if source == nil {
+			source = &GlobalAttestationPermission
+		}
+
+		if _, ok := ces[evt.EventType][*source]; !ok {
+			ces[evt.EventType][*source] = []any{}
 		}
 
 		for _, id := range evt.IDs {
-			ces[evt.EventType][*evt.Source] = append(ces[evt.EventType][*evt.Source], id)
+			ces[evt.EventType][*source] = append(ces[evt.EventType][*source], id)
 		}
 
 	}
