@@ -125,6 +125,7 @@ func (t *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.C
 	if err != nil {
 		t.logger.Warn().Err(err).Msg("Failed to get valid SACD document")
 		// If the user doesn't have a valid IPFS doc, check bitstring
+		// We call the contract again because this handles the case where the caller is the owner of the asset.
 		return t.evaluatePermissionsBits(c, s, nftAddr, pr, ethAddr)
 	}
 
