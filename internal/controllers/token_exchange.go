@@ -14,6 +14,7 @@ import (
 	"github.com/DIMO-Network/token-exchange-api/internal/contracts"
 	"github.com/DIMO-Network/token-exchange-api/internal/models"
 	"github.com/DIMO-Network/token-exchange-api/internal/services"
+	"github.com/DIMO-Network/token-exchange-api/pkg/tokenclaims"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/gofiber/fiber/v2"
@@ -58,6 +59,8 @@ type PermissionTokenRequest struct {
 	NFTContractAddress string `json:"nftContractAddress" example:"0xbA5738a18d83D41847dfFbDC6101d37C69c9B0cF" validate:"required"`
 	// Audience is the intended audience for the token.
 	Audience []string `json:"audience" validate:"optional"`
+	// CloudEvent request, includes attestations
+	CloudEvents *tokenclaims.CloudEvents `json:"cloudEvents"`
 }
 
 type PermissionTokenResponse struct {
@@ -88,21 +91,21 @@ func NewTokenExchangeController(logger *zerolog.Logger, settings *config.Setting
 // @Security    BearerAuth
 // @Router      /tokens/exchange [post]
 func (t *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.Ctx) error {
-	pr := &PermissionTokenRequest{}
-	if err := c.BodyParser(pr); err != nil {
+	tokenReq := &PermissionTokenRequest{}
+	if err := c.BodyParser(tokenReq); err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "Couldn't parse request body.")
 	}
 
-	if !common.IsHexAddress(pr.NFTContractAddress) {
-		return fiber.NewError(fiber.StatusBadRequest, fmt.Sprintf("Invalid NFT contract address %q.", pr.NFTContractAddress))
+	if !common.IsHexAddress(tokenReq.NFTContractAddress) {
+		return fiber.NewError(fiber.StatusBadRequest, fmt.Sprintf("Invalid NFT contract address %q.", tokenReq.NFTContractAddress))
 	}
 
-	nftAddr := common.HexToAddress(pr.NFTContractAddress)
+	nftAddr := common.HexToAddress(tokenReq.NFTContractAddress)
 
-	t.logger.Debug().Interface("request", pr).Msg("Got request.")
+	t.logger.Debug().Interface("request", tokenReq).Msg("Got request.")
 
-	if len(pr.Privileges) == 0 {
-		return fiber.NewError(fiber.StatusBadRequest, "Please provide at least one privilege.")
+	if len(tokenReq.Privileges) == 0 && tokenReq.CloudEvents == nil {
+		return fiber.NewError(fiber.StatusBadRequest, "Please provide at least one privilege or cloudevent")
 	}
 
 	ethAddr := api.GetUserEthAddr(c)
@@ -116,7 +119,7 @@ func (t *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.C
 		return fiber.NewError(fiber.StatusInternalServerError, "Could not connect to blockchain node")
 	}
 
-	resPermRecord, err := s.CurrentPermissionRecord(nil, nftAddr, big.NewInt(pr.TokenID), *ethAddr)
+	resPermRecord, err := s.CurrentPermissionRecord(nil, nftAddr, big.NewInt(tokenReq.TokenID), *ethAddr)
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 	}
@@ -125,10 +128,10 @@ func (t *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.C
 	if err != nil {
 		t.logger.Warn().Err(err).Msg("Failed to get valid SACD document")
 		// If the user doesn't have a valid IPFS doc, check bitstring
-		return t.evaluatePermissionsBits(c, s, nftAddr, pr, ethAddr)
+		return t.evaluatePermissionsBits(c, s, nftAddr, tokenReq, ethAddr)
 	}
 
-	return t.evaluateSacdDoc(c, record, pr, ethAddr)
+	return t.evaluateSacdDoc(c, record, tokenReq, ethAddr)
 }
 
 // Helper function to create and return the token
@@ -142,6 +145,7 @@ func (t *TokenExchangeController) createAndReturnToken(c *fiber.Ctx, pr *Permiss
 		UserEthAddress:     ethAddr.Hex(),
 		TokenID:            strconv.FormatInt(pr.TokenID, 10),
 		PrivilegeIDs:       pr.Privileges,
+		CloudEvents:        pr.CloudEvents,
 		NFTContractAddress: pr.NFTContractAddress,
 		Audience:           aud,
 	})

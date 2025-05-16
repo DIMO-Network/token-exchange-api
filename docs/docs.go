@@ -53,6 +53,34 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "github_com_DIMO-Network_token-exchange-api_pkg_tokenclaims.CloudEvents": {
+            "type": "object",
+            "properties": {
+                "events": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_DIMO-Network_token-exchange-api_pkg_tokenclaims.Event"
+                    }
+                }
+            }
+        },
+        "github_com_DIMO-Network_token-exchange-api_pkg_tokenclaims.Event": {
+            "type": "object",
+            "properties": {
+                "eventType": {
+                    "type": "string"
+                },
+                "ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "source": {
+                    "type": "string"
+                }
+            }
+        },
         "internal_controllers.PermissionTokenRequest": {
             "type": "object",
             "required": [
@@ -67,6 +95,14 @@ const docTemplate = `{
                     "items": {
                         "type": "string"
                     }
+                },
+                "cloudEvents": {
+                    "description": "CloudEvent request, includes attestations",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/github_com_DIMO-Network_token-exchange-api_pkg_tokenclaims.CloudEvents"
+                        }
+                    ]
                 },
                 "nftContractAddress": {
                     "description": "NFTContractAddress is the address of the NFT contract. Privileges will be checked\non-chain at this address. Address must be in the 0x format e.g. 0x5FbDB2315678afecb367f032d93F642f64180aa3.\nVarying case is okay.",
