@@ -24,6 +24,8 @@ type IPFSService interface {
 	Fetch(ctx context.Context, cid string) ([]byte, error)
 }
 
+const permissionAgreementType = "permission"
+
 var defaultAudience = []string{"dimo.zone"}
 
 // privilege prefix to denote the 1:1 mapping to bit values and to make them easier to deprecate if desired in the future
@@ -210,7 +212,7 @@ func (t *TokenExchangeController) evaluateSacdDoc(c *fiber.Ctx, record *models.P
 	userPermissions := make(map[string]bool)
 	for _, agreement := range record.Data.Agreements {
 		// Skip non permission types
-		if agreement.Type != "permission" {
+		if agreement.Type != permissionAgreementType {
 			continue
 		}
 
