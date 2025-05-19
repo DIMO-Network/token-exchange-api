@@ -52,17 +52,17 @@ func (c *CustomClaims) Proto() (*structpb.Struct, error) {
 				ces[evt.EventType] = map[string][]any{}
 			}
 
-			source := evt.Source
-			if source == nil {
-				source = &GlobalAttestationPermission
+			source := GlobalAttestationPermission
+			if evt.Source != nil {
+				source = *evt.Source
 			}
 
-			if _, ok := ces[evt.EventType][*source]; !ok {
-				ces[evt.EventType][*source] = []any{}
+			if _, ok := ces[evt.EventType][source]; !ok {
+				ces[evt.EventType][source] = []any{}
 			}
 
 			for _, id := range evt.IDs {
-				ces[evt.EventType][*source] = append(ces[evt.EventType][*source], id)
+				ces[evt.EventType][source] = append(ces[evt.EventType][source], id)
 			}
 		}
 	}

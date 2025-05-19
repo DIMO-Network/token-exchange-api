@@ -73,7 +73,7 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 		name                   string
 		tokenClaims            jwt.MapClaims
 		userEthAddr            *common.Address
-		permissionTokenRequest *PermissionTokenRequest
+		permissionTokenRequest *TokenRequest
 		mockSetup              func()
 		expectedCode           int
 	}{
@@ -84,7 +84,7 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 				"nbf":              time.Now().Unix(),
 			},
 			userEthAddr: &userEthAddr,
-			permissionTokenRequest: &PermissionTokenRequest{
+			permissionTokenRequest: &TokenRequest{
 				TokenID:            123,
 				Privileges:         []int64{4},
 				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
@@ -111,7 +111,7 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 				"nbf":              time.Now().Unix(),
 			},
 			userEthAddr: &userEthAddr,
-			permissionTokenRequest: &PermissionTokenRequest{
+			permissionTokenRequest: &TokenRequest{
 				TokenID:            123,
 				Privileges:         []int64{1, 2, 4, 5},
 				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
@@ -138,7 +138,7 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 				"nbf":              time.Now().Unix(),
 			},
 			userEthAddr: &userEthAddr,
-			permissionTokenRequest: &PermissionTokenRequest{
+			permissionTokenRequest: &TokenRequest{
 				TokenID:            123,
 				Privileges:         []int64{1, 2, 4, 5},
 				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
@@ -161,7 +161,7 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 				"nbf":              time.Now().Unix(),
 			},
 			userEthAddr: &userEthAddr,
-			permissionTokenRequest: &PermissionTokenRequest{
+			permissionTokenRequest: &TokenRequest{
 				TokenID:            123,
 				Privileges:         []int64{1, 2, 4, 5},
 				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
@@ -192,7 +192,7 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 				"nbf": time.Now().Unix(),
 			},
 			userEthAddr: &userEthAddr,
-			permissionTokenRequest: &PermissionTokenRequest{
+			permissionTokenRequest: &TokenRequest{
 				TokenID:            123,
 				Privileges:         []int64{4},
 				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
@@ -208,7 +208,7 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 				"aud":              []string{"dimo.zone"},
 			},
 			userEthAddr: &userEthAddr,
-			permissionTokenRequest: &PermissionTokenRequest{
+			permissionTokenRequest: &TokenRequest{
 				TokenID:            123,
 				Privileges:         []int64{4},
 				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",

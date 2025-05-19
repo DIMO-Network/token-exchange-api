@@ -48,7 +48,7 @@ type TokenExchangeController struct {
 	ipfsService IPFSService
 }
 
-type PermissionTokenRequest struct {
+type TokenRequest struct {
 	// TokenID is the NFT token id.
 	TokenID int64 `json:"tokenId" example:"7" validate:"required"`
 	// Privileges is a list of the desired privileges. It must not be empty.
@@ -60,7 +60,17 @@ type PermissionTokenRequest struct {
 	// Audience is the intended audience for the token.
 	Audience []string `json:"audience" validate:"optional"`
 	// CloudEvent request, includes attestations
-	CloudEvents *tokenclaims.CloudEvents `json:"cloudEvents"`
+	CloudEvents *cloudEventRequest `json:"cloudEvents"`
+}
+
+type cloudEventRequest struct {
+	Events []ceReq `json:"events"`
+}
+
+type ceReq struct {
+	EventType string   `json:"eventType"`
+	Source    *string  `json:"source"`
+	IDs       []string `json:"ids"`
 }
 
 type PermissionTokenResponse struct {
@@ -91,7 +101,7 @@ func NewTokenExchangeController(logger *zerolog.Logger, settings *config.Setting
 // @Security    BearerAuth
 // @Router      /tokens/exchange [post]
 func (t *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.Ctx) error {
-	tokenReq := &PermissionTokenRequest{}
+	tokenReq := &TokenRequest{}
 	if err := c.BodyParser(tokenReq); err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "Couldn't parse request body.")
 	}
@@ -135,20 +145,33 @@ func (t *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.C
 }
 
 // Helper function to create and return the token
-func (t *TokenExchangeController) createAndReturnToken(c *fiber.Ctx, pr *PermissionTokenRequest, ethAddr *common.Address) error {
-	aud := pr.Audience
+func (t *TokenExchangeController) createAndReturnToken(c *fiber.Ctx, tokenReq *TokenRequest, ethAddr *common.Address) error {
+	aud := tokenReq.Audience
 	if len(aud) == 0 {
 		aud = defaultAudience
 	}
 
-	tk, err := t.dexService.SignPrivilegePayload(c.Context(), services.PrivilegeTokenDTO{
+	privTokenDTO := services.PrivilegeTokenDTO{
 		UserEthAddress:     ethAddr.Hex(),
-		TokenID:            strconv.FormatInt(pr.TokenID, 10),
-		PrivilegeIDs:       pr.Privileges,
-		CloudEvents:        pr.CloudEvents,
-		NFTContractAddress: pr.NFTContractAddress,
+		TokenID:            strconv.FormatInt(tokenReq.TokenID, 10),
+		PrivilegeIDs:       tokenReq.Privileges,
+		NFTContractAddress: tokenReq.NFTContractAddress,
 		Audience:           aud,
-	})
+	}
+
+	if tokenReq.CloudEvents != nil {
+		var ces tokenclaims.CloudEvents
+		for _, ce := range tokenReq.CloudEvents.Events {
+			ces.Events = append(ces.Events, tokenclaims.Event{
+				EventType: ce.EventType,
+				Source:    ce.Source,
+				IDs:       ce.IDs,
+			})
+		}
+		privTokenDTO.CloudEvents = &ces
+	}
+
+	tk, err := t.dexService.SignPrivilegePayload(c.Context(), privTokenDTO)
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 	}
@@ -200,7 +223,7 @@ func (t *TokenExchangeController) getValidSacdDoc(ctx context.Context, source st
 // Returns:
 //   - error: An error if the document is invalid, expired, or missing requested permissions;
 //     nil if all permissions are valid and the token is successfully created and returned
-func (t *TokenExchangeController) evaluateSacdDoc(c *fiber.Ctx, record *models.PermissionRecord, pr *PermissionTokenRequest, grantee *common.Address) error {
+func (t *TokenExchangeController) evaluateSacdDoc(c *fiber.Ctx, record *models.PermissionRecord, pr *TokenRequest, grantee *common.Address) error {
 	now := time.Now()
 	if now.Before(record.Data.EffectiveAt) || now.After(record.Data.ExpiresAt) {
 		return fiber.NewError(fiber.StatusBadRequest, "Permission record is expired or not yet effective")
@@ -283,7 +306,7 @@ func intArrayTo2BitArray(indices []int64, length int) (*big.Int, error) {
 // Returns:
 //   - bool: true if the DID is valid and matches the request parameters, false otherwise
 //   - error: An error describing why validation failed, or nil if validation succeeded
-func (t *TokenExchangeController) validateAssetDID(did string, req *PermissionTokenRequest) (bool, error) {
+func (t *TokenExchangeController) validateAssetDID(did string, req *TokenRequest) (bool, error) {
 	decodedDID, err := cloudevent.DecodeNFTDID(did)
 	if err != nil {
 		return false, fmt.Errorf("failed to decode DID: %w", err)
@@ -324,7 +347,7 @@ func (t *TokenExchangeController) evaluatePermissionsBits(
 	c *fiber.Ctx,
 	s contracts.Sacd,
 	nftAddr common.Address,
-	pr *PermissionTokenRequest,
+	pr *TokenRequest,
 	ethAddr *common.Address,
 ) error {
 	// Convert pr.Privileges to 2-bit array format
