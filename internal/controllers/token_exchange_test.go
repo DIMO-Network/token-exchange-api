@@ -80,7 +80,7 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 			},
 			EffectiveAt: time.Now().Add(-5 * time.Hour),
 			ExpiresAt:   time.Now().Add(5 * time.Hour),
-			Asset:       "did:nft:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144_123",
+			Asset:       "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
 			Agreements: []models.Agreement{
 				{
 					Type:        "cloudevent",
@@ -88,6 +88,7 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 					ExpiresAt:   &expiresAt,
 					EventType:   cloudevent.TypeAttestation,
 					Source:      &source,
+					Asset:       "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
 				},
 			},
 		},
@@ -106,7 +107,7 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 		name                   string
 		tokenClaims            jwt.MapClaims
 		userEthAddr            *common.Address
-		permissionTokenRequest *PermissionTokenRequest
+		permissionTokenRequest *TokenRequest
 		mockSetup              func()
 		expectedCode           int
 	}{
@@ -117,7 +118,7 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 				"nbf":              time.Now().Unix(),
 			},
 			userEthAddr: &userEthAddr,
-			permissionTokenRequest: &PermissionTokenRequest{
+			permissionTokenRequest: &TokenRequest{
 				TokenID:            123,
 				Privileges:         []int64{4},
 				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
@@ -144,7 +145,7 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 				"nbf":              time.Now().Unix(),
 			},
 			userEthAddr: &userEthAddr,
-			permissionTokenRequest: &PermissionTokenRequest{
+			permissionTokenRequest: &TokenRequest{
 				TokenID:            123,
 				Privileges:         []int64{1, 2, 4, 5},
 				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
@@ -171,7 +172,7 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 				"nbf":              time.Now().Unix(),
 			},
 			userEthAddr: &userEthAddr,
-			permissionTokenRequest: &PermissionTokenRequest{
+			permissionTokenRequest: &TokenRequest{
 				TokenID:            123,
 				Privileges:         []int64{1, 2, 4, 5},
 				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
@@ -194,7 +195,7 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 				"nbf":              time.Now().Unix(),
 			},
 			userEthAddr: &userEthAddr,
-			permissionTokenRequest: &PermissionTokenRequest{
+			permissionTokenRequest: &TokenRequest{
 				TokenID:            123,
 				Privileges:         []int64{1, 2, 4, 5},
 				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
@@ -225,7 +226,7 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 				"nbf": time.Now().Unix(),
 			},
 			userEthAddr: &userEthAddr,
-			permissionTokenRequest: &PermissionTokenRequest{
+			permissionTokenRequest: &TokenRequest{
 				TokenID:            123,
 				Privileges:         []int64{4},
 				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
@@ -241,7 +242,7 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 				"aud":              []string{"dimo.zone"},
 			},
 			userEthAddr: &userEthAddr,
-			permissionTokenRequest: &PermissionTokenRequest{
+			permissionTokenRequest: &TokenRequest{
 				TokenID:            123,
 				Privileges:         []int64{4},
 				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
@@ -269,10 +270,10 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 				"nbf":              time.Now().Unix(),
 			},
 			userEthAddr: &userEthAddr,
-			permissionTokenRequest: &PermissionTokenRequest{
+			permissionTokenRequest: &TokenRequest{
 				TokenID: 123,
-				CloudEvents: &tokenclaims.CloudEvents{
-					Events: []tokenclaims.Event{
+				CloudEvents: &cloudEventRequest{
+					Events: []ceReq{
 						{
 							EventType: cloudevent.TypeAttestation,
 							Source:    &source,
@@ -309,10 +310,10 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 				"nbf":              time.Now().Unix(),
 			},
 			userEthAddr: &userEthAddr,
-			permissionTokenRequest: &PermissionTokenRequest{
+			permissionTokenRequest: &TokenRequest{
 				TokenID: 123,
-				CloudEvents: &tokenclaims.CloudEvents{
-					Events: []tokenclaims.Event{
+				CloudEvents: &cloudEventRequest{
+					Events: []ceReq{
 						{},
 					},
 				},
@@ -376,7 +377,7 @@ func TestTokenExchangeController_EvaluateAttestations(t *testing.T) {
 	tests := []struct {
 		name             string
 		agreement        []models.Agreement
-		request          PermissionTokenRequest
+		request          TokenRequest
 		expectedCEGrants func() map[string]map[string]*shared.StringSet
 		err              error
 	}{
@@ -389,11 +390,11 @@ func TestTokenExchangeController_EvaluateAttestations(t *testing.T) {
 					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
 				},
 			},
-			request: PermissionTokenRequest{
+			request: TokenRequest{
 				TokenID:            123,
 				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
-				CloudEvents: &tokenclaims.CloudEvents{
-					Events: []tokenclaims.Event{
+				CloudEvents: &cloudEventRequest{
+					Events: []ceReq{
 						{
 							EventType: cloudevent.TypeAttestation,
 						},
@@ -418,11 +419,11 @@ func TestTokenExchangeController_EvaluateAttestations(t *testing.T) {
 					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
 				},
 			},
-			request: PermissionTokenRequest{
+			request: TokenRequest{
 				TokenID:            123,
 				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
-				CloudEvents: &tokenclaims.CloudEvents{
-					Events: []tokenclaims.Event{
+				CloudEvents: &cloudEventRequest{
+					Events: []ceReq{
 						{
 							EventType: cloudevent.TypeAttestation,
 							IDs:       []string{"1", "2", "3"},
@@ -452,11 +453,11 @@ func TestTokenExchangeController_EvaluateAttestations(t *testing.T) {
 					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
 				},
 			},
-			request: PermissionTokenRequest{
+			request: TokenRequest{
 				TokenID:            123,
 				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
-				CloudEvents: &tokenclaims.CloudEvents{
-					Events: []tokenclaims.Event{
+				CloudEvents: &cloudEventRequest{
+					Events: []ceReq{
 						{
 							EventType: cloudevent.TypeAttestation,
 							IDs:       []string{"1", "2", "3"},
@@ -487,11 +488,11 @@ func TestTokenExchangeController_EvaluateAttestations(t *testing.T) {
 					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
 				},
 			},
-			request: PermissionTokenRequest{
+			request: TokenRequest{
 				TokenID:            123,
 				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
-				CloudEvents: &tokenclaims.CloudEvents{
-					Events: []tokenclaims.Event{
+				CloudEvents: &cloudEventRequest{
+					Events: []ceReq{
 						{
 							EventType: cloudevent.TypeAttestation,
 							Source:    &validSource1,
@@ -521,11 +522,11 @@ func TestTokenExchangeController_EvaluateAttestations(t *testing.T) {
 					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
 				},
 			},
-			request: PermissionTokenRequest{
+			request: TokenRequest{
 				TokenID:            123,
 				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
-				CloudEvents: &tokenclaims.CloudEvents{
-					Events: []tokenclaims.Event{
+				CloudEvents: &cloudEventRequest{
+					Events: []ceReq{
 						{
 							EventType: cloudevent.TypeAttestation,
 							Source:    &validSource1,
@@ -552,11 +553,11 @@ func TestTokenExchangeController_EvaluateAttestations(t *testing.T) {
 					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
 				},
 			},
-			request: PermissionTokenRequest{
+			request: TokenRequest{
 				TokenID:            123,
 				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
-				CloudEvents: &tokenclaims.CloudEvents{
-					Events: []tokenclaims.Event{
+				CloudEvents: &cloudEventRequest{
+					Events: []ceReq{
 						{
 							EventType: cloudevent.TypeAttestation,
 							Source:    &validSource1,
@@ -587,11 +588,11 @@ func TestTokenExchangeController_EvaluateAttestations(t *testing.T) {
 					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
 				},
 			},
-			request: PermissionTokenRequest{
+			request: TokenRequest{
 				TokenID:            123,
 				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
-				CloudEvents: &tokenclaims.CloudEvents{
-					Events: []tokenclaims.Event{
+				CloudEvents: &cloudEventRequest{
+					Events: []ceReq{
 						{
 							EventType: cloudevent.TypeAttestation,
 						},
@@ -617,11 +618,11 @@ func TestTokenExchangeController_EvaluateAttestations(t *testing.T) {
 					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
 				},
 			},
-			request: PermissionTokenRequest{
+			request: TokenRequest{
 				TokenID:            123,
 				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
-				CloudEvents: &tokenclaims.CloudEvents{
-					Events: []tokenclaims.Event{
+				CloudEvents: &cloudEventRequest{
+					Events: []ceReq{
 						{
 							EventType: cloudevent.TypeAttestation,
 							Source:    &invalidSource1,
@@ -654,11 +655,11 @@ func TestTokenExchangeController_EvaluateAttestations(t *testing.T) {
 					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
 				},
 			},
-			request: PermissionTokenRequest{
+			request: TokenRequest{
 				TokenID:            123,
 				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
-				CloudEvents: &tokenclaims.CloudEvents{
-					Events: []tokenclaims.Event{
+				CloudEvents: &cloudEventRequest{
+					Events: []ceReq{
 						{
 							EventType: cloudevent.TypeAttestation,
 						},
@@ -680,11 +681,11 @@ func TestTokenExchangeController_EvaluateAttestations(t *testing.T) {
 					Asset:       "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
 				},
 			},
-			request: PermissionTokenRequest{
+			request: TokenRequest{
 				TokenID:            123,
 				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
-				CloudEvents: &tokenclaims.CloudEvents{
-					Events: []tokenclaims.Event{
+				CloudEvents: &cloudEventRequest{
+					Events: []ceReq{
 						{
 							EventType: cloudevent.TypeAttestation,
 						},

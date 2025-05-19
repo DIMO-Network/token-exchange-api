@@ -37,7 +37,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_controllers.PermissionTokenRequest"
+                            "$ref": "#/definitions/internal_controllers.TokenRequest"
                         }
                     }
                 ],
@@ -45,7 +45,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/internal_controllers.PermissionTokenResponse"
+                            "$ref": "#/definitions/internal_controllers.TokenRequest"
                         }
                     }
                 }
@@ -53,35 +53,7 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "github_com_DIMO-Network_token-exchange-api_pkg_tokenclaims.CloudEvents": {
-            "type": "object",
-            "properties": {
-                "events": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/github_com_DIMO-Network_token-exchange-api_pkg_tokenclaims.Event"
-                    }
-                }
-            }
-        },
-        "github_com_DIMO-Network_token-exchange-api_pkg_tokenclaims.Event": {
-            "type": "object",
-            "properties": {
-                "eventType": {
-                    "type": "string"
-                },
-                "ids": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "source": {
-                    "type": "string"
-                }
-            }
-        },
-        "internal_controllers.PermissionTokenRequest": {
+        "internal_controllers.TokenRequest": {
             "type": "object",
             "required": [
                 "nftContractAddress",
@@ -100,7 +72,7 @@ const docTemplate = `{
                     "description": "CloudEvent request, includes attestations",
                     "allOf": [
                         {
-                            "$ref": "#/definitions/github_com_DIMO-Network_token-exchange-api_pkg_tokenclaims.CloudEvents"
+                            "$ref": "#/definitions/internal_controllers.cloudEventRequest"
                         }
                     ]
                 },
@@ -129,11 +101,31 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_controllers.PermissionTokenResponse": {
+        "internal_controllers.ceReq": {
             "type": "object",
             "properties": {
-                "token": {
+                "eventType": {
                     "type": "string"
+                },
+                "ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "source": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_controllers.cloudEventRequest": {
+            "type": "object",
+            "properties": {
+                "events": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/internal_controllers.ceReq"
+                    }
                 }
             }
         }
