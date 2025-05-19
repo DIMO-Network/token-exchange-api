@@ -25,6 +25,8 @@ type IPFSService interface {
 	Fetch(ctx context.Context, cid string) ([]byte, error)
 }
 
+const permissionAgreementType = "permission"
+
 var defaultAudience = []string{"dimo.zone"}
 
 // privilege prefix to denote the 1:1 mapping to bit values and to make them easier to deprecate if desired in the future
@@ -138,6 +140,7 @@ func (t *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.C
 	if err != nil {
 		t.logger.Warn().Err(err).Msg("Failed to get valid SACD document")
 		// If the user doesn't have a valid IPFS doc, check bitstring
+		// We call the contract again because this handles the case where the caller is the owner of the asset.
 		return t.evaluatePermissionsBits(c, s, nftAddr, tokenReq, ethAddr)
 	}
 
@@ -237,7 +240,7 @@ func (t *TokenExchangeController) evaluateSacdDoc(c *fiber.Ctx, record *models.P
 	userPermissions := make(map[string]bool)
 	for _, agreement := range record.Data.Agreements {
 		// Skip non permission types
-		if agreement.Type != "permissions" {
+		if agreement.Type != permissionAgreementType {
 			continue
 		}
 
