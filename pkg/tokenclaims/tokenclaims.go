@@ -46,24 +46,25 @@ func (c *CustomClaims) Proto() (*structpb.Struct, error) {
 	}
 
 	ces := make((map[string]map[string][]any))
-	for _, evt := range c.CloudEvents.Events {
-		if _, ok := ces[evt.EventType]; !ok {
-			ces[evt.EventType] = map[string][]any{}
-		}
+	if c.CloudEvents != nil {
+		for _, evt := range c.CloudEvents.Events {
+			if _, ok := ces[evt.EventType]; !ok {
+				ces[evt.EventType] = map[string][]any{}
+			}
 
-		source := evt.Source
-		if source == nil {
-			source = &GlobalAttestationPermission
-		}
+			source := evt.Source
+			if source == nil {
+				source = &GlobalAttestationPermission
+			}
 
-		if _, ok := ces[evt.EventType][*source]; !ok {
-			ces[evt.EventType][*source] = []any{}
-		}
+			if _, ok := ces[evt.EventType][*source]; !ok {
+				ces[evt.EventType][*source] = []any{}
+			}
 
-		for _, id := range evt.IDs {
-			ces[evt.EventType][*source] = append(ces[evt.EventType][*source], id)
+			for _, id := range evt.IDs {
+				ces[evt.EventType][*source] = append(ces[evt.EventType][*source], id)
+			}
 		}
-
 	}
 
 	return structpb.NewStruct(
