@@ -126,10 +126,10 @@ func (t *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.C
 
 	record, err := t.getValidSacdDoc(c.Context(), resPermRecord.Source)
 	if err != nil {
-		t.logger.Warn().Err(err).Msg("Failed to get valid SACD document")
 		if tokenReq.CloudEvents != nil {
 			return fiber.NewError(fiber.StatusBadRequest, "failed to get valid sacd document, cannot evaluate claims")
 		}
+		t.logger.Warn().Err(err).Msg("Failed to get valid SACD document")
 		// If the user doesn't have a valid IPFS doc, check bitstring
 		return t.evaluatePermissionsBits(c, s, nftAddr, tokenReq, ethAddr)
 	}
@@ -214,105 +214,26 @@ func (t *TokenExchangeController) evaluateSacdDoc(c *fiber.Ctx, record *models.P
 		return fiber.NewError(fiber.StatusBadRequest, "Grantee address in permission record doesn't match requester")
 	}
 
-	userPermGrants, cloudEvtGrants := t.userGrantMap(record)
-	for _, agg := range record.Data.Agreements {
-		switch agg.Type {
-		case "cloudevent":
-			if agg.EffectiveAt != nil && !agg.EffectiveAt.IsZero() {
-				if time.Now().Before(*agg.EffectiveAt) {
-					logger.Info().Msgf("agreement not yet in effect: %s", agg.EffectiveAt.String())
-					return fiber.NewError(fiber.StatusBadRequest, "failed to validate request")
-				}
-			}
-
-			if agg.ExpiresAt != nil && !agg.ExpiresAt.IsZero() {
-				if agg.ExpiresAt.Before(time.Now()) {
-					logger.Info().Msgf("agreement expired: %s", agg.ExpiresAt.String())
-					return fiber.NewError(fiber.StatusBadRequest, "failed to validate request")
-				}
-			}
-
-			if valid, err := t.validateAssetDID(record.Data.Asset, tokenReq); err != nil || !valid {
-				logger.Err(err).Msgf("failed to validate attestation asset: %s", record.Data.Asset)
-				return fiber.NewError(fiber.StatusBadRequest, "failed to validate request")
-			}
-
-			if err := t.evaluateCloudEvents(cloudEvtGrants, tokenReq); err != nil {
-				logger.Err(err).Msg("failed to validate request")
-				return fiber.NewError(fiber.StatusBadRequest, "failed to validate request")
-			}
-
-		case "permissions":
-			// Validate the asset DID if it exists in the record
-			valid, err := t.validateAssetDID(agg.Asset, tokenReq)
-			if err != nil || !valid {
-				logger.Err(err).Msgf("failed to validate asset did %s in permission agreement", agg.Asset)
-				return fiber.NewError(fiber.StatusBadRequest, "failed to validate request")
-			}
-
-			if err := t.evaluatePermissions(userPermGrants, tokenReq); err != nil {
-				logger.Err(err).Msg("failed to evaluate permissions agreement")
-				return fiber.NewError(fiber.StatusBadRequest, "failed to validate request")
-			}
-		}
+	userPermGrants, cloudEvtGrants, err := userGrantMap(record, tokenReq.NFTContractAddress, tokenReq.TokenID)
+	if err != nil {
+		logger.Err(err).Msg("failed to generate user grant map")
+		return fiber.NewError(fiber.StatusBadRequest, "failed to validate request")
 	}
 
+	if err := evaluateCloudEvents(cloudEvtGrants, tokenReq); err != nil {
+		logger.Err(err).Msg("failed to validate request")
+		return fiber.NewError(fiber.StatusBadRequest, "failed to validate request")
+	}
+
+	if err := evaluatePermissions(userPermGrants, tokenReq); err != nil {
+		logger.Err(err).Msg("failed to evaluate permissions agreement")
+		return fiber.NewError(fiber.StatusBadRequest, err.Error())
+	}
 	// If we get here, all permission and attestation claims are valid
 	return t.createAndReturnToken(c, tokenReq, grantee)
 }
 
-func (t *TokenExchangeController) userGrantMap(record *models.PermissionRecord) (map[string]bool, map[string]map[string]*shared.StringSet) {
-	userPermGrants := make(map[string]bool)
-	cloudEvtGrants := make(map[string]map[string]*shared.StringSet)
-
-	// Aggregates all the permission and attestation grants the user has.
-	for _, agreement := range record.Data.Agreements {
-		// NOTE: these could lead to "failing" silently (not grabbing the grants)
-		// should this be more explicit?
-		if agreement.EffectiveAt != nil {
-			if agreement.EffectiveAt.After(time.Now()) {
-				continue
-			}
-		}
-
-		if agreement.ExpiresAt != nil {
-			if agreement.ExpiresAt.Before(time.Now()) {
-				continue
-			}
-		}
-
-		switch agreement.Type {
-		case "cloudevent":
-			if _, ok := cloudEvtGrants[agreement.EventType]; !ok {
-				cloudEvtGrants[agreement.EventType] = map[string]*shared.StringSet{}
-			}
-
-			source := agreement.Source
-			if agreement.Source == nil {
-				source = &tokenclaims.GlobalAttestationPermission
-			}
-
-			if _, ok := cloudEvtGrants[agreement.EventType][*source]; !ok {
-				cloudEvtGrants[agreement.EventType][*source] = shared.NewStringSet()
-			}
-
-			for _, id := range agreement.ID {
-				cloudEvtGrants[agreement.EventType][*source].Add(id)
-			}
-
-		case "permissions":
-			// Add permissions from this agreement
-			for _, permission := range agreement.Permissions {
-				userPermGrants[permission.Name] = true
-			}
-		}
-	}
-
-	return userPermGrants, cloudEvtGrants
-
-}
-
-func (t *TokenExchangeController) evaluatePermissions(userPermissions map[string]bool, tokenReq *PermissionTokenRequest) error {
+func evaluatePermissions(userPermissions map[string]bool, tokenReq *PermissionTokenRequest) error {
 	// Check if all requested privileges are present in the permissions
 	var missingPermissions []int64
 
@@ -339,7 +260,7 @@ func (t *TokenExchangeController) evaluatePermissions(userPermissions map[string
 	return nil
 }
 
-func (t *TokenExchangeController) evaluateCloudEvents(agreement map[string]map[string]*shared.StringSet, tokenReq *PermissionTokenRequest) error {
+func evaluateCloudEvents(agreement map[string]map[string]*shared.StringSet, tokenReq *PermissionTokenRequest) error {
 	var err error
 	for _, req := range tokenReq.CloudEvents.Events {
 		grantedAggs, ok := agreement[req.EventType]
@@ -353,7 +274,8 @@ func (t *TokenExchangeController) evaluateCloudEvents(agreement map[string]map[s
 			source = &tokenclaims.GlobalAttestationPermission
 		}
 
-		if _, ok := grantedAggs[*source]; !ok {
+		idSet, ok := grantedAggs[*source]
+		if !ok {
 			err = errors.Join(err, fmt.Errorf("lacking %s grant for requested source: %s", req.EventType, *source))
 			continue
 		}
@@ -361,7 +283,7 @@ func (t *TokenExchangeController) evaluateCloudEvents(agreement map[string]map[s
 		// NOTE: do we want to explicitly enforce that
 		// someone has to ask for the exact ids they've been granted?
 		// this is assuming we do not
-		if len(grantedAggs[*source].Slice()) == 0 {
+		if idSet.Len() == 0 {
 			continue
 		}
 
@@ -370,7 +292,7 @@ func (t *TokenExchangeController) evaluateCloudEvents(agreement map[string]map[s
 		}
 
 		for _, reqID := range req.IDs {
-			if !grantedAggs[*source].Contains(reqID) {
+			if !idSet.Contains(reqID) {
 				err = errors.Join(err, fmt.Errorf("lacking grant from %s for %s cloudevent id: %s", *source, req.EventType, reqID))
 			}
 		}

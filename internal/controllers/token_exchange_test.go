@@ -348,18 +348,7 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 	}
 }
 
-//	name: "valid sacd-- agreement effective dates subset of parent",
-//
-// name: "valid sacd-- agreement dates valid, parent invalid",
 func TestTokenExchangeController_EvaluateAttestations(t *testing.T) {
-	logger := zerolog.New(os.Stdout).With().
-		Timestamp().
-		Str("app", "token-exchange-api").
-		Logger()
-
-	c, err := NewTokenExchangeController(&logger, &config.Settings{}, nil, nil, nil, &ethclient.Client{})
-	require.NoError(t, err, "Failed to initialize token exchange controller")
-
 	userEthAddr := common.HexToAddress("0x20Ca3bE69a8B95D3093383375F0473A8c6341727")
 	oneMinAgo := time.Now().Add(-1 * time.Minute)
 	oneMinFuture := time.Now().Add(1 * time.Minute)
@@ -380,7 +369,7 @@ func TestTokenExchangeController_EvaluateAttestations(t *testing.T) {
 			},
 			EffectiveAt: oneMinAgo,
 			ExpiresAt:   oneMinFuture,
-			Asset:       "did:nft:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144_123",
+			Asset:       "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
 		},
 	}
 
@@ -397,6 +386,7 @@ func TestTokenExchangeController_EvaluateAttestations(t *testing.T) {
 				{
 					Type:      "cloudevent",
 					EventType: "dimo.attestation",
+					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
 				},
 			},
 			request: PermissionTokenRequest{
@@ -425,6 +415,7 @@ func TestTokenExchangeController_EvaluateAttestations(t *testing.T) {
 					Type:      "cloudevent",
 					EventType: "dimo.attestation",
 					ID:        []string{"1", "2", "3"},
+					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
 				},
 			},
 			request: PermissionTokenRequest{
@@ -458,6 +449,7 @@ func TestTokenExchangeController_EvaluateAttestations(t *testing.T) {
 					Type:      "cloudevent",
 					EventType: "dimo.attestation",
 					ID:        []string{"1", "2"},
+					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
 				},
 			},
 			request: PermissionTokenRequest{
@@ -492,6 +484,7 @@ func TestTokenExchangeController_EvaluateAttestations(t *testing.T) {
 					EventType: "dimo.attestation",
 					Source:    &validSource1,
 					ID:        []string{"1", "2"},
+					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
 				},
 			},
 			request: PermissionTokenRequest{
@@ -525,6 +518,7 @@ func TestTokenExchangeController_EvaluateAttestations(t *testing.T) {
 					Type:      "cloudevent",
 					EventType: cloudevent.TypeAttestation,
 					Source:    &validSource1,
+					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
 				},
 			},
 			request: PermissionTokenRequest{
@@ -555,6 +549,7 @@ func TestTokenExchangeController_EvaluateAttestations(t *testing.T) {
 					EventType: cloudevent.TypeAttestation,
 					Source:    &validSource1,
 					ID:        []string{"1", "2", "3"},
+					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
 				},
 			},
 			request: PermissionTokenRequest{
@@ -589,6 +584,7 @@ func TestTokenExchangeController_EvaluateAttestations(t *testing.T) {
 					Type:      "cloudevent",
 					EventType: cloudevent.TypeAttestation,
 					Source:    &validSource1,
+					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
 				},
 			},
 			request: PermissionTokenRequest{
@@ -618,6 +614,7 @@ func TestTokenExchangeController_EvaluateAttestations(t *testing.T) {
 					Type:      "cloudevent",
 					EventType: cloudevent.TypeAttestation,
 					Source:    &validSource1,
+					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
 				},
 			},
 			request: PermissionTokenRequest{
@@ -654,6 +651,7 @@ func TestTokenExchangeController_EvaluateAttestations(t *testing.T) {
 					ExpiresAt: &thirtySecAgo,
 					Type:      "cloudevent",
 					EventType: "dimo.attestation",
+					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
 				},
 			},
 			request: PermissionTokenRequest{
@@ -679,6 +677,7 @@ func TestTokenExchangeController_EvaluateAttestations(t *testing.T) {
 					EffectiveAt: &tenMinFuture,
 					Type:        "cloudevent",
 					EventType:   "dimo.attestation",
+					Asset:       "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
 				},
 			},
 			request: PermissionTokenRequest{
@@ -702,7 +701,8 @@ func TestTokenExchangeController_EvaluateAttestations(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			ipfsRecord.Data.Agreements = tc.agreement
 			expectedCEGrants := tc.expectedCEGrants()
-			_, ceGrants := c.userGrantMap(&ipfsRecord)
+			_, ceGrants, err := userGrantMap(&ipfsRecord, tc.request.NFTContractAddress, tc.request.TokenID)
+			require.Nil(t, err)
 			for eventType, evtMap := range expectedCEGrants {
 				_, ok := ceGrants[eventType]
 				require.True(t, ok)
@@ -714,7 +714,7 @@ func TestTokenExchangeController_EvaluateAttestations(t *testing.T) {
 				}
 			}
 
-			err = c.evaluateCloudEvents(ceGrants, &tc.request)
+			err = evaluateCloudEvents(ceGrants, &tc.request)
 			if tc.err != nil {
 				require.NotNil(t, err)
 				require.Equal(t, err.Error(), tc.err.Error())
