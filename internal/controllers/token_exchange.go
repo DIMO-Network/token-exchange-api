@@ -97,9 +97,9 @@ func NewTokenExchangeController(logger *zerolog.Logger, settings *config.Setting
 // @Summary     The authenticated user must have a confirmed Ethereum address with those
 // @Summary     privileges on the correct token.
 // @Accept      json
-// @Param       tokenRequest body controllers.PermissionTokenRequest true "Requested privileges: must include address, token id, and privilege ids"
+// @Param       tokenRequest body controllers.TokenRequest true "Requested privileges: must include address, token id, and privilege ids"
 // @Produce     json
-// @Success     200 {object} controllers.PermissionTokenResponse
+// @Success     200 {object} controllers.TokenRequest
 // @Security    BearerAuth
 // @Router      /tokens/exchange [post]
 func (t *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.Ctx) error {
