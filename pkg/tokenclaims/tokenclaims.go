@@ -26,7 +26,7 @@ type CloudEvents struct {
 }
 
 type Event struct {
-	EventType string   `json:"eventType"`
+	EventType string   `json:"event_type"`
 	Source    *string  `json:"source"`
 	IDs       []string `json:"ids"`
 }
