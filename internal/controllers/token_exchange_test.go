@@ -355,23 +355,25 @@ func TestDevLicenseMiddleware(t *testing.T) {
 func Test_ProtobufSerializer(t *testing.T) {
 	privs := []privileges.Privilege{1, 2, 3, 4}
 
-	source := "0x123"
 	ce := tokenclaims.CloudEvents{
 		Events: []tokenclaims.Event{
 			{
 				EventType: cloudevent.TypeAttestation,
-				Source:    &source,
+				Source:    "0x123",
 				IDs:       []string{"attestation-1"},
 			},
 			{
 				EventType: cloudevent.TypeAttestation,
+				Source:    "*",
 			},
 			{
 				EventType: cloudevent.TypeAttestation,
 				IDs:       []string{"attestation-7"},
+				Source:    "*",
 			},
 			{
 				EventType: cloudevent.TypeFingerprint,
+				Source:    "*",
 			},
 		},
 	}

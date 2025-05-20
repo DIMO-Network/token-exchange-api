@@ -71,7 +71,7 @@ type cloudEventRequest struct {
 
 type ceReq struct {
 	EventType string   `json:"eventType"`
-	Source    *string  `json:"source"`
+	Source    string   `json:"source"`
 	IDs       []string `json:"ids"`
 }
 
