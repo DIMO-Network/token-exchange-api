@@ -11,7 +11,7 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
-var GlobalAttestationPermission = "GLOBAL_ATTESTATION_PERMISSION"
+const GlobalAttestationPermission = "GLOBAL_ATTESTATION_PERMISSION"
 
 // CustomClaims is the custom claims for token-exchange related information.
 type CustomClaims struct {

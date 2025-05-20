@@ -26,7 +26,7 @@ type PermissionData struct {
 type Agreement struct {
 	Type        string       `json:"type"`
 	EventType   string       `json:"eventType"`
-	ID          []string     `json:"id"`
+	IDs         []string     `json:"ids"`
 	EffectiveAt *time.Time   `json:"effectiveAt"`
 	ExpiresAt   *time.Time   `json:"expiresAt"`
 	Source      *string      `json:"source"`
