@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"math/big"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/DIMO-Network/shared"
@@ -288,7 +287,7 @@ func evaluatePermissions(userPermissions map[string]bool, tokenReq *TokenRequest
 func evaluateCloudEvents(agreement map[string]map[string]*shared.StringSet, tokenReq *TokenRequest) error {
 	var err error
 	for _, req := range tokenReq.CloudEvents.Events {
-		if !common.IsHexAddress(req.Source) && req.Source != "*" {
+		if !common.IsHexAddress(req.Source) && req.Source != tokenclaims.CloudEventTypeGlobal {
 			err = errors.Join(err, fmt.Errorf("requested source %s invalid: must be %s or valid hex address", req.Source, tokenclaims.CloudEventTypeGlobal))
 			continue
 		}
@@ -303,7 +302,9 @@ func evaluateCloudEvents(agreement map[string]map[string]*shared.StringSet, toke
 			continue
 		}
 
+		// CloudEvent Grant Source: *
 		if globalAggs, grantedAll := grantedAggs[tokenclaims.CloudEventTypeGlobal]; grantedAll {
+			// CloudEvent Grant IDs contain: *
 			if globalAggs.Contains(tokenclaims.CloudEventTypeGlobal) {
 				continue
 			}
@@ -316,16 +317,21 @@ func evaluateCloudEvents(agreement map[string]map[string]*shared.StringSet, toke
 			continue
 		}
 
-		source := strings.ToLower(req.Source)
-		idSet, ok := grantedAggs[source]
+		idSet, ok := grantedAggs[req.Source]
 		if !ok {
-			err = errors.Join(err, fmt.Errorf("lacking %s grant for requested source: %s", req.EventType, source))
+			err = errors.Join(err, fmt.Errorf("lacking %s grant for requested source: %s", req.EventType, req.Source))
+			continue
+		}
+
+		// CloudEvent Grant Source: hex address
+		// Cloud Event Grant IDs contain: *
+		if idSet.Contains(tokenclaims.CloudEventTypeGlobal) {
 			continue
 		}
 
 		for _, reqID := range req.IDs {
 			if !idSet.Contains(reqID) {
-				err = errors.Join(err, fmt.Errorf("lacking grant from %s for %s cloudevent id: %s", source, req.EventType, reqID))
+				err = errors.Join(err, fmt.Errorf("lacking grant from %s for %s cloudevent id: %s", req.Source, req.EventType, reqID))
 			}
 		}
 	}

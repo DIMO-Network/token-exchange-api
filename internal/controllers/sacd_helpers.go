@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"errors"
 	"fmt"
 	"math/big"
 	"strings"
@@ -32,14 +31,6 @@ func userGrantMap(record *models.PermissionRecord, nftAddr string, tokenID int64
 		case "cloudevent":
 			if err := validAssetDID(agreement.Asset, nftAddr, tokenID); err != nil {
 				return nil, nil, fmt.Errorf("failed to validate attestation asset: %s", agreement.Asset)
-			}
-
-			if agreement.EffectiveAt != nil && !agreement.EffectiveAt.IsZero() && now.Before(*agreement.EffectiveAt) {
-				continue // agreement not yet in effective
-			}
-
-			if agreement.ExpiresAt != nil && !agreement.ExpiresAt.IsZero() && agreement.ExpiresAt.Before(now) {
-				return nil, nil, errors.New("agreement expired")
 			}
 
 			if _, ok := cloudEvtGrants[agreement.EventType]; !ok {

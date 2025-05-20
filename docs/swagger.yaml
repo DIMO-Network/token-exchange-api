@@ -1,5 +1,23 @@
 basePath: /v1
 definitions:
+  internal_controllers.CloudEventFilter:
+    properties:
+      eventType:
+        type: string
+      ids:
+        items:
+          type: string
+        type: array
+      source:
+        type: string
+    type: object
+  internal_controllers.CloudEvents:
+    properties:
+      events:
+        items:
+          $ref: '#/definitions/internal_controllers.CloudEventFilter'
+        type: array
+    type: object
   internal_controllers.PermissionTokenResponse:
     properties:
       token:
@@ -14,7 +32,7 @@ definitions:
         type: array
       cloudEvents:
         allOf:
-        - $ref: '#/definitions/internal_controllers.cloudEventRequest'
+        - $ref: '#/definitions/internal_controllers.CloudEvents'
         description: CloudEvent request, includes attestations
       nftContractAddress:
         description: |-
@@ -42,24 +60,6 @@ definitions:
     - nftContractAddress
     - privileges
     - tokenId
-    type: object
-  internal_controllers.ceReq:
-    properties:
-      eventType:
-        type: string
-      ids:
-        items:
-          type: string
-        type: array
-      source:
-        type: string
-    type: object
-  internal_controllers.cloudEventRequest:
-    properties:
-      events:
-        items:
-          $ref: '#/definitions/internal_controllers.ceReq'
-        type: array
     type: object
 info:
   contact: {}
