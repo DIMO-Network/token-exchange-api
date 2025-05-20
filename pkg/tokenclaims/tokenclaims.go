@@ -11,8 +11,6 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
-const CloudEventTypeGlobal = "*"
-
 // CustomClaims is the custom claims for token-exchange related information.
 type CustomClaims struct {
 	ContractAddress common.Address         `json:"contract_address"`
