@@ -220,13 +220,13 @@ func (t *TokenExchangeController) getValidSacdDoc(ctx context.Context, source st
 // Parameters:
 //   - c: The Fiber context for the HTTP request
 //   - record: The SACD permission record containing the granted permissions and validity period
-//   - pr: The permission token request containing the requested privileges and token information
+//   - tokenReq: The permission token request containing the requested privileges and token information
 //   - grantee: The Ethereum address of the user requesting permissions
 //
 // Returns:
 //   - error: An error if the document is invalid, expired, or missing requested permissions;
 //     nil if all permissions are valid and the token is successfully created and returned
-func (t *TokenExchangeController) evaluateSacdDoc(c *fiber.Ctx, record *models.PermissionRecord, pr *TokenRequest, grantee *common.Address) error {
+func (t *TokenExchangeController) evaluateSacdDoc(c *fiber.Ctx, record *models.PermissionRecord, tokenReq *TokenRequest, grantee *common.Address) error {
 	now := time.Now()
 	if now.Before(record.Data.EffectiveAt) || now.After(record.Data.ExpiresAt) {
 		return fiber.NewError(fiber.StatusBadRequest, "Permission record is expired or not yet effective")
@@ -245,7 +245,7 @@ func (t *TokenExchangeController) evaluateSacdDoc(c *fiber.Ctx, record *models.P
 		}
 
 		// Validate the asset DID if it exists in the record
-		valid, err := t.validateAssetDID(agreement.Asset, pr)
+		valid, err := t.validateAssetDID(agreement.Asset, tokenReq)
 		if err != nil || !valid {
 			continue
 		}
@@ -259,7 +259,7 @@ func (t *TokenExchangeController) evaluateSacdDoc(c *fiber.Ctx, record *models.P
 	// Check if all requested privileges are present in the permissions
 	var missingPermissions []int64
 
-	for _, privID := range pr.Privileges {
+	for _, privID := range tokenReq.Privileges {
 		// Look up the permission name for this privilege ID
 		permName, exists := PermissionMap[int(privID)]
 		if !exists {
@@ -278,11 +278,11 @@ func (t *TokenExchangeController) evaluateSacdDoc(c *fiber.Ctx, record *models.P
 	if len(missingPermissions) > 0 {
 		return fiber.NewError(fiber.StatusBadRequest,
 			fmt.Sprintf("Address %s lacks permissions %v on token id %d for asset %s.",
-				grantee.Hex(), missingPermissions, pr.TokenID, pr.NFTContractAddress))
+				grantee.Hex(), missingPermissions, tokenReq.TokenID, tokenReq.NFTContractAddress))
 	}
 
 	// If we get here, all permissions are valid
-	return t.createAndReturnToken(c, pr, grantee)
+	return t.createAndReturnToken(c, tokenReq, grantee)
 }
 
 func intArrayTo2BitArray(indices []int64, length int) (*big.Int, error) {
@@ -340,7 +340,7 @@ func (t *TokenExchangeController) validateAssetDID(did string, req *TokenRequest
 //   - c: The Fiber context for the HTTP request
 //   - s: The SACD contract instance used to check permissions
 //   - nftAddr: The Ethereum address of the NFT contract
-//   - pr: The permission token request containing token ID and requested privileges
+//   - tokenReq: The permission token request containing token ID and requested privileges
 //   - ethAddr: The Ethereum address of the user requesting permissions
 //
 // Returns:
@@ -350,16 +350,16 @@ func (t *TokenExchangeController) evaluatePermissionsBits(
 	c *fiber.Ctx,
 	s contracts.Sacd,
 	nftAddr common.Address,
-	pr *TokenRequest,
+	tokenReq *TokenRequest,
 	ethAddr *common.Address,
 ) error {
 	// Convert pr.Privileges to 2-bit array format
-	mask, err := intArrayTo2BitArray(pr.Privileges, 128) // Assuming max privilege is 128
+	mask, err := intArrayTo2BitArray(tokenReq.Privileges, 128) // Assuming max privilege is 128
 	if err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, err.Error())
 	}
 
-	ret, err := s.GetPermissions(nil, nftAddr, big.NewInt(pr.TokenID), *ethAddr, mask)
+	ret, err := s.GetPermissions(nil, nftAddr, big.NewInt(tokenReq.TokenID), *ethAddr, mask)
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 	}
@@ -367,7 +367,7 @@ func (t *TokenExchangeController) evaluatePermissionsBits(
 	// Collecting these because in the future we'd like to list all of them.
 	var lack []int64
 
-	for _, p := range pr.Privileges {
+	for _, p := range tokenReq.Privileges {
 		if ret.Bit(2*int(p)) != 1 || ret.Bit(2*int(p)+1) != 1 {
 			lack = append(lack, p)
 		}
@@ -381,19 +381,19 @@ func (t *TokenExchangeController) evaluatePermissionsBits(
 			return fiber.NewError(fiber.StatusInternalServerError, "Could not connect to blockchain node")
 		}
 
-		for _, p := range pr.Privileges {
-			hasPriv, err := m.HasPrivilege(nil, big.NewInt(pr.TokenID), big.NewInt(p), *ethAddr)
+		for _, p := range tokenReq.Privileges {
+			hasPriv, err := m.HasPrivilege(nil, big.NewInt(tokenReq.TokenID), big.NewInt(p), *ethAddr)
 			if err != nil {
 				return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 			}
 
 			if !hasPriv {
-				return fiber.NewError(fiber.StatusBadRequest, fmt.Sprintf("Address %s lacks permission %d on token id %d for asset %s.", ethAddr.Hex(), p, pr.TokenID, nftAddr))
+				return fiber.NewError(fiber.StatusBadRequest, fmt.Sprintf("Address %s lacks permission %d on token id %d for asset %s.", ethAddr.Hex(), p, tokenReq.TokenID, nftAddr))
 			}
 		}
 
-		t.logger.Warn().Msgf("Still using privileges %v for %s_%d", pr.Privileges, nftAddr.Hex(), pr.TokenID)
+		t.logger.Warn().Msgf("Still using privileges %v for %s_%d", tokenReq.Privileges, nftAddr.Hex(), tokenReq.TokenID)
 	}
 
-	return t.createAndReturnToken(c, pr, ethAddr)
+	return t.createAndReturnToken(c, tokenReq, ethAddr)
 }
