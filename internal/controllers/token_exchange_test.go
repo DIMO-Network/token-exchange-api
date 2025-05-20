@@ -15,6 +15,7 @@ import (
 
 	"github.com/DIMO-Network/cloudevent"
 	"github.com/DIMO-Network/shared"
+	"github.com/DIMO-Network/shared/privileges"
 	"github.com/DIMO-Network/token-exchange-api/internal/config"
 	mock_contracts "github.com/DIMO-Network/token-exchange-api/internal/contracts/mocks"
 	"github.com/DIMO-Network/token-exchange-api/internal/contracts/sacd"
@@ -821,6 +822,51 @@ func TestDevLicenseMiddleware(t *testing.T) {
 
 		})
 	}
+}
+
+func Test_ProtobufSerializer(t *testing.T) {
+	privs := []privileges.Privilege{1, 2, 3, 4}
+
+	source := "0x123"
+	ce := tokenclaims.CloudEvents{
+		Events: []tokenclaims.Event{
+			{
+				EventType: cloudevent.TypeAttestation,
+				Source:    &source,
+				IDs:       []string{"attestation-1"},
+			},
+			{
+				EventType: cloudevent.TypeAttestation,
+			},
+			{
+				EventType: cloudevent.TypeAttestation,
+				IDs:       []string{"attestation-7"},
+			},
+			{
+				EventType: cloudevent.TypeFingerprint,
+			},
+		},
+	}
+	cc := tokenclaims.CustomClaims{
+		ContractAddress: common.BigToAddress(big.NewInt(2)),
+		TokenID:         "1",
+		PrivilegeIDs:    privs,
+		CloudEvents:     &ce,
+	}
+
+	val, err := cc.Proto()
+	require.NoError(t, err)
+
+	value := val.AsMap()
+
+	privCheck, ok := value["privilege_ids"].([]any)
+	require.True(t, ok, "expected privilege_ids to be included in output")
+	require.Equal(t, len(privCheck), len(privs))
+
+	ceCheck, ok := value["cloud_events"].([]any)
+	require.True(t, ok, "expected cloud_events to be included in output")
+	require.Equal(t, len(ceCheck), len(ce.Events))
+
 }
 
 func buildRequest(method, url, body string) *http.Request {

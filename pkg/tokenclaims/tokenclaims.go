@@ -40,30 +40,33 @@ type Token struct {
 // Proto converts the CustomClaims to a protobuf struct.
 func (c *CustomClaims) Proto() (*structpb.Struct, error) {
 	ap := make([]any, len(c.PrivilegeIDs))
-
 	for i := range c.PrivilegeIDs {
 		ap[i] = int64(c.PrivilegeIDs[i])
 	}
 
-	ces := make((map[string]map[string][]any))
+	ces := []any{}
 	if c.CloudEvents != nil {
 		for _, evt := range c.CloudEvents.Events {
-			if _, ok := ces[evt.EventType]; !ok {
-				ces[evt.EventType] = map[string][]any{}
-			}
-
 			source := GlobalAttestationPermission
 			if evt.Source != nil {
 				source = *evt.Source
 			}
 
-			if _, ok := ces[evt.EventType][source]; !ok {
-				ces[evt.EventType][source] = []any{}
+			ids := []any{}
+			for _, id := range evt.IDs {
+				ids = append(ids, id)
 			}
 
-			for _, id := range evt.IDs {
-				ces[evt.EventType][source] = append(ces[evt.EventType][source], id)
+			e, err := structpb.NewStruct(map[string]any{
+				"event_type": evt.EventType,
+				"source":     source,
+				"ids":        ids,
+			})
+			if err != nil {
+				return nil, fmt.Errorf("failed to create pb struct from cloudevent: %w", err)
 			}
+
+			ces = append(ces, e.AsMap())
 		}
 	}
 
