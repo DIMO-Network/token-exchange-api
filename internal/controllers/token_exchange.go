@@ -293,14 +293,14 @@ func evaluateCloudEvents(agreement map[string]map[string]*shared.StringSet, toke
 			continue
 		}
 
-		source := req.Source
-		if source == nil {
-			source = &tokenclaims.GlobalAttestationPermission
+		source := tokenclaims.GlobalAttestationPermission
+		if req.Source != nil {
+			source = *req.Source
 		}
 
-		idSet, ok := grantedAggs[*source]
+		idSet, ok := grantedAggs[source]
 		if !ok {
-			err = errors.Join(err, fmt.Errorf("lacking %s grant for requested source: %s", req.EventType, *source))
+			err = errors.Join(err, fmt.Errorf("lacking %s grant for requested source: %s", req.EventType, source))
 			continue
 		}
 
@@ -312,12 +312,12 @@ func evaluateCloudEvents(agreement map[string]map[string]*shared.StringSet, toke
 		}
 
 		if len(req.IDs) == 0 {
-			err = errors.Join(err, fmt.Errorf("requesting global access to %s cloudevents for %s but only granted subset", *source, req.EventType))
+			err = errors.Join(err, fmt.Errorf("requesting global access to %s cloudevents for %s but only granted subset", source, req.EventType))
 		}
 
 		for _, reqID := range req.IDs {
 			if !idSet.Contains(reqID) {
-				err = errors.Join(err, fmt.Errorf("lacking grant from %s for %s cloudevent id: %s", *source, req.EventType, reqID))
+				err = errors.Join(err, fmt.Errorf("lacking grant from %s for %s cloudevent id: %s", source, req.EventType, reqID))
 			}
 		}
 	}

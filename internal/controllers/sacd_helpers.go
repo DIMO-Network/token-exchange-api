@@ -55,17 +55,17 @@ func userGrantMap(record *models.PermissionRecord, nftAddr string, tokenID int64
 				cloudEvtGrants[agreement.EventType] = map[string]*shared.StringSet{}
 			}
 
-			source := agreement.Source
-			if agreement.Source == nil {
-				source = &tokenclaims.GlobalAttestationPermission
+			source := tokenclaims.GlobalAttestationPermission
+			if agreement.Source != nil {
+				source = *agreement.Source
 			}
 
-			if _, ok := cloudEvtGrants[agreement.EventType][*source]; !ok {
-				cloudEvtGrants[agreement.EventType][*source] = shared.NewStringSet()
+			if _, ok := cloudEvtGrants[agreement.EventType][source]; !ok {
+				cloudEvtGrants[agreement.EventType][source] = shared.NewStringSet()
 			}
 
 			for _, id := range agreement.IDs {
-				cloudEvtGrants[agreement.EventType][*source].Add(id)
+				cloudEvtGrants[agreement.EventType][source].Add(id)
 			}
 
 		case "permissions":
