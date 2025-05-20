@@ -64,7 +64,7 @@ func userGrantMap(record *models.PermissionRecord, nftAddr string, tokenID int64
 				cloudEvtGrants[agreement.EventType][*source] = shared.NewStringSet()
 			}
 
-			for _, id := range agreement.ID {
+			for _, id := range agreement.IDs {
 				cloudEvtGrants[agreement.EventType][*source].Add(id)
 			}
 
