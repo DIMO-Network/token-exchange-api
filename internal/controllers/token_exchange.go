@@ -62,14 +62,14 @@ type TokenRequest struct {
 	// Audience is the intended audience for the token.
 	Audience []string `json:"audience" validate:"optional"`
 	// CloudEvent request, includes attestations
-	CloudEvents *cloudEventRequest `json:"cloudEvents"`
+	CloudEvents *CloudEvents `json:"cloudEvents"`
 }
 
-type cloudEventRequest struct {
-	Events []ceReq `json:"events"`
+type CloudEvents struct {
+	Events []EventFilter `json:"events"`
 }
 
-type ceReq struct {
+type EventFilter struct {
 	EventType string   `json:"eventType"`
 	Source    string   `json:"source"`
 	IDs       []string `json:"ids"`

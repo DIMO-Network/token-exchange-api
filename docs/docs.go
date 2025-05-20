@@ -53,6 +53,34 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "internal_controllers.CloudEvents": {
+            "type": "object",
+            "properties": {
+                "events": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/internal_controllers.EventFilter"
+                    }
+                }
+            }
+        },
+        "internal_controllers.EventFilter": {
+            "type": "object",
+            "properties": {
+                "eventType": {
+                    "type": "string"
+                },
+                "ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "source": {
+                    "type": "string"
+                }
+            }
+        },
         "internal_controllers.TokenRequest": {
             "type": "object",
             "required": [
@@ -72,7 +100,7 @@ const docTemplate = `{
                     "description": "CloudEvent request, includes attestations",
                     "allOf": [
                         {
-                            "$ref": "#/definitions/internal_controllers.cloudEventRequest"
+                            "$ref": "#/definitions/internal_controllers.CloudEvents"
                         }
                     ]
                 },
@@ -98,34 +126,6 @@ const docTemplate = `{
                     "description": "TokenID is the NFT token id.",
                     "type": "integer",
                     "example": 7
-                }
-            }
-        },
-        "internal_controllers.ceReq": {
-            "type": "object",
-            "properties": {
-                "eventType": {
-                    "type": "string"
-                },
-                "ids": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "source": {
-                    "type": "string"
-                }
-            }
-        },
-        "internal_controllers.cloudEventRequest": {
-            "type": "object",
-            "properties": {
-                "events": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/internal_controllers.ceReq"
-                    }
                 }
             }
         }
