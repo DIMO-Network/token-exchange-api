@@ -304,9 +304,6 @@ func evaluateCloudEvents(agreement map[string]map[string]*shared.StringSet, toke
 			continue
 		}
 
-		// NOTE: do we want to explicitly enforce that
-		// someone has to ask for the exact ids they've been granted?
-		// this is assuming we do not
 		if idSet.Len() == 0 {
 			continue
 		}
