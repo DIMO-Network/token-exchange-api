@@ -29,7 +29,7 @@ type Agreement struct {
 	IDs         []string     `json:"ids"`
 	EffectiveAt *time.Time   `json:"effectiveAt"`
 	ExpiresAt   *time.Time   `json:"expiresAt"`
-	Source      *string      `json:"source"`
+	Source      string       `json:"source"`
 	Asset       string       `json:"asset"`
 	Permissions []Permission `json:"permissions"`
 }

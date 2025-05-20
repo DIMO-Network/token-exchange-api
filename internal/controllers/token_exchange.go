@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math/big"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/DIMO-Network/shared"
@@ -61,16 +62,16 @@ type TokenRequest struct {
 	// Audience is the intended audience for the token.
 	Audience []string `json:"audience" validate:"optional"`
 	// CloudEvent request, includes attestations
-	CloudEvents *cloudEventRequest `json:"cloudEvents"`
+	CloudEvents *CloudEvents `json:"cloudEvents"`
 }
 
-type cloudEventRequest struct {
-	Events []ceReq `json:"events"`
+type CloudEvents struct {
+	Events []CloudEventFilter `json:"events"`
 }
 
-type ceReq struct {
+type CloudEventFilter struct {
 	EventType string   `json:"eventType"`
-	Source    *string  `json:"source"`
+	Source    string   `json:"source"`
 	IDs       []string `json:"ids"`
 }
 
@@ -287,29 +288,39 @@ func evaluatePermissions(userPermissions map[string]bool, tokenReq *TokenRequest
 func evaluateCloudEvents(agreement map[string]map[string]*shared.StringSet, tokenReq *TokenRequest) error {
 	var err error
 	for _, req := range tokenReq.CloudEvents.Events {
+		if !common.IsHexAddress(req.Source) && req.Source != "*" {
+			err = errors.Join(err, fmt.Errorf("requested source %s invalid: must be %s or valid hex address", req.Source, tokenclaims.CloudEventTypeGlobal))
+			continue
+		}
+
+		if len(req.IDs) == 0 {
+			err = errors.Join(err, fmt.Errorf("must request at least one cloudevent id or global access request (%s)", tokenclaims.CloudEventTypeGlobal))
+		}
+
 		grantedAggs, ok := agreement[req.EventType]
 		if !ok {
 			err = errors.Join(err, fmt.Errorf("lacking grant for requested event type: %s", req.EventType))
 			continue
 		}
 
-		source := tokenclaims.GlobalAttestationPermission
-		if req.Source != nil {
-			source = *req.Source
+		if globalAggs, grantedAll := grantedAggs[tokenclaims.CloudEventTypeGlobal]; grantedAll {
+			if globalAggs.Contains(tokenclaims.CloudEventTypeGlobal) {
+				continue
+			}
+
+			for _, reqID := range req.IDs {
+				if !globalAggs.Contains(reqID) {
+					err = errors.Join(err, fmt.Errorf("lacking grant from %s for %s cloudevent id: %s", req.Source, req.EventType, reqID))
+				}
+			}
+			continue
 		}
 
+		source := strings.ToLower(req.Source)
 		idSet, ok := grantedAggs[source]
 		if !ok {
 			err = errors.Join(err, fmt.Errorf("lacking %s grant for requested source: %s", req.EventType, source))
 			continue
-		}
-
-		if idSet.Len() == 0 {
-			continue
-		}
-
-		if len(req.IDs) == 0 {
-			err = errors.Join(err, fmt.Errorf("requesting global access to %s cloudevents for %s but only granted subset", source, req.EventType))
 		}
 
 		for _, reqID := range req.IDs {
