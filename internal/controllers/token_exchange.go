@@ -97,7 +97,7 @@ func NewTokenExchangeController(logger *zerolog.Logger, settings *config.Setting
 // @Accept      json
 // @Param       tokenRequest body controllers.TokenRequest true "Requested privileges: must include address, token id, and privilege ids"
 // @Produce     json
-// @Success     200 {object} controllers.TokenRequest
+// @Success     200 {object} controllers.PermissionTokenResponse
 // @Security    BearerAuth
 // @Router      /tokens/exchange [post]
 func (t *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.Ctx) error {

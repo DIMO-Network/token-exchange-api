@@ -1,5 +1,10 @@
 basePath: /v1
 definitions:
+  internal_controllers.PermissionTokenResponse:
+    properties:
+      token:
+        type: string
+    type: object
   internal_controllers.TokenRequest:
     properties:
       audience:
@@ -80,7 +85,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/internal_controllers.TokenRequest'
+            $ref: '#/definitions/internal_controllers.PermissionTokenResponse'
       security:
       - BearerAuth: []
       summary: privileges on the correct token.

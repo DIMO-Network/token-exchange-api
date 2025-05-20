@@ -45,7 +45,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/internal_controllers.TokenRequest"
+                            "$ref": "#/definitions/internal_controllers.PermissionTokenResponse"
                         }
                     }
                 }
@@ -53,6 +53,14 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "internal_controllers.PermissionTokenResponse": {
+            "type": "object",
+            "properties": {
+                "token": {
+                    "type": "string"
+                }
+            }
+        },
         "internal_controllers.TokenRequest": {
             "type": "object",
             "required": [
