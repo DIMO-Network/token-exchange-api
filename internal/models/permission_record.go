@@ -27,8 +27,8 @@ type Agreement struct {
 	Type        string       `json:"type"`
 	EventType   string       `json:"eventType"`
 	IDs         []string     `json:"ids"`
-	EffectiveAt *time.Time   `json:"effectiveAt"`
-	ExpiresAt   *time.Time   `json:"expiresAt"`
+	EffectiveAt time.Time    `json:"effectiveAt"`
+	ExpiresAt   time.Time    `json:"expiresAt"`
 	Source      string       `json:"source"`
 	Asset       string       `json:"asset"`
 	Permissions []Permission `json:"permissions"`

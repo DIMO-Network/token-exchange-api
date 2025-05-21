@@ -83,8 +83,8 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 			Agreements: []models.Agreement{
 				{
 					Type:        "cloudevent",
-					EffectiveAt: &effectiveAt,
-					ExpiresAt:   &expiresAt,
+					EffectiveAt: effectiveAt,
+					ExpiresAt:   expiresAt,
 					EventType:   cloudevent.TypeAttestation,
 					Source:      common.BigToAddress(big.NewInt(1)).Hex(),
 					IDs:         []string{"1"},
@@ -355,10 +355,6 @@ func TestTokenExchangeController_EvaluatingSACD_Attestations(t *testing.T) {
 	userEthAddr := common.HexToAddress("0x20Ca3bE69a8B95D3093383375F0473A8c6341727")
 	oneMinAgo := time.Now().Add(-1 * time.Minute)
 	oneMinFuture := time.Now().Add(1 * time.Minute)
-	// thirtySecAgo := time.Now().Add(-30 * time.Second)
-	// invalidSource1 := common.BigToAddress(big.NewInt(1)).Hex()
-	// invalidSource2 := common.BigToAddress(big.NewInt(2)).Hex()
-	// validSource1 := common.BigToAddress(big.NewInt(3)).Hex()
 
 	ipfsRecord := models.PermissionRecord{
 		Type: "dimo.sacd",

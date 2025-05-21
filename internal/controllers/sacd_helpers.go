@@ -39,11 +39,11 @@ func userGrantMap(record *models.PermissionRecord, nftAddr string, tokenID int64
 	// Aggregates all the permission and attestation grants the user has.
 	for _, agreement := range record.Data.Agreements {
 		now := time.Now()
-		if agreement.EffectiveAt != nil && agreement.EffectiveAt.After(now) {
+		if !agreement.EffectiveAt.IsZero() && now.Before(agreement.EffectiveAt) {
 			continue
 		}
 
-		if agreement.ExpiresAt != nil && agreement.ExpiresAt.Before(now) {
+		if !agreement.ExpiresAt.IsZero() && now.After(agreement.ExpiresAt) {
 			continue
 		}
 
