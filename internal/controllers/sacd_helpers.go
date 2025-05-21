@@ -28,14 +28,6 @@ func evaluateIDsByGrantSource(globalGrants *set.StringSet, sourceGrants *set.Str
 	return missingIDs
 }
 
-func checkGlobalGrants(agreements map[string]*set.StringSet) (*set.StringSet, bool) {
-	globalIDGrants, ok := agreements[tokenclaims.CloudEventTypeGlobal]
-	if !ok {
-		return nil, false
-	}
-	return globalIDGrants, globalIDGrants.Contains(tokenclaims.CloudEventTypeGlobal)
-}
-
 func userGrantMap(record *models.PermissionRecord, nftAddr string, tokenID int64) (map[string]bool, map[string]map[string]*set.StringSet, error) {
 	userPermGrants := make(map[string]bool)
 	cloudEvtGrants := make(map[string]map[string]*set.StringSet)
