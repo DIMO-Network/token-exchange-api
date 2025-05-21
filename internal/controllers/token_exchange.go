@@ -116,7 +116,7 @@ func (t *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.C
 
 	t.logger.Debug().Interface("request", tokenReq).Msg("Got request.")
 
-	if len(tokenReq.Privileges) == 0 && tokenReq.CloudEvents == nil {
+	if len(tokenReq.Privileges) == 0 && (tokenReq.CloudEvents == nil || len(tokenReq.CloudEvents.Events) == 0) {
 		return fiber.NewError(fiber.StatusBadRequest, "Please provide at least one privilege or cloudevent")
 	}
 
