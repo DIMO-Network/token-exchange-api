@@ -24,6 +24,10 @@ func userGrantMap(record *models.PermissionRecord, nftAddr string, tokenID int64
 	userPermGrants := make(map[string]bool)
 	cloudEvtGrants := make(map[string]map[string]*shared.StringSet)
 
+	if err := validAssetDID(record.Data.Asset, nftAddr, tokenID); err != nil {
+		return nil, nil, fmt.Errorf("failed to validate permission asset: %s", record.Data.Asset)
+	}
+
 	// Aggregates all the permission and attestation grants the user has.
 	for _, agreement := range record.Data.Agreements {
 		now := time.Now()
@@ -54,10 +58,6 @@ func userGrantMap(record *models.PermissionRecord, nftAddr string, tokenID int64
 			}
 
 		case "permission":
-			if err := validAssetDID(record.Data.Asset, nftAddr, tokenID); err != nil {
-				return nil, nil, fmt.Errorf("failed to validate permission asset: %s", record.Data.Asset)
-			}
-
 			// Add permissions from this agreement
 			for _, permission := range agreement.Permissions {
 				userPermGrants[permission.Name] = true

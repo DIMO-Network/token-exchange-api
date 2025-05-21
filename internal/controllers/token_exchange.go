@@ -310,8 +310,7 @@ func evaluateCloudEvents(agreement map[string]map[string]*shared.StringSet, toke
 			continue
 		}
 
-		source := common.HexToAddress(req.Source).Hex() // user doesn't have to put in the exact hex addr to the request
-		idSet, ok := grantedAggs[source]
+		idSet, ok := grantedAggs[req.Source]
 		if !ok && !allSources {
 			err = errors.Join(err, fmt.Errorf("lacking %s grant for requested source: %s", req.EventType, req.Source))
 			continue
