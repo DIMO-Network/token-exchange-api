@@ -623,6 +623,118 @@ func TestTokenExchangeController_EvaluatingSACD_Attestations(t *testing.T) {
 			},
 			err: fmt.Errorf("lacking dimo.attestation grant for requested source: 0xcce4eF41A67E28C3CF3dbc51a6CD3d004F53aCBB"),
 		},
+		{
+			name: "Pass: Asking for implicit grant (global) ",
+			agreement: []models.Agreement{
+				{
+					Type:      "cloudevent",
+					EventType: cloudevent.TypeAttestation,
+					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
+					IDs:       []string{"5", "6", "7"},
+					Source:    tokenclaims.CloudEventTypeGlobal,
+				},
+				{
+					Type:      "cloudevent",
+					EventType: cloudevent.TypeAttestation,
+					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
+					IDs:       []string{"1"},
+					Source:    common.BigToAddress(big.NewInt(1)).Hex(),
+				},
+				{
+					Type:      "cloudevent",
+					EventType: cloudevent.TypeAttestation,
+					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
+					IDs:       []string{"2"},
+					Source:    common.BigToAddress(big.NewInt(2)).Hex(),
+				},
+			},
+			request: TokenRequest{
+				TokenID:            123,
+				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
+				CloudEvents: &CloudEvents{
+					Events: []EventFilter{
+						{
+							EventType: cloudevent.TypeAttestation,
+							IDs:       []string{"5"},
+							Source:    common.BigToAddress(big.NewInt(1)).Hex(),
+						},
+					},
+				},
+			},
+			expectedCEGrants: func() map[string]map[string]*set.StringSet {
+				set1 := set.NewStringSet()
+				set1.Add("1")
+				set2 := set.NewStringSet()
+				set2.Add("2")
+				set3 := set.NewStringSet()
+				set3.Add("5")
+				set3.Add("6")
+				set3.Add("7")
+				return map[string]map[string]*set.StringSet{
+					cloudevent.TypeAttestation: map[string]*set.StringSet{
+						common.BigToAddress(big.NewInt(1)).Hex(): set1,
+						common.BigToAddress(big.NewInt(2)).Hex(): set2,
+						tokenclaims.CloudEventTypeGlobal:         set3,
+					},
+				}
+			},
+		},
+		{
+			name: "Pass: Asking for a source not specifically granted (global)",
+			agreement: []models.Agreement{
+				{
+					Type:      "cloudevent",
+					EventType: cloudevent.TypeAttestation,
+					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
+					IDs:       []string{"5", "6", "7"},
+					Source:    tokenclaims.CloudEventTypeGlobal,
+				},
+				{
+					Type:      "cloudevent",
+					EventType: cloudevent.TypeAttestation,
+					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
+					IDs:       []string{"1"},
+					Source:    common.BigToAddress(big.NewInt(1)).Hex(),
+				},
+				{
+					Type:      "cloudevent",
+					EventType: cloudevent.TypeAttestation,
+					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
+					IDs:       []string{"2"},
+					Source:    common.BigToAddress(big.NewInt(2)).Hex(),
+				},
+			},
+			request: TokenRequest{
+				TokenID:            123,
+				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
+				CloudEvents: &CloudEvents{
+					Events: []EventFilter{
+						{
+							EventType: cloudevent.TypeAttestation,
+							IDs:       []string{"5"},
+							Source:    common.BigToAddress(big.NewInt(6)).Hex(),
+						},
+					},
+				},
+			},
+			expectedCEGrants: func() map[string]map[string]*set.StringSet {
+				set1 := set.NewStringSet()
+				set1.Add("1")
+				set2 := set.NewStringSet()
+				set2.Add("2")
+				set3 := set.NewStringSet()
+				set3.Add("5")
+				set3.Add("6")
+				set3.Add("7")
+				return map[string]map[string]*set.StringSet{
+					cloudevent.TypeAttestation: map[string]*set.StringSet{
+						common.BigToAddress(big.NewInt(1)).Hex(): set1,
+						common.BigToAddress(big.NewInt(2)).Hex(): set2,
+						tokenclaims.CloudEventTypeGlobal:         set3,
+					},
+				}
+			},
+		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {

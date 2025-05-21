@@ -12,12 +12,12 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
-func checkGlobalGrants(agreements map[string]*set.StringSet) (bool, bool) {
+func checkGlobalGrants(agreements map[string]*set.StringSet) (*set.StringSet, bool) {
 	globalIDGrants, ok := agreements[tokenclaims.CloudEventTypeGlobal]
 	if !ok {
-		return false, false
+		return nil, false
 	}
-	return ok, globalIDGrants.Contains(tokenclaims.CloudEventTypeGlobal)
+	return globalIDGrants, globalIDGrants.Contains(tokenclaims.CloudEventTypeGlobal)
 }
 
 func userGrantMap(record *models.PermissionRecord, nftAddr string, tokenID int64) (map[string]bool, map[string]map[string]*set.StringSet, error) {
