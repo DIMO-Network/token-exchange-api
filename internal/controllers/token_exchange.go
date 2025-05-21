@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math/big"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/DIMO-Network/shared/pkg/set"
@@ -305,42 +306,22 @@ func evaluateCloudEvents(agreement map[string]map[string]*set.StringSet, tokenRe
 			continue
 		}
 
-		// Check if agreement contains any global grants
-		allSources, allIDs := checkGlobalGrants(grantedAggs)
-		if allIDs { // can only be true if user has been granted sources: *, ids: *
+		globalGrantIDs, ok := grantedAggs[tokenclaims.CloudEventTypeGlobal]
+		if ok {
+			if globalGrantIDs.Contains(tokenclaims.CloudEventTypeGlobal) {
+				continue //user has been granted sources: *, ids: *
+			}
+		}
+
+		sourceGrantIDs, ok := grantedAggs[req.Source]
+		if globalGrantIDs == nil && !ok {
+			err = errors.Join(err, fmt.Errorf("no %s grants for source: %s", req.EventType, req.Source))
 			continue
 		}
 
-		idSet, ok := grantedAggs[req.Source]
-		if !ok {
-			if allSources == nil { // if the source isn't in agreement and no global source grant, log error and continue
-				err = errors.Join(err, fmt.Errorf("lacking %s grant for requested source: %s", req.EventType, req.Source))
-				continue
-			}
-
-			for _, reqID := range req.IDs {
-				// if global source grant is given, and id is within specified set, continue
-				if !allSources.Contains(reqID) {
-					err = errors.Join(err, fmt.Errorf("lacking grant from %s for %s cloudevent id: %s", req.Source, req.EventType, reqID))
-				}
-			}
-			continue
+		if missingIDs := evaluateIDsByGrantSource(globalGrantIDs, sourceGrantIDs, req.IDs); len(missingIDs) > 0 {
+			err = errors.Join(err, fmt.Errorf("lacking %s grant for source %s with ids: %s", req.EventType, req.Source, strings.Join(missingIDs, ",")))
 		}
-
-		// CloudEvent Grant Source: hex address
-		// Cloud Event Grant IDs contain: *
-		if idSet.Contains(tokenclaims.CloudEventTypeGlobal) {
-			continue
-		}
-
-		for _, reqID := range req.IDs {
-			if !idSet.Contains(reqID) {
-				if allSources == nil || !allSources.Contains(reqID) {
-					err = errors.Join(err, fmt.Errorf("lacking grant from %s for %s cloudevent id: %s", req.Source, req.EventType, reqID))
-				}
-			}
-		}
-		continue
 
 	}
 

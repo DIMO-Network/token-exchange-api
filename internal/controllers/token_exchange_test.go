@@ -588,8 +588,7 @@ func TestTokenExchangeController_EvaluatingSACD_Attestations(t *testing.T) {
 			err: fmt.Errorf("requested source 0x123 invalid: must be * or valid hex address"),
 		},
 		{
-			// NOTE(ae): should we be working harder to prevent this from failing?
-			name: "Fail: permission not granted",
+			name: "Fail: permission not granted, address must match exactly",
 			agreement: []models.Agreement{
 				{
 					Type:      "cloudevent",
@@ -621,7 +620,7 @@ func TestTokenExchangeController_EvaluatingSACD_Attestations(t *testing.T) {
 					},
 				}
 			},
-			err: fmt.Errorf("lacking dimo.attestation grant for requested source: 0xcce4eF41A67E28C3CF3dbc51a6CD3d004F53aCBB"),
+			err: fmt.Errorf("no dimo.attestation grants for source: 0xcce4eF41A67E28C3CF3dbc51a6CD3d004F53aCBB"),
 		},
 		{
 			name: "Pass: Asking for implicit grant (global) ",

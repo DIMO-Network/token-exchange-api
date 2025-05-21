@@ -12,6 +12,22 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
+func evaluateIDsByGrantSource(globalGrants *set.StringSet, sourceGrants *set.StringSet, requestedIDs []string) []string {
+	var missingIDs []string
+
+	if (globalGrants != nil && globalGrants.Contains(tokenclaims.CloudEventTypeGlobal)) || (sourceGrants != nil && sourceGrants.Contains(tokenclaims.CloudEventTypeGlobal)) {
+		return missingIDs
+	}
+
+	for _, reqID := range requestedIDs {
+		if (globalGrants != nil && !globalGrants.Contains(reqID)) && (sourceGrants != nil && !sourceGrants.Contains(reqID)) {
+			missingIDs = append(missingIDs, reqID)
+		}
+	}
+
+	return missingIDs
+}
+
 func checkGlobalGrants(agreements map[string]*set.StringSet) (*set.StringSet, bool) {
 	globalIDGrants, ok := agreements[tokenclaims.CloudEventTypeGlobal]
 	if !ok {
