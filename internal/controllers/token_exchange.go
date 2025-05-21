@@ -75,7 +75,7 @@ type EventFilter struct {
 	IDs       []string `json:"ids"`
 }
 
-type PermissionTokenResponse struct {
+type TokenResponse struct {
 	Token string `json:"token"`
 }
 
@@ -99,7 +99,7 @@ func NewTokenExchangeController(logger *zerolog.Logger, settings *config.Setting
 // @Accept      json
 // @Param       tokenRequest body controllers.TokenRequest true "Requested privileges: must include address, token id, and privilege ids"
 // @Produce     json
-// @Success     200 {object} controllers.TokenRequest
+// @Success     200 {object} controllers.TokenResponse
 // @Security    BearerAuth
 // @Router      /tokens/exchange [post]
 func (t *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.Ctx) error {
@@ -179,7 +179,7 @@ func (t *TokenExchangeController) createAndReturnToken(c *fiber.Ctx, tokenReq *T
 		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 	}
 
-	return c.JSON(PermissionTokenResponse{
+	return c.JSON(TokenResponse{
 		Token: tk,
 	})
 }

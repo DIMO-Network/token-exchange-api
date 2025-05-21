@@ -56,6 +56,11 @@ definitions:
     - privileges
     - tokenId
     type: object
+  internal_controllers.TokenResponse:
+    properties:
+      token:
+        type: string
+    type: object
 info:
   contact: {}
   title: DIMO Token Exchange API
@@ -80,7 +85,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/internal_controllers.TokenRequest'
+            $ref: '#/definitions/internal_controllers.TokenResponse'
       security:
       - BearerAuth: []
       summary: privileges on the correct token.

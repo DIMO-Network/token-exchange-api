@@ -45,7 +45,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/internal_controllers.TokenRequest"
+                            "$ref": "#/definitions/internal_controllers.TokenResponse"
                         }
                     }
                 }
@@ -126,6 +126,14 @@ const docTemplate = `{
                     "description": "TokenID is the NFT token id.",
                     "type": "integer",
                     "example": 7
+                }
+            }
+        },
+        "internal_controllers.TokenResponse": {
+            "type": "object",
+            "properties": {
+                "token": {
+                    "type": "string"
                 }
             }
         }
