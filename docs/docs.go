@@ -37,7 +37,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_controllers.PermissionTokenRequest"
+                            "$ref": "#/definitions/internal_controllers.TokenRequest"
                         }
                     }
                 ],
@@ -45,7 +45,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/internal_controllers.PermissionTokenResponse"
+                            "$ref": "#/definitions/internal_controllers.TokenResponse"
                         }
                     }
                 }
@@ -53,7 +53,35 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "internal_controllers.PermissionTokenRequest": {
+        "internal_controllers.CloudEvents": {
+            "type": "object",
+            "properties": {
+                "events": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/internal_controllers.EventFilter"
+                    }
+                }
+            }
+        },
+        "internal_controllers.EventFilter": {
+            "type": "object",
+            "properties": {
+                "eventType": {
+                    "type": "string"
+                },
+                "ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "source": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_controllers.TokenRequest": {
             "type": "object",
             "required": [
                 "nftContractAddress",
@@ -67,6 +95,14 @@ const docTemplate = `{
                     "items": {
                         "type": "string"
                     }
+                },
+                "cloudEvents": {
+                    "description": "CloudEvent request, includes attestations",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/internal_controllers.CloudEvents"
+                        }
+                    ]
                 },
                 "nftContractAddress": {
                     "description": "NFTContractAddress is the address of the NFT contract. Privileges will be checked\non-chain at this address. Address must be in the 0x format e.g. 0x5FbDB2315678afecb367f032d93F642f64180aa3.\nVarying case is okay.",
@@ -93,7 +129,7 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_controllers.PermissionTokenResponse": {
+        "internal_controllers.TokenResponse": {
             "type": "object",
             "properties": {
                 "token": {

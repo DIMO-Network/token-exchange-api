@@ -1,12 +1,34 @@
 basePath: /v1
 definitions:
-  internal_controllers.PermissionTokenRequest:
+  internal_controllers.CloudEvents:
+    properties:
+      events:
+        items:
+          $ref: '#/definitions/internal_controllers.EventFilter'
+        type: array
+    type: object
+  internal_controllers.EventFilter:
+    properties:
+      eventType:
+        type: string
+      ids:
+        items:
+          type: string
+        type: array
+      source:
+        type: string
+    type: object
+  internal_controllers.TokenRequest:
     properties:
       audience:
         description: Audience is the intended audience for the token.
         items:
           type: string
         type: array
+      cloudEvents:
+        allOf:
+        - $ref: '#/definitions/internal_controllers.CloudEvents'
+        description: CloudEvent request, includes attestations
       nftContractAddress:
         description: |-
           NFTContractAddress is the address of the NFT contract. Privileges will be checked
@@ -34,7 +56,7 @@ definitions:
     - privileges
     - tokenId
     type: object
-  internal_controllers.PermissionTokenResponse:
+  internal_controllers.TokenResponse:
     properties:
       token:
         type: string
@@ -56,14 +78,14 @@ paths:
         name: tokenRequest
         required: true
         schema:
-          $ref: '#/definitions/internal_controllers.PermissionTokenRequest'
+          $ref: '#/definitions/internal_controllers.TokenRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/internal_controllers.PermissionTokenResponse'
+            $ref: '#/definitions/internal_controllers.TokenResponse'
       security:
       - BearerAuth: []
       summary: privileges on the correct token.

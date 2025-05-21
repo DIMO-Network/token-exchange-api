@@ -13,9 +13,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/DIMO-Network/cloudevent"
+	"github.com/DIMO-Network/shared/privileges"
 	"github.com/DIMO-Network/token-exchange-api/internal/config"
 	mock_contracts "github.com/DIMO-Network/token-exchange-api/internal/contracts/mocks"
 	"github.com/DIMO-Network/token-exchange-api/internal/contracts/sacd"
+	"github.com/DIMO-Network/token-exchange-api/pkg/tokenclaims"
+
 	"github.com/DIMO-Network/token-exchange-api/internal/middleware"
 	mock_middleware "github.com/DIMO-Network/token-exchange-api/internal/middleware/mocks"
 	"github.com/DIMO-Network/token-exchange-api/internal/services"
@@ -72,7 +76,7 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 		name                   string
 		tokenClaims            jwt.MapClaims
 		userEthAddr            *common.Address
-		permissionTokenRequest *PermissionTokenRequest
+		permissionTokenRequest *TokenRequest
 		mockSetup              func()
 		expectedCode           int
 	}{
@@ -83,7 +87,7 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 				"nbf":              time.Now().Unix(),
 			},
 			userEthAddr: &userEthAddr,
-			permissionTokenRequest: &PermissionTokenRequest{
+			permissionTokenRequest: &TokenRequest{
 				TokenID:            123,
 				Privileges:         []int64{4},
 				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
@@ -110,7 +114,7 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 				"nbf":              time.Now().Unix(),
 			},
 			userEthAddr: &userEthAddr,
-			permissionTokenRequest: &PermissionTokenRequest{
+			permissionTokenRequest: &TokenRequest{
 				TokenID:            123,
 				Privileges:         []int64{1, 2, 4, 5},
 				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
@@ -137,7 +141,7 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 				"nbf":              time.Now().Unix(),
 			},
 			userEthAddr: &userEthAddr,
-			permissionTokenRequest: &PermissionTokenRequest{
+			permissionTokenRequest: &TokenRequest{
 				TokenID:            123,
 				Privileges:         []int64{1, 2, 4, 5},
 				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
@@ -160,7 +164,7 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 				"nbf":              time.Now().Unix(),
 			},
 			userEthAddr: &userEthAddr,
-			permissionTokenRequest: &PermissionTokenRequest{
+			permissionTokenRequest: &TokenRequest{
 				TokenID:            123,
 				Privileges:         []int64{1, 2, 4, 5},
 				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
@@ -191,7 +195,7 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 				"nbf": time.Now().Unix(),
 			},
 			userEthAddr: &userEthAddr,
-			permissionTokenRequest: &PermissionTokenRequest{
+			permissionTokenRequest: &TokenRequest{
 				TokenID:            123,
 				Privileges:         []int64{4},
 				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
@@ -207,7 +211,7 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 				"aud":              []string{"dimo.zone"},
 			},
 			userEthAddr: &userEthAddr,
-			permissionTokenRequest: &PermissionTokenRequest{
+			permissionTokenRequest: &TokenRequest{
 				TokenID:            123,
 				Privileges:         []int64{4},
 				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
@@ -346,6 +350,53 @@ func TestDevLicenseMiddleware(t *testing.T) {
 
 		})
 	}
+}
+
+func Test_ProtobufSerializer(t *testing.T) {
+	privs := []privileges.Privilege{1, 2, 3, 4}
+
+	ce := tokenclaims.CloudEvents{
+		Events: []tokenclaims.Event{
+			{
+				EventType: cloudevent.TypeAttestation,
+				Source:    "0x123",
+				IDs:       []string{"attestation-1"},
+			},
+			{
+				EventType: cloudevent.TypeAttestation,
+				Source:    "*",
+			},
+			{
+				EventType: cloudevent.TypeAttestation,
+				IDs:       []string{"attestation-7"},
+				Source:    "*",
+			},
+			{
+				EventType: cloudevent.TypeFingerprint,
+				Source:    "*",
+			},
+		},
+	}
+	cc := tokenclaims.CustomClaims{
+		ContractAddress: common.BigToAddress(big.NewInt(2)),
+		TokenID:         "1",
+		PrivilegeIDs:    privs,
+		CloudEvents:     &ce,
+	}
+
+	val, err := cc.Proto()
+	require.NoError(t, err)
+
+	value := val.AsMap()
+
+	privCheck, ok := value["privilege_ids"].([]any)
+	require.True(t, ok, "expected privilege_ids to be included in output")
+	require.Equal(t, len(privCheck), len(privs))
+
+	ceCheck, ok := value["cloud_events"].([]any)
+	require.True(t, ok, "expected cloud_events to be included in output")
+	require.Equal(t, len(ceCheck), len(ce.Events))
+
 }
 
 func buildRequest(method, url, body string) *http.Request {
