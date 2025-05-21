@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"math/big"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/DIMO-Network/shared/pkg/set"
@@ -288,41 +287,10 @@ func evaluatePermissions(userPermissions map[string]bool, tokenReq *TokenRequest
 
 func evaluateCloudEvents(agreement map[string]map[string]*set.StringSet, tokenReq *TokenRequest) error {
 	var err error
-
 	for _, req := range tokenReq.CloudEvents.Events {
-		if !common.IsHexAddress(req.Source) && req.Source != tokenclaims.CloudEventTypeGlobal {
-			err = errors.Join(err, fmt.Errorf("requested source %s invalid: must be %s or valid hex address", req.Source, tokenclaims.CloudEventTypeGlobal))
-			continue
+		if ceErr := evaluateCloudEvent(agreement, req); ceErr != nil {
+			err = errors.Join(err, ceErr)
 		}
-
-		if len(req.IDs) == 0 {
-			err = errors.Join(err, fmt.Errorf("must request at least one cloudevent id or global access request (%s)", tokenclaims.CloudEventTypeGlobal))
-			continue
-		}
-
-		grantedAggs, ok := agreement[req.EventType]
-		if !ok {
-			err = errors.Join(err, fmt.Errorf("lacking grant for requested event type: %s", req.EventType))
-			continue
-		}
-
-		globalGrantIDs, ok := grantedAggs[tokenclaims.CloudEventTypeGlobal]
-		if ok {
-			if globalGrantIDs.Contains(tokenclaims.CloudEventTypeGlobal) {
-				continue //user has been granted sources: *, ids: *
-			}
-		}
-
-		sourceGrantIDs, ok := grantedAggs[req.Source]
-		if globalGrantIDs == nil && !ok {
-			err = errors.Join(err, fmt.Errorf("no %s grants for source: %s", req.EventType, req.Source))
-			continue
-		}
-
-		if missingIDs := evaluateIDsByGrantSource(globalGrantIDs, sourceGrantIDs, req.IDs); len(missingIDs) > 0 {
-			err = errors.Join(err, fmt.Errorf("lacking %s grant for source %s with ids: %s", req.EventType, req.Source, strings.Join(missingIDs, ",")))
-		}
-
 	}
 
 	return err

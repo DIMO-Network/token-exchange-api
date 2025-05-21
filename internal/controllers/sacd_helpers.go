@@ -3,6 +3,7 @@ package controllers
 import (
 	"fmt"
 	"math/big"
+	"strings"
 	"time"
 
 	"github.com/DIMO-Network/cloudevent"
@@ -12,19 +13,48 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
-func evaluateIDsByGrantSource(globalGrants *set.StringSet, sourceGrants *set.StringSet, requestedIDs []string) []string {
-	var missingIDs []string
+func evaluateCloudEvent(agreement map[string]map[string]*set.StringSet, req EventFilter) error {
 
-	if (globalGrants != nil && globalGrants.Contains(tokenclaims.CloudEventTypeGlobal)) || (sourceGrants != nil && sourceGrants.Contains(tokenclaims.CloudEventTypeGlobal)) {
-		return missingIDs
+	if !common.IsHexAddress(req.Source) && req.Source != tokenclaims.CloudEventTypeGlobal {
+		return fmt.Errorf("requested source %s invalid: must be %s or valid hex address", req.Source, tokenclaims.CloudEventTypeGlobal)
 	}
 
+	if len(req.IDs) == 0 {
+		return fmt.Errorf("must request at least one cloudevent id or global access request (%s)", tokenclaims.CloudEventTypeGlobal)
+	}
+
+	grantedAggs, ok := agreement[req.EventType]
+	if !ok {
+		return fmt.Errorf("lacking grant for requested event type: %s", req.EventType)
+	}
+
+	globalGrantIDs, ok := grantedAggs[tokenclaims.CloudEventTypeGlobal]
+	if ok && globalGrantIDs.Contains(tokenclaims.CloudEventTypeGlobal) {
+		return nil
+	}
+
+	sourceGrantIDs, ok := grantedAggs[req.Source]
+	if globalGrantIDs == nil && !ok {
+		return fmt.Errorf("no %s grants for source: %s", req.EventType, req.Source)
+	}
+
+	if missingIDs := evaluateIDsByGrantSource(globalGrantIDs, sourceGrantIDs, req.IDs); len(missingIDs) > 0 {
+		return fmt.Errorf("lacking %s grant for source %s with ids: %s", req.EventType, req.Source, strings.Join(missingIDs, ","))
+	}
+
+	return nil
+}
+
+func evaluateIDsByGrantSource(globalGrants *set.StringSet, sourceGrants *set.StringSet, requestedIDs []string) []string {
+	if (globalGrants != nil && globalGrants.Contains(tokenclaims.CloudEventTypeGlobal)) || (sourceGrants != nil && sourceGrants.Contains(tokenclaims.CloudEventTypeGlobal)) {
+		return nil
+	}
+	var missingIDs []string
 	for _, reqID := range requestedIDs {
 		if (globalGrants != nil && !globalGrants.Contains(reqID)) && (sourceGrants != nil && !sourceGrants.Contains(reqID)) {
 			missingIDs = append(missingIDs, reqID)
 		}
 	}
-
 	return missingIDs
 }
 
