@@ -626,7 +626,7 @@ func TestTokenExchangeController_EvaluatingSACD_Attestations(t *testing.T) {
 					EventType: cloudevent.TypeAttestation,
 					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
 					IDs:       []string{"5", "6", "7"},
-					Source:    tokenclaims.CloudEventTypeGlobal,
+					Source:    tokenclaims.GlobalIdentifier,
 				},
 				{
 					Type:      "cloudevent",
@@ -669,7 +669,7 @@ func TestTokenExchangeController_EvaluatingSACD_Attestations(t *testing.T) {
 					cloudevent.TypeAttestation: map[string]*set.StringSet{
 						common.BigToAddress(big.NewInt(1)).Hex(): set1,
 						common.BigToAddress(big.NewInt(2)).Hex(): set2,
-						tokenclaims.CloudEventTypeGlobal:         set3,
+						tokenclaims.GlobalIdentifier:             set3,
 					},
 				}
 			},
@@ -682,7 +682,7 @@ func TestTokenExchangeController_EvaluatingSACD_Attestations(t *testing.T) {
 					EventType: cloudevent.TypeAttestation,
 					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
 					IDs:       []string{"5", "6", "7"},
-					Source:    tokenclaims.CloudEventTypeGlobal,
+					Source:    tokenclaims.GlobalIdentifier,
 				},
 				{
 					Type:      "cloudevent",
@@ -725,7 +725,7 @@ func TestTokenExchangeController_EvaluatingSACD_Attestations(t *testing.T) {
 					cloudevent.TypeAttestation: map[string]*set.StringSet{
 						common.BigToAddress(big.NewInt(1)).Hex(): set1,
 						common.BigToAddress(big.NewInt(2)).Hex(): set2,
-						tokenclaims.CloudEventTypeGlobal:         set3,
+						tokenclaims.GlobalIdentifier:             set3,
 					},
 				}
 			},

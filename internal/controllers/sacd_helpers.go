@@ -15,12 +15,12 @@ import (
 
 func evaluateCloudEvent(agreement map[string]map[string]*set.StringSet, req EventFilter) error {
 
-	if !common.IsHexAddress(req.Source) && req.Source != tokenclaims.CloudEventTypeGlobal {
-		return fmt.Errorf("requested source %s invalid: must be %s or valid hex address", req.Source, tokenclaims.CloudEventTypeGlobal)
+	if !common.IsHexAddress(req.Source) && req.Source != tokenclaims.GlobalIdentifier {
+		return fmt.Errorf("requested source %s invalid: must be %s or valid hex address", req.Source, tokenclaims.GlobalIdentifier)
 	}
 
 	if len(req.IDs) == 0 {
-		return fmt.Errorf("must request at least one cloudevent id or global access request (%s)", tokenclaims.CloudEventTypeGlobal)
+		return fmt.Errorf("must request at least one cloudevent id or global access request (%s)", tokenclaims.GlobalIdentifier)
 	}
 
 	grantedAggs, ok := agreement[req.EventType]
@@ -28,8 +28,8 @@ func evaluateCloudEvent(agreement map[string]map[string]*set.StringSet, req Even
 		return fmt.Errorf("lacking grant for requested event type: %s", req.EventType)
 	}
 
-	globalGrantIDs, ok := grantedAggs[tokenclaims.CloudEventTypeGlobal]
-	if ok && globalGrantIDs.Contains(tokenclaims.CloudEventTypeGlobal) {
+	globalGrantIDs, ok := grantedAggs[tokenclaims.GlobalIdentifier]
+	if ok && globalGrantIDs.Contains(tokenclaims.GlobalIdentifier) {
 		return nil
 	}
 
@@ -46,7 +46,7 @@ func evaluateCloudEvent(agreement map[string]map[string]*set.StringSet, req Even
 }
 
 func evaluateIDsByGrantSource(globalGrants *set.StringSet, sourceGrants *set.StringSet, requestedIDs []string) []string {
-	if (globalGrants != nil && globalGrants.Contains(tokenclaims.CloudEventTypeGlobal)) || (sourceGrants != nil && sourceGrants.Contains(tokenclaims.CloudEventTypeGlobal)) {
+	if (globalGrants != nil && globalGrants.Contains(tokenclaims.GlobalIdentifier)) || (sourceGrants != nil && sourceGrants.Contains(tokenclaims.GlobalIdentifier)) {
 		return nil
 	}
 	var missingIDs []string

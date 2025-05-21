@@ -11,7 +11,7 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
-const CloudEventTypeGlobal = "*"
+const GlobalIdentifier = "*"
 
 // CustomClaims is the custom claims for token-exchange related information.
 type CustomClaims struct {
