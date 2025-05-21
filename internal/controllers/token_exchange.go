@@ -310,19 +310,20 @@ func intArrayTo2BitArray(indices []int64, length int) (*big.Int, error) {
 //   - bool: true if the DID is valid and matches the request parameters, false otherwise
 //   - error: An error describing why validation failed, or nil if validation succeeded
 func (t *TokenExchangeController) validateAssetDID(did string, req *TokenRequest) (bool, error) {
-	decodedDID, err := cloudevent.DecodeNFTDID(did)
+	decodedDID, err := cloudevent.DecodeERC721DID(did)
 	if err != nil {
 		return false, fmt.Errorf("failed to decode DID: %w", err)
 	}
 
 	requestNFTAddr := common.HexToAddress(req.NFTContractAddress)
+	requestTokenID := big.NewInt(req.TokenID)
 
 	if decodedDID.ContractAddress != requestNFTAddr {
 		return false, fmt.Errorf("DID contract address %s does not match request contract address %s",
 			decodedDID.ContractAddress.Hex(), requestNFTAddr.Hex())
 	}
 
-	if int64(decodedDID.TokenID) != req.TokenID {
+	if decodedDID.TokenID.Cmp(requestTokenID) != 0 {
 		return false, fmt.Errorf("DID token ID %d does not match request token ID %d",
 			decodedDID.TokenID, req.TokenID)
 	}
