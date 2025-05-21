@@ -6,13 +6,13 @@ import (
 	"time"
 
 	"github.com/DIMO-Network/cloudevent"
-	"github.com/DIMO-Network/shared"
+	"github.com/DIMO-Network/shared/pkg/set"
 	"github.com/DIMO-Network/token-exchange-api/internal/models"
 	"github.com/DIMO-Network/token-exchange-api/pkg/tokenclaims"
 	"github.com/ethereum/go-ethereum/common"
 )
 
-func checkGlobalGrants(agreements map[string]*shared.StringSet) (bool, bool) {
+func checkGlobalGrants(agreements map[string]*set.StringSet) (bool, bool) {
 	globalIDGrants, ok := agreements[tokenclaims.CloudEventTypeGlobal]
 	if !ok {
 		return false, false
@@ -20,9 +20,9 @@ func checkGlobalGrants(agreements map[string]*shared.StringSet) (bool, bool) {
 	return ok, globalIDGrants.Contains(tokenclaims.CloudEventTypeGlobal)
 }
 
-func userGrantMap(record *models.PermissionRecord, nftAddr string, tokenID int64) (map[string]bool, map[string]map[string]*shared.StringSet, error) {
+func userGrantMap(record *models.PermissionRecord, nftAddr string, tokenID int64) (map[string]bool, map[string]map[string]*set.StringSet, error) {
 	userPermGrants := make(map[string]bool)
-	cloudEvtGrants := make(map[string]map[string]*shared.StringSet)
+	cloudEvtGrants := make(map[string]map[string]*set.StringSet)
 
 	if err := validAssetDID(record.Data.Asset, nftAddr, tokenID); err != nil {
 		return nil, nil, fmt.Errorf("failed to validate permission asset: %s", record.Data.Asset)
@@ -46,11 +46,11 @@ func userGrantMap(record *models.PermissionRecord, nftAddr string, tokenID int64
 			}
 
 			if _, ok := cloudEvtGrants[agreement.EventType]; !ok {
-				cloudEvtGrants[agreement.EventType] = map[string]*shared.StringSet{}
+				cloudEvtGrants[agreement.EventType] = map[string]*set.StringSet{}
 			}
 
 			if _, ok := cloudEvtGrants[agreement.EventType][agreement.Source]; !ok {
-				cloudEvtGrants[agreement.EventType][agreement.Source] = shared.NewStringSet()
+				cloudEvtGrants[agreement.EventType][agreement.Source] = set.NewStringSet()
 			}
 
 			for _, id := range agreement.IDs {

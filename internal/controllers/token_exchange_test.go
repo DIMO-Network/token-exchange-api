@@ -14,18 +14,17 @@ import (
 	"time"
 
 	"github.com/DIMO-Network/cloudevent"
-	"github.com/DIMO-Network/shared"
-	"github.com/DIMO-Network/shared/privileges"
+	"github.com/DIMO-Network/shared/pkg/privileges"
+	"github.com/DIMO-Network/shared/pkg/set"
 	"github.com/DIMO-Network/token-exchange-api/internal/config"
 	mock_contracts "github.com/DIMO-Network/token-exchange-api/internal/contracts/mocks"
 	"github.com/DIMO-Network/token-exchange-api/internal/contracts/sacd"
-	"github.com/DIMO-Network/token-exchange-api/internal/models"
-	"github.com/DIMO-Network/token-exchange-api/pkg/tokenclaims"
-
 	"github.com/DIMO-Network/token-exchange-api/internal/middleware"
 	mock_middleware "github.com/DIMO-Network/token-exchange-api/internal/middleware/mocks"
+	"github.com/DIMO-Network/token-exchange-api/internal/models"
 	"github.com/DIMO-Network/token-exchange-api/internal/services"
 	mock_services "github.com/DIMO-Network/token-exchange-api/internal/services/mocks"
+	"github.com/DIMO-Network/token-exchange-api/pkg/tokenclaims"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/gofiber/fiber/v2"
@@ -380,7 +379,7 @@ func TestTokenExchangeController_EvaluatingSACD_Attestations(t *testing.T) {
 		name             string
 		agreement        []models.Agreement
 		request          TokenRequest
-		expectedCEGrants func() map[string]map[string]*shared.StringSet
+		expectedCEGrants func() map[string]map[string]*set.StringSet
 		err              error
 	}{
 		{
@@ -407,12 +406,12 @@ func TestTokenExchangeController_EvaluatingSACD_Attestations(t *testing.T) {
 					},
 				},
 			},
-			expectedCEGrants: func() map[string]map[string]*shared.StringSet {
-				set := shared.NewStringSet()
-				set.Add("*")
-				return map[string]map[string]*shared.StringSet{
-					cloudevent.TypeAttestation: map[string]*shared.StringSet{
-						"*": set,
+			expectedCEGrants: func() map[string]map[string]*set.StringSet {
+				gset := set.NewStringSet()
+				gset.Add("*")
+				return map[string]map[string]*set.StringSet{
+					cloudevent.TypeAttestation: {
+						"*": gset,
 					},
 				}
 			},
@@ -441,12 +440,12 @@ func TestTokenExchangeController_EvaluatingSACD_Attestations(t *testing.T) {
 					},
 				},
 			},
-			expectedCEGrants: func() map[string]map[string]*shared.StringSet {
-				set := shared.NewStringSet()
-				set.Add("*")
-				return map[string]map[string]*shared.StringSet{
-					cloudevent.TypeAttestation: map[string]*shared.StringSet{
-						"*": set,
+			expectedCEGrants: func() map[string]map[string]*set.StringSet {
+				gset := set.NewStringSet()
+				gset.Add("*")
+				return map[string]map[string]*set.StringSet{
+					cloudevent.TypeAttestation: {
+						"*": gset,
 					},
 				}
 			},
@@ -475,12 +474,12 @@ func TestTokenExchangeController_EvaluatingSACD_Attestations(t *testing.T) {
 					},
 				},
 			},
-			expectedCEGrants: func() map[string]map[string]*shared.StringSet {
-				set := shared.NewStringSet()
-				set.Add("*")
-				return map[string]map[string]*shared.StringSet{
-					cloudevent.TypeAttestation: map[string]*shared.StringSet{
-						"*": set,
+			expectedCEGrants: func() map[string]map[string]*set.StringSet {
+				gset := set.NewStringSet()
+				gset.Add("*")
+				return map[string]map[string]*set.StringSet{
+					cloudevent.TypeAttestation: {
+						"*": gset,
 					},
 				}
 			},
@@ -508,12 +507,12 @@ func TestTokenExchangeController_EvaluatingSACD_Attestations(t *testing.T) {
 					},
 				},
 			},
-			expectedCEGrants: func() map[string]map[string]*shared.StringSet {
-				set := shared.NewStringSet()
-				set.Add("1")
-				return map[string]map[string]*shared.StringSet{
-					cloudevent.TypeAttestation: map[string]*shared.StringSet{
-						common.BigToAddress(big.NewInt(1)).Hex(): set,
+			expectedCEGrants: func() map[string]map[string]*set.StringSet {
+				gset := set.NewStringSet()
+				gset.Add("1")
+				return map[string]map[string]*set.StringSet{
+					cloudevent.TypeAttestation: {
+						common.BigToAddress(big.NewInt(1)).Hex(): gset,
 					},
 				}
 			},
@@ -542,12 +541,12 @@ func TestTokenExchangeController_EvaluatingSACD_Attestations(t *testing.T) {
 					},
 				},
 			},
-			expectedCEGrants: func() map[string]map[string]*shared.StringSet {
-				set := shared.NewStringSet()
-				set.Add("1")
-				return map[string]map[string]*shared.StringSet{
-					cloudevent.TypeAttestation: map[string]*shared.StringSet{
-						common.BigToAddress(big.NewInt(1)).Hex(): set,
+			expectedCEGrants: func() map[string]map[string]*set.StringSet {
+				gset := set.NewStringSet()
+				gset.Add("1")
+				return map[string]map[string]*set.StringSet{
+					cloudevent.TypeAttestation: {
+						common.BigToAddress(big.NewInt(1)).Hex(): gset,
 					},
 				}
 			},
@@ -577,12 +576,12 @@ func TestTokenExchangeController_EvaluatingSACD_Attestations(t *testing.T) {
 					},
 				},
 			},
-			expectedCEGrants: func() map[string]map[string]*shared.StringSet {
-				set := shared.NewStringSet()
-				set.Add("1")
-				return map[string]map[string]*shared.StringSet{
-					cloudevent.TypeAttestation: map[string]*shared.StringSet{
-						"0xcce4eF41A67E28C3CF3dbc51a6CD3d004F53aCBd": set,
+			expectedCEGrants: func() map[string]map[string]*set.StringSet {
+				gset := set.NewStringSet()
+				gset.Add("1")
+				return map[string]map[string]*set.StringSet{
+					cloudevent.TypeAttestation: {
+						"0xcce4eF41A67E28C3CF3dbc51a6CD3d004F53aCBd": gset,
 					},
 				}
 			},
@@ -613,12 +612,12 @@ func TestTokenExchangeController_EvaluatingSACD_Attestations(t *testing.T) {
 					},
 				},
 			},
-			expectedCEGrants: func() map[string]map[string]*shared.StringSet {
-				set := shared.NewStringSet()
-				set.Add("1")
-				return map[string]map[string]*shared.StringSet{
-					cloudevent.TypeAttestation: map[string]*shared.StringSet{
-						"0xcce4eF41A67E28C3CF3dbc51a6CD3d004F53aCBd": set,
+			expectedCEGrants: func() map[string]map[string]*set.StringSet {
+				gset := set.NewStringSet()
+				gset.Add("1")
+				return map[string]map[string]*set.StringSet{
+					cloudevent.TypeAttestation: {
+						"0xcce4eF41A67E28C3CF3dbc51a6CD3d004F53aCBd": gset,
 					},
 				}
 			},

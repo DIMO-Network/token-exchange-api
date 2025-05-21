@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/DIMO-Network/shared"
+	"github.com/DIMO-Network/shared/pkg/set"
 	"github.com/DIMO-Network/token-exchange-api/internal/api"
 	"github.com/DIMO-Network/token-exchange-api/internal/config"
 	"github.com/DIMO-Network/token-exchange-api/internal/contracts"
@@ -285,7 +285,7 @@ func evaluatePermissions(userPermissions map[string]bool, tokenReq *TokenRequest
 	return nil
 }
 
-func evaluateCloudEvents(agreement map[string]map[string]*shared.StringSet, tokenReq *TokenRequest) error {
+func evaluateCloudEvents(agreement map[string]map[string]*set.StringSet, tokenReq *TokenRequest) error {
 	var err error
 
 	for _, req := range tokenReq.CloudEvents.Events {
