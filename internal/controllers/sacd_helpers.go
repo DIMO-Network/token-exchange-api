@@ -41,10 +41,6 @@ func userGrantMap(record *models.PermissionRecord, nftAddr string, tokenID int64
 
 		switch agreement.Type {
 		case "cloudevent":
-			if err := validAssetDID(agreement.Asset, nftAddr, tokenID); err != nil {
-				return nil, nil, fmt.Errorf("failed to validate attestation asset: %s", agreement.Asset)
-			}
-
 			if _, ok := cloudEvtGrants[agreement.EventType]; !ok {
 				cloudEvtGrants[agreement.EventType] = map[string]*set.StringSet{}
 			}
