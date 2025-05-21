@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/DIMO-Network/shared/privileges"
+	"github.com/DIMO-Network/shared/pkg/privileges"
 	"github.com/DIMO-Network/token-exchange-api/pkg/tokenclaims"
 	dgrpc "github.com/dexidp/dex/api/v2"
 	"github.com/ethereum/go-ethereum/common"
