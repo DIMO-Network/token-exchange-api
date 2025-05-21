@@ -65,16 +65,16 @@ type TokenRequest struct {
 }
 
 type CloudEvents struct {
-	Events []CloudEventFilter `json:"events"`
+	Events []EventFilter `json:"events"`
 }
 
-type CloudEventFilter struct {
+type EventFilter struct {
 	EventType string   `json:"eventType"`
 	Source    string   `json:"source"`
 	IDs       []string `json:"ids"`
 }
 
-type PermissionTokenResponse struct {
+type TokenResponse struct {
 	Token string `json:"token"`
 }
 
@@ -97,7 +97,7 @@ func NewTokenExchangeController(logger *zerolog.Logger, settings *config.Setting
 // @Accept      json
 // @Param       tokenRequest body controllers.TokenRequest true "Requested privileges: must include address, token id, and privilege ids"
 // @Produce     json
-// @Success     200 {object} controllers.PermissionTokenResponse
+// @Success     200 {object} controllers.TokenResponse
 // @Security    BearerAuth
 // @Router      /tokens/exchange [post]
 func (t *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.Ctx) error {
@@ -180,7 +180,7 @@ func (t *TokenExchangeController) createAndReturnToken(c *fiber.Ctx, tokenReq *T
 		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 	}
 
-	return c.JSON(PermissionTokenResponse{
+	return c.JSON(TokenResponse{
 		Token: tk,
 	})
 }
@@ -221,7 +221,7 @@ func (t *TokenExchangeController) getValidSacdDoc(ctx context.Context, source st
 // Parameters:
 //   - c: The Fiber context for the HTTP request
 //   - record: The SACD permission record containing the granted permissions and validity period
-//   - pr: The permission token request containing the requested privileges and token information
+//   - tokenReq: The permission token request containing the requested privileges and token information
 //   - grantee: The Ethereum address of the user requesting permissions
 //
 // Returns:
@@ -245,8 +245,8 @@ func (t *TokenExchangeController) evaluateSacdDoc(c *fiber.Ctx, record *models.P
 	}
 
 	if err := evaluateCloudEvents(cloudEvtGrants, tokenReq); err != nil {
-		logger.Err(err).Msg("failed to validate request")
-		return fiber.NewError(fiber.StatusBadRequest, "failed to validate request")
+		logger.Err(err).Msg("failed to validate cloudevents agreement")
+		return fiber.NewError(fiber.StatusBadRequest, err.Error())
 	}
 
 	if err := evaluatePermissions(userPermGrants, tokenReq); err != nil {
@@ -281,11 +281,13 @@ func evaluatePermissions(userPermissions map[string]bool, tokenReq *TokenRequest
 		return fmt.Errorf("missing permissions: %v on token id %d for asset %s", missingPermissions, tokenReq.TokenID, tokenReq.NFTContractAddress)
 	}
 
+	// If we get here, all permissions are valid
 	return nil
 }
 
 func evaluateCloudEvents(agreement map[string]map[string]*shared.StringSet, tokenReq *TokenRequest) error {
 	var err error
+
 	for _, req := range tokenReq.CloudEvents.Events {
 		if !common.IsHexAddress(req.Source) && req.Source != tokenclaims.CloudEventTypeGlobal {
 			err = errors.Join(err, fmt.Errorf("requested source %s invalid: must be %s or valid hex address", req.Source, tokenclaims.CloudEventTypeGlobal))
@@ -294,6 +296,7 @@ func evaluateCloudEvents(agreement map[string]map[string]*shared.StringSet, toke
 
 		if len(req.IDs) == 0 {
 			err = errors.Join(err, fmt.Errorf("must request at least one cloudevent id or global access request (%s)", tokenclaims.CloudEventTypeGlobal))
+			continue
 		}
 
 		grantedAggs, ok := agreement[req.EventType]
@@ -302,23 +305,14 @@ func evaluateCloudEvents(agreement map[string]map[string]*shared.StringSet, toke
 			continue
 		}
 
-		// CloudEvent Grant Source: *
-		if globalAggs, grantedAll := grantedAggs[tokenclaims.CloudEventTypeGlobal]; grantedAll {
-			// CloudEvent Grant IDs contain: *
-			if globalAggs.Contains(tokenclaims.CloudEventTypeGlobal) {
-				continue
-			}
-
-			for _, reqID := range req.IDs {
-				if !globalAggs.Contains(reqID) {
-					err = errors.Join(err, fmt.Errorf("lacking grant from %s for %s cloudevent id: %s", req.Source, req.EventType, reqID))
-				}
-			}
+		allSources, allIDs := checkGlobalGrants(grantedAggs)
+		if allSources && allIDs {
 			continue
 		}
 
-		idSet, ok := grantedAggs[req.Source]
-		if !ok {
+		source := common.HexToAddress(req.Source).Hex() // user doesn't have to put in the exact hex addr to the request
+		idSet, ok := grantedAggs[source]
+		if !ok && !allSources {
 			err = errors.Join(err, fmt.Errorf("lacking %s grant for requested source: %s", req.EventType, req.Source))
 			continue
 		}
@@ -334,6 +328,9 @@ func evaluateCloudEvents(agreement map[string]map[string]*shared.StringSet, toke
 				err = errors.Join(err, fmt.Errorf("lacking grant from %s for %s cloudevent id: %s", req.Source, req.EventType, reqID))
 			}
 		}
+
+		continue
+
 	}
 
 	return err
@@ -348,7 +345,7 @@ func evaluateCloudEvents(agreement map[string]map[string]*shared.StringSet, toke
 //   - c: The Fiber context for the HTTP request
 //   - s: The SACD contract instance used to check permissions
 //   - nftAddr: The Ethereum address of the NFT contract
-//   - pr: The permission token request containing token ID and requested privileges
+//   - tokenReq: The permission token request containing token ID and requested privileges
 //   - ethAddr: The Ethereum address of the user requesting permissions
 //
 // Returns:
@@ -358,16 +355,16 @@ func (t *TokenExchangeController) evaluatePermissionsBits(
 	c *fiber.Ctx,
 	s contracts.Sacd,
 	nftAddr common.Address,
-	pr *TokenRequest,
+	tokenReq *TokenRequest,
 	ethAddr *common.Address,
 ) error {
 	// Convert pr.Privileges to 2-bit array format
-	mask, err := intArrayTo2BitArray(pr.Privileges, 128) // Assuming max privilege is 128
+	mask, err := intArrayTo2BitArray(tokenReq.Privileges, 128) // Assuming max privilege is 128
 	if err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, err.Error())
 	}
 
-	ret, err := s.GetPermissions(nil, nftAddr, big.NewInt(pr.TokenID), *ethAddr, mask)
+	ret, err := s.GetPermissions(nil, nftAddr, big.NewInt(tokenReq.TokenID), *ethAddr, mask)
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 	}
@@ -375,7 +372,7 @@ func (t *TokenExchangeController) evaluatePermissionsBits(
 	// Collecting these because in the future we'd like to list all of them.
 	var lack []int64
 
-	for _, p := range pr.Privileges {
+	for _, p := range tokenReq.Privileges {
 		if ret.Bit(2*int(p)) != 1 || ret.Bit(2*int(p)+1) != 1 {
 			lack = append(lack, p)
 		}
@@ -389,19 +386,19 @@ func (t *TokenExchangeController) evaluatePermissionsBits(
 			return fiber.NewError(fiber.StatusInternalServerError, "Could not connect to blockchain node")
 		}
 
-		for _, p := range pr.Privileges {
-			hasPriv, err := m.HasPrivilege(nil, big.NewInt(pr.TokenID), big.NewInt(p), *ethAddr)
+		for _, p := range tokenReq.Privileges {
+			hasPriv, err := m.HasPrivilege(nil, big.NewInt(tokenReq.TokenID), big.NewInt(p), *ethAddr)
 			if err != nil {
 				return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 			}
 
 			if !hasPriv {
-				return fiber.NewError(fiber.StatusBadRequest, fmt.Sprintf("Address %s lacks permission %d on token id %d for asset %s.", ethAddr.Hex(), p, pr.TokenID, nftAddr))
+				return fiber.NewError(fiber.StatusBadRequest, fmt.Sprintf("Address %s lacks permission %d on token id %d for asset %s.", ethAddr.Hex(), p, tokenReq.TokenID, nftAddr))
 			}
 		}
 
-		t.logger.Warn().Msgf("Still using privileges %v for %s_%d", pr.Privileges, nftAddr.Hex(), pr.TokenID)
+		t.logger.Warn().Msgf("Still using privileges %v for %s_%d", tokenReq.Privileges, nftAddr.Hex(), tokenReq.TokenID)
 	}
 
-	return t.createAndReturnToken(c, pr, ethAddr)
+	return t.createAndReturnToken(c, tokenReq, ethAddr)
 }

@@ -3,14 +3,22 @@ package controllers
 import (
 	"fmt"
 	"math/big"
-	"strings"
 	"time"
 
 	"github.com/DIMO-Network/cloudevent"
 	"github.com/DIMO-Network/shared"
 	"github.com/DIMO-Network/token-exchange-api/internal/models"
+	"github.com/DIMO-Network/token-exchange-api/pkg/tokenclaims"
 	"github.com/ethereum/go-ethereum/common"
 )
+
+func checkGlobalGrants(agreements map[string]*shared.StringSet) (bool, bool) {
+	globalIDGrants, ok := agreements[tokenclaims.CloudEventTypeGlobal]
+	if !ok {
+		return false, false
+	}
+	return ok, globalIDGrants.Contains(tokenclaims.CloudEventTypeGlobal)
+}
 
 func userGrantMap(record *models.PermissionRecord, nftAddr string, tokenID int64) (map[string]bool, map[string]map[string]*shared.StringSet, error) {
 	userPermGrants := make(map[string]bool)
@@ -37,13 +45,12 @@ func userGrantMap(record *models.PermissionRecord, nftAddr string, tokenID int64
 				cloudEvtGrants[agreement.EventType] = map[string]*shared.StringSet{}
 			}
 
-			source := strings.ToLower(agreement.Source)
-			if _, ok := cloudEvtGrants[agreement.EventType][source]; !ok {
-				cloudEvtGrants[agreement.EventType][source] = shared.NewStringSet()
+			if _, ok := cloudEvtGrants[agreement.EventType][agreement.Source]; !ok {
+				cloudEvtGrants[agreement.EventType][agreement.Source] = shared.NewStringSet()
 			}
 
 			for _, id := range agreement.IDs {
-				cloudEvtGrants[agreement.EventType][source].Add(id)
+				cloudEvtGrants[agreement.EventType][agreement.Source].Add(id)
 			}
 
 		case "permission":

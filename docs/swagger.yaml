@@ -1,6 +1,13 @@
 basePath: /v1
 definitions:
-  internal_controllers.CloudEventFilter:
+  internal_controllers.CloudEvents:
+    properties:
+      events:
+        items:
+          $ref: '#/definitions/internal_controllers.EventFilter'
+        type: array
+    type: object
+  internal_controllers.EventFilter:
     properties:
       eventType:
         type: string
@@ -9,18 +16,6 @@ definitions:
           type: string
         type: array
       source:
-        type: string
-    type: object
-  internal_controllers.CloudEvents:
-    properties:
-      events:
-        items:
-          $ref: '#/definitions/internal_controllers.CloudEventFilter'
-        type: array
-    type: object
-  internal_controllers.PermissionTokenResponse:
-    properties:
-      token:
         type: string
     type: object
   internal_controllers.TokenRequest:
@@ -61,6 +56,11 @@ definitions:
     - privileges
     - tokenId
     type: object
+  internal_controllers.TokenResponse:
+    properties:
+      token:
+        type: string
+    type: object
 info:
   contact: {}
   title: DIMO Token Exchange API
@@ -85,7 +85,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/internal_controllers.PermissionTokenResponse'
+            $ref: '#/definitions/internal_controllers.TokenResponse'
       security:
       - BearerAuth: []
       summary: privileges on the correct token.

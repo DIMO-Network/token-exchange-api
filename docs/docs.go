@@ -45,7 +45,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/internal_controllers.PermissionTokenResponse"
+                            "$ref": "#/definitions/internal_controllers.TokenResponse"
                         }
                     }
                 }
@@ -53,7 +53,18 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "internal_controllers.CloudEventFilter": {
+        "internal_controllers.CloudEvents": {
+            "type": "object",
+            "properties": {
+                "events": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/internal_controllers.EventFilter"
+                    }
+                }
+            }
+        },
+        "internal_controllers.EventFilter": {
             "type": "object",
             "properties": {
                 "eventType": {
@@ -66,25 +77,6 @@ const docTemplate = `{
                     }
                 },
                 "source": {
-                    "type": "string"
-                }
-            }
-        },
-        "internal_controllers.CloudEvents": {
-            "type": "object",
-            "properties": {
-                "events": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/internal_controllers.CloudEventFilter"
-                    }
-                }
-            }
-        },
-        "internal_controllers.PermissionTokenResponse": {
-            "type": "object",
-            "properties": {
-                "token": {
                     "type": "string"
                 }
             }
@@ -134,6 +126,14 @@ const docTemplate = `{
                     "description": "TokenID is the NFT token id.",
                     "type": "integer",
                     "example": 7
+                }
+            }
+        },
+        "internal_controllers.TokenResponse": {
+            "type": "object",
+            "properties": {
+                "token": {
+                    "type": "string"
                 }
             }
         }

@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"github.com/DIMO-Network/cloudevent"
-	"github.com/DIMO-Network/shared"
 	"github.com/DIMO-Network/shared/privileges"
 	"github.com/DIMO-Network/token-exchange-api/internal/config"
 	mock_contracts "github.com/DIMO-Network/token-exchange-api/internal/contracts/mocks"
@@ -87,7 +86,8 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 					EffectiveAt: &effectiveAt,
 					ExpiresAt:   &expiresAt,
 					EventType:   cloudevent.TypeAttestation,
-					Source:      "0x123",
+					Source:      common.BigToAddress(big.NewInt(1)).Hex(),
+					IDs:         []string{"1"},
 					Asset:       "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
 				},
 			},
@@ -273,10 +273,11 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 			permissionTokenRequest: &TokenRequest{
 				TokenID: 123,
 				CloudEvents: &CloudEvents{
-					Events: []CloudEventFilter{
+					Events: []EventFilter{
 						{
 							EventType: cloudevent.TypeAttestation,
-							Source:    "0x123",
+							Source:    common.BigToAddress(big.NewInt(1)).Hex(),
+							IDs:       []string{"1"},
 						},
 					},
 				},
@@ -292,7 +293,8 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 						Events: []tokenclaims.Event{
 							{
 								EventType: cloudevent.TypeAttestation,
-								Source:    "0x123",
+								Source:    common.BigToAddress(big.NewInt(1)).Hex(),
+								IDs:       []string{"1"},
 							},
 						},
 					},
@@ -313,7 +315,7 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 			permissionTokenRequest: &TokenRequest{
 				TokenID: 123,
 				CloudEvents: &CloudEvents{
-					Events: []CloudEventFilter{
+					Events: []EventFilter{
 						{},
 					},
 				},
@@ -344,656 +346,6 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 			assert.Equal(t, tc.expectedCode, response.StatusCode, "expected success")
 			if tc.expectedCode == fiber.StatusOK {
 				assert.Equal(t, "jwt", gjson.GetBytes(body, "token").Str)
-			}
-		})
-	}
-}
-
-func TestTokenExchangeController_EvaluatingSACD_CloudEventTypeGlobal(t *testing.T) {
-	userEthAddr := common.HexToAddress("0x20Ca3bE69a8B95D3093383375F0473A8c6341727")
-	oneMinAgo := time.Now().Add(-1 * time.Minute)
-	oneMinFuture := time.Now().Add(1 * time.Minute)
-
-	ipfsRecord := models.PermissionRecord{
-		Type: "dimo.sacd",
-		Data: models.PermissionData{
-			Grantor: models.Address{
-				Address: common.BigToAddress(big.NewInt(1)).Hex(),
-			},
-			Grantee: models.Address{
-				Address: userEthAddr.Hex(),
-			},
-			EffectiveAt: oneMinAgo,
-			ExpiresAt:   oneMinFuture,
-			Asset:       "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
-		},
-	}
-
-	tests := []struct {
-		name             string
-		agreement        []models.Agreement
-		request          TokenRequest
-		expectedCEGrants func() map[string]map[string]*shared.StringSet
-		err              error
-	}{
-		{
-			name: "Pass: request matches grant, all attestations",
-			agreement: []models.Agreement{
-				{
-					Type:      "cloudevent",
-					EventType: "dimo.attestation",
-					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
-					IDs:       []string{"*"},
-					Source:    "*",
-				},
-			},
-			request: TokenRequest{
-				TokenID:            123,
-				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
-				CloudEvents: &CloudEvents{
-					Events: []CloudEventFilter{
-						{
-							EventType: cloudevent.TypeAttestation,
-							Source:    "*",
-							IDs:       []string{"*"},
-						},
-					},
-				},
-			},
-			expectedCEGrants: func() map[string]map[string]*shared.StringSet {
-				set := shared.NewStringSet()
-				set.Add("*")
-				return map[string]map[string]*shared.StringSet{
-					cloudevent.TypeAttestation: map[string]*shared.StringSet{
-						"*": set,
-					},
-				}
-			},
-		},
-		{
-			name: "Pass: granted all attestations, asking for specific source",
-			agreement: []models.Agreement{
-				{
-					Type:      "cloudevent",
-					EventType: "dimo.attestation",
-					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
-					IDs:       []string{"*"},
-					Source:    "*",
-				},
-			},
-			request: TokenRequest{
-				TokenID:            123,
-				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
-				CloudEvents: &CloudEvents{
-					Events: []CloudEventFilter{
-						{
-							EventType: cloudevent.TypeAttestation,
-							Source:    common.BigToAddress(big.NewInt(1)).Hex(),
-							IDs:       []string{"*"},
-						},
-					},
-				},
-			},
-			expectedCEGrants: func() map[string]map[string]*shared.StringSet {
-				set := shared.NewStringSet()
-				set.Add("*")
-				return map[string]map[string]*shared.StringSet{
-					cloudevent.TypeAttestation: map[string]*shared.StringSet{
-						"*": set,
-					},
-				}
-			},
-		},
-		{
-			name: "Pass: granted all attestations, asking for specific source and ids",
-			agreement: []models.Agreement{
-				{
-					Type:      "cloudevent",
-					EventType: "dimo.attestation",
-					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
-					IDs:       []string{"*"},
-					Source:    "*",
-				},
-			},
-			request: TokenRequest{
-				TokenID:            123,
-				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
-				CloudEvents: &CloudEvents{
-					Events: []CloudEventFilter{
-						{
-							EventType: cloudevent.TypeAttestation,
-							Source:    common.BigToAddress(big.NewInt(1)).Hex(),
-							IDs:       []string{"1, 2, 3"},
-						},
-					},
-				},
-			},
-			expectedCEGrants: func() map[string]map[string]*shared.StringSet {
-				set := shared.NewStringSet()
-				set.Add("*")
-				return map[string]map[string]*shared.StringSet{
-					cloudevent.TypeAttestation: map[string]*shared.StringSet{
-						"*": set,
-					},
-				}
-			},
-		},
-		{
-			name: "Fail: not requesting any ids",
-			agreement: []models.Agreement{
-				{
-					Type:      "cloudevent",
-					EventType: "dimo.attestation",
-					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
-					IDs:       []string{"1"},
-					Source:    common.BigToAddress(big.NewInt(1)).Hex(),
-				},
-			},
-			request: TokenRequest{
-				TokenID:            123,
-				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
-				CloudEvents: &CloudEvents{
-					Events: []CloudEventFilter{
-						{
-							EventType: cloudevent.TypeAttestation,
-							Source:    common.BigToAddress(big.NewInt(1)).Hex(),
-						},
-					},
-				},
-			},
-			expectedCEGrants: func() map[string]map[string]*shared.StringSet {
-				set := shared.NewStringSet()
-				set.Add("1")
-				return map[string]map[string]*shared.StringSet{
-					cloudevent.TypeAttestation: map[string]*shared.StringSet{
-						common.BigToAddress(big.NewInt(1)).Hex(): set,
-					},
-				}
-			},
-			err: fmt.Errorf("must request at least one cloudevent id or global access request (*)"),
-		},
-		{
-			name: "Fail: not requesting source",
-			agreement: []models.Agreement{
-				{
-					Type:      "cloudevent",
-					EventType: "dimo.attestation",
-					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
-					IDs:       []string{"1"},
-					Source:    common.BigToAddress(big.NewInt(1)).Hex(),
-				},
-			},
-			request: TokenRequest{
-				TokenID:            123,
-				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
-				CloudEvents: &CloudEvents{
-					Events: []CloudEventFilter{
-						{
-							EventType: cloudevent.TypeAttestation,
-							IDs:       []string{"1"},
-						},
-					},
-				},
-			},
-			expectedCEGrants: func() map[string]map[string]*shared.StringSet {
-				set := shared.NewStringSet()
-				set.Add("1")
-				return map[string]map[string]*shared.StringSet{
-					cloudevent.TypeAttestation: map[string]*shared.StringSet{
-						common.BigToAddress(big.NewInt(1)).Hex(): set,
-					},
-				}
-			},
-			err: fmt.Errorf("requested source  invalid: must be * or valid hex address"),
-		},
-		{
-			name: "Fail: source not valid hex address",
-			agreement: []models.Agreement{
-				{
-					Type:      "cloudevent",
-					EventType: "dimo.attestation",
-					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
-					IDs:       []string{"1"},
-					Source:    "0xD8e056b0eC6A629A97299271cD13710C810742b0",
-				},
-			},
-			request: TokenRequest{
-				TokenID:            123,
-				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
-				CloudEvents: &CloudEvents{
-					Events: []CloudEventFilter{
-						{
-							EventType: cloudevent.TypeAttestation,
-							IDs:       []string{"1"},
-							Source:    "0xd8E056b0eC6A629A97299271cD13710C810742b0",
-						},
-					},
-				},
-			},
-			expectedCEGrants: func() map[string]map[string]*shared.StringSet {
-				set := shared.NewStringSet()
-				set.Add("1")
-				return map[string]map[string]*shared.StringSet{
-					cloudevent.TypeAttestation: map[string]*shared.StringSet{
-						"0xD8e056b0eC6A629A97299271cD13710C810742b0": set,
-					},
-				}
-			},
-		},
-		// {
-		// 	name: "Fail: requesting all ids but only granted 1",
-		// 	agreement: []models.Agreement{
-		// 		{
-		// 			Type:      "cloudevent",
-		// 			EventType: "dimo.attestation",
-		// 			Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
-		// 			IDs:       []string{"1"},
-		// 			Source:    common.BigToAddress(big.NewInt(1)).Hex(),
-		// 		},
-		// 	},
-		// 	request: TokenRequest{
-		// 		TokenID:            123,
-		// 		NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
-		// 		CloudEvents: &CloudEvents{
-		// 			Events: []CloudEventFilter{
-		// 				{
-		// 					EventType: cloudevent.TypeAttestation,
-		// 					Source:    common.BigToAddress(big.NewInt(1)).Hex(),
-		// 					IDs:       []string{"*"},
-		// 				},
-		// 			},
-		// 		},
-		// 	},
-		// 	expectedCEGrants: func() map[string]map[string]*shared.StringSet {
-		// 		set := shared.NewStringSet()
-		// 		set.Add("1")
-		// 		return map[string]map[string]*shared.StringSet{
-		// 			cloudevent.TypeAttestation: map[string]*shared.StringSet{
-		// 				common.BigToAddress(big.NewInt(1)).Hex(): set,
-		// 			},
-		// 		}
-		// 	},
-		// 	err: fmt.Errorf("lacking grant from 0x0000000000000000000000000000000000000001 for dimo.attestation cloudevent id: *"),
-		// },
-		// {
-		// 	name: "Fail: requesting all sources but only granted 1",
-		// 	agreement: []models.Agreement{
-		// 		{
-		// 			Type:      "cloudevent",
-		// 			EventType: "dimo.attestation",
-		// 			Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
-		// 			IDs:       []string{"1"},
-		// 			Source:    common.BigToAddress(big.NewInt(1)).Hex(),
-		// 		},
-		// 	},
-		// 	request: TokenRequest{
-		// 		TokenID:            123,
-		// 		NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
-		// 		CloudEvents: &CloudEvents{
-		// 			Events: []CloudEventFilter{
-		// 				{
-		// 					EventType: cloudevent.TypeAttestation,
-		// 					Source:    "*",
-		// 					IDs:       []string{"1"},
-		// 				},
-		// 			},
-		// 		},
-		// 	},
-		// 	expectedCEGrants: func() map[string]map[string]*shared.StringSet {
-		// 		set := shared.NewStringSet()
-		// 		set.Add("1")
-		// 		return map[string]map[string]*shared.StringSet{
-		// 			cloudevent.TypeAttestation: map[string]*shared.StringSet{
-		// 				common.BigToAddress(big.NewInt(1)).Hex(): set,
-		// 			},
-		// 		}
-		// 	},
-		// 	err: fmt.Errorf("lacking dimo.attestation grant for requested source: *"),
-		// },
-	}
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			ipfsRecord.Data.Agreements = tc.agreement
-			expectedCEGrants := tc.expectedCEGrants()
-			_, ceGrants, err := userGrantMap(&ipfsRecord, tc.request.NFTContractAddress, tc.request.TokenID)
-			require.Nil(t, err)
-			for eventType, evtMap := range expectedCEGrants {
-				_, ok := ceGrants[eventType]
-				require.True(t, ok)
-
-				for src, vals := range evtMap {
-					s := strings.ToLower(src)
-					_, ok := ceGrants[eventType][s]
-					require.True(t, ok)
-					require.ElementsMatch(t, vals.Slice(), ceGrants[eventType][s].Slice())
-				}
-			}
-
-			err = evaluateCloudEvents(ceGrants, &tc.request)
-			if err != nil {
-				fmt.Println(err.Error())
-			}
-			if tc.err != nil {
-				require.NotNil(t, err)
-				require.Equal(t, err.Error(), tc.err.Error())
-			} else {
-				require.Nil(t, err)
-			}
-		})
-	}
-}
-
-func TestTokenExchangeController_EvaluatingSACD_Attestations(t *testing.T) {
-	userEthAddr := common.HexToAddress("0x20Ca3bE69a8B95D3093383375F0473A8c6341727")
-	oneMinAgo := time.Now().Add(-1 * time.Minute)
-	oneMinFuture := time.Now().Add(1 * time.Minute)
-	thirtySecAgo := time.Now().Add(-30 * time.Second)
-	tenMinFuture := time.Now().Add(10 * time.Minute)
-	invalidSource1 := common.BigToAddress(big.NewInt(1)).Hex()
-	invalidSource2 := common.BigToAddress(big.NewInt(2)).Hex()
-	validSource1 := common.BigToAddress(big.NewInt(3)).Hex()
-
-	ipfsRecord := models.PermissionRecord{
-		Type: "dimo.sacd",
-		Data: models.PermissionData{
-			Grantor: models.Address{
-				Address: common.BigToAddress(big.NewInt(1)).Hex(),
-			},
-			Grantee: models.Address{
-				Address: userEthAddr.Hex(),
-			},
-			EffectiveAt: oneMinAgo,
-			ExpiresAt:   oneMinFuture,
-			Asset:       "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
-		},
-	}
-
-	tests := []struct {
-		name             string
-		agreement        []models.Agreement
-		request          TokenRequest
-		expectedCEGrants func() map[string]map[string]*shared.StringSet
-		err              error
-	}{
-		{
-			name: "Pass: request matches grant, attestations only with id",
-			agreement: []models.Agreement{
-				{
-					Type:      "cloudevent",
-					EventType: "dimo.attestation",
-					IDs:       []string{"1", "2", "3"},
-					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
-					Source:    common.BigToAddress(big.NewInt(1)).Hex(),
-				},
-			},
-			request: TokenRequest{
-				TokenID:            123,
-				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
-				CloudEvents: &CloudEvents{
-					Events: []CloudEventFilter{
-						{
-							EventType: cloudevent.TypeAttestation,
-							IDs:       []string{"1", "2", "3"},
-						},
-					},
-				},
-			},
-			expectedCEGrants: func() map[string]map[string]*shared.StringSet {
-				set := shared.NewStringSet()
-				set.Add("1")
-				set.Add("2")
-				set.Add("3")
-				return map[string]map[string]*shared.StringSet{
-					cloudevent.TypeAttestation: map[string]*shared.StringSet{
-						"*": set,
-					},
-				}
-			},
-		},
-		{
-			name: "Fail: requesting for id with no access, user based",
-			agreement: []models.Agreement{
-				{
-					Type:      "cloudevent",
-					EventType: "dimo.attestation",
-					Source:    validSource1,
-					IDs:       []string{"1", "2"},
-					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
-				},
-			},
-			request: TokenRequest{
-				TokenID:            123,
-				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
-				CloudEvents: &CloudEvents{
-					Events: []CloudEventFilter{
-						{
-							EventType: cloudevent.TypeAttestation,
-							Source:    validSource1,
-						},
-					},
-				},
-			},
-			expectedCEGrants: func() map[string]map[string]*shared.StringSet {
-				set := shared.NewStringSet()
-				set.Add("1")
-				set.Add("2")
-				return map[string]map[string]*shared.StringSet{
-					cloudevent.TypeAttestation: map[string]*shared.StringSet{
-						validSource1: set,
-					},
-				}
-			},
-			err: fmt.Errorf("requesting global access to %s cloudevents for %s but only granted subset", validSource1, cloudevent.TypeAttestation),
-		},
-		{
-			name: "Pass: requesting all attestations from single source with grant",
-			agreement: []models.Agreement{
-				{
-					Type:      "cloudevent",
-					EventType: cloudevent.TypeAttestation,
-					Source:    validSource1,
-					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
-				},
-			},
-			request: TokenRequest{
-				TokenID:            123,
-				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
-				CloudEvents: &CloudEvents{
-					Events: []CloudEventFilter{
-						{
-							EventType: cloudevent.TypeAttestation,
-							Source:    validSource1,
-						},
-					},
-				},
-			},
-			expectedCEGrants: func() map[string]map[string]*shared.StringSet {
-				return map[string]map[string]*shared.StringSet{
-					cloudevent.TypeAttestation: map[string]*shared.StringSet{
-						validSource1: &shared.StringSet{},
-					},
-				}
-			},
-		},
-		{
-			name: "Pass: requesting some attestations from single source with grant",
-			agreement: []models.Agreement{
-				{
-					Type:      "cloudevent",
-					EventType: cloudevent.TypeAttestation,
-					Source:    validSource1,
-					IDs:       []string{"1", "2", "3"},
-					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
-				},
-			},
-			request: TokenRequest{
-				TokenID:            123,
-				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
-				CloudEvents: &CloudEvents{
-					Events: []CloudEventFilter{
-						{
-							EventType: cloudevent.TypeAttestation,
-							Source:    validSource1,
-							IDs:       []string{"1", "2", "3"},
-						},
-					},
-				},
-			},
-			expectedCEGrants: func() map[string]map[string]*shared.StringSet {
-				set := shared.NewStringSet()
-				set.Add("1")
-				set.Add("2")
-				set.Add("3")
-				return map[string]map[string]*shared.StringSet{
-					cloudevent.TypeAttestation: map[string]*shared.StringSet{
-						validSource1: set,
-					},
-				}
-			},
-		},
-		{
-			name: "Fail: requesting all attestations, only granted single source",
-			agreement: []models.Agreement{
-				{
-					Type:      "cloudevent",
-					EventType: cloudevent.TypeAttestation,
-					Source:    validSource1,
-					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
-				},
-			},
-			request: TokenRequest{
-				TokenID:            123,
-				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
-				CloudEvents: &CloudEvents{
-					Events: []CloudEventFilter{
-						{
-							EventType: cloudevent.TypeAttestation,
-						},
-					},
-				},
-			},
-			expectedCEGrants: func() map[string]map[string]*shared.StringSet {
-				return map[string]map[string]*shared.StringSet{
-					cloudevent.TypeAttestation: map[string]*shared.StringSet{
-						validSource1: &shared.StringSet{},
-					},
-				}
-			},
-			err: fmt.Errorf("lacking %s grant for requested source: %s", cloudevent.TypeAttestation, "*"),
-		},
-		{
-			name: "Fail: multiple errors",
-			agreement: []models.Agreement{
-				{
-					Type:      "cloudevent",
-					EventType: cloudevent.TypeAttestation,
-					Source:    validSource1,
-					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
-				},
-			},
-			request: TokenRequest{
-				TokenID:            123,
-				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
-				CloudEvents: &CloudEvents{
-					Events: []CloudEventFilter{
-						{
-							EventType: cloudevent.TypeAttestation,
-							Source:    invalidSource1,
-						},
-						{
-							EventType: cloudevent.TypeAttestation,
-							Source:    invalidSource2,
-						},
-					},
-				},
-			},
-			expectedCEGrants: func() map[string]map[string]*shared.StringSet {
-				return map[string]map[string]*shared.StringSet{
-					cloudevent.TypeAttestation: map[string]*shared.StringSet{
-						validSource1: shared.NewStringSet(),
-					},
-				}
-			},
-			err: errors.Join(
-				fmt.Errorf("lacking %s grant for requested source: %s", cloudevent.TypeAttestation, invalidSource1),
-				fmt.Errorf("lacking %s grant for requested source: %s", cloudevent.TypeAttestation, invalidSource2)),
-		},
-		{
-			name: "Fail: inner time already expired",
-			agreement: []models.Agreement{
-				{
-					ExpiresAt: &thirtySecAgo,
-					Type:      "cloudevent",
-					EventType: "dimo.attestation",
-					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
-				},
-			},
-			request: TokenRequest{
-				TokenID:            123,
-				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
-				CloudEvents: &CloudEvents{
-					Events: []CloudEventFilter{
-						{
-							EventType: cloudevent.TypeAttestation,
-						},
-					},
-				},
-			},
-			expectedCEGrants: func() map[string]map[string]*shared.StringSet {
-				return map[string]map[string]*shared.StringSet{}
-			},
-			err: fmt.Errorf("lacking grant for requested event type: %s", cloudevent.TypeAttestation),
-		},
-		{
-			name: "Fail: inner time not effective yet",
-			agreement: []models.Agreement{
-				{
-					EffectiveAt: &tenMinFuture,
-					Type:        "cloudevent",
-					EventType:   "dimo.attestation",
-					Asset:       "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
-				},
-			},
-			request: TokenRequest{
-				TokenID:            123,
-				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
-				CloudEvents: &CloudEvents{
-					Events: []CloudEventFilter{
-						{
-							EventType: cloudevent.TypeAttestation,
-						},
-					},
-				},
-			},
-			expectedCEGrants: func() map[string]map[string]*shared.StringSet {
-				return map[string]map[string]*shared.StringSet{}
-			},
-			err: fmt.Errorf("lacking grant for requested event type: %s", cloudevent.TypeAttestation),
-		},
-	}
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			ipfsRecord.Data.Agreements = tc.agreement
-			expectedCEGrants := tc.expectedCEGrants()
-			_, ceGrants, err := userGrantMap(&ipfsRecord, tc.request.NFTContractAddress, tc.request.TokenID)
-			require.Nil(t, err)
-			for eventType, evtMap := range expectedCEGrants {
-				_, ok := ceGrants[eventType]
-				require.True(t, ok)
-
-				for src, vals := range evtMap {
-					_, ok := ceGrants[eventType][src]
-					require.True(t, ok)
-					require.ElementsMatch(t, vals.Slice(), ceGrants[eventType][src].Slice())
-				}
-			}
-
-			err = evaluateCloudEvents(ceGrants, &tc.request)
-			if tc.err != nil {
-				require.NotNil(t, err)
-				require.Equal(t, err.Error(), tc.err.Error())
-			} else {
-				require.Nil(t, err)
 			}
 		})
 	}
@@ -1099,23 +451,25 @@ func TestDevLicenseMiddleware(t *testing.T) {
 func Test_ProtobufSerializer(t *testing.T) {
 	privs := []privileges.Privilege{1, 2, 3, 4}
 
-	source := "0x123"
 	ce := tokenclaims.CloudEvents{
 		Events: []tokenclaims.Event{
 			{
 				EventType: cloudevent.TypeAttestation,
-				Source:    source,
+				Source:    "0x123",
 				IDs:       []string{"attestation-1"},
 			},
 			{
 				EventType: cloudevent.TypeAttestation,
+				Source:    "*",
 			},
 			{
 				EventType: cloudevent.TypeAttestation,
 				IDs:       []string{"attestation-7"},
+				Source:    "*",
 			},
 			{
 				EventType: cloudevent.TypeFingerprint,
+				Source:    "*",
 			},
 		},
 	}
