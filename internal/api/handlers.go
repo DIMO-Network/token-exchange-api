@@ -43,7 +43,7 @@ func GetUserEthAddr(c *fiber.Ctx) (common.Address, error) {
 	}
 
 	if !common.IsHexAddress(addrString) {
-		return zeroAddr, fiber.NewError(fiber.StatusUnauthorized, "Ethereum address claim is not a valid.")
+		return zeroAddr, fiber.NewError(fiber.StatusUnauthorized, "Ethereum address claim is not a valid hex address.")
 	}
 
 	return common.HexToAddress(addrString), nil
