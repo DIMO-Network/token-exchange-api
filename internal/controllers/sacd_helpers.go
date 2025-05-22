@@ -123,8 +123,8 @@ func validAssetDID(did string, nftContractAddr string, tokenID int64) error {
 			decodedDID.ContractAddress.Hex(), nftContractAddr)
 	}
 
-	if int64(decodedDID.TokenID.Int64()) != tokenID {
-		return fmt.Errorf("DID token ID %d does not match request token ID %d",
+	if decodedDID.TokenID.Cmp(big.NewInt(tokenID)) != 0 {
+		return fmt.Errorf("DID token id %d does not match request token id %d",
 			decodedDID.TokenID, tokenID)
 	}
 
