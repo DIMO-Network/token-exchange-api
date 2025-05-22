@@ -272,7 +272,7 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 			userEthAddr: &userEthAddr,
 			permissionTokenRequest: &TokenRequest{
 				TokenID: 123,
-				CloudEvents: &CloudEvents{
+				CloudEvents: CloudEvents{
 					Events: []EventFilter{
 						{
 							EventType: cloudevent.TypeAttestation,
@@ -314,7 +314,7 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 			userEthAddr: &userEthAddr,
 			permissionTokenRequest: &TokenRequest{
 				TokenID: 123,
-				CloudEvents: &CloudEvents{
+				CloudEvents: CloudEvents{
 					Events: []EventFilter{
 						{},
 					},
@@ -392,7 +392,7 @@ func TestTokenExchangeController_EvaluatingSACD_Attestations(t *testing.T) {
 			request: TokenRequest{
 				TokenID:            123,
 				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
-				CloudEvents: &CloudEvents{
+				CloudEvents: CloudEvents{
 					Events: []EventFilter{
 						{
 							EventType: cloudevent.TypeAttestation,
@@ -426,7 +426,7 @@ func TestTokenExchangeController_EvaluatingSACD_Attestations(t *testing.T) {
 			request: TokenRequest{
 				TokenID:            123,
 				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
-				CloudEvents: &CloudEvents{
+				CloudEvents: CloudEvents{
 					Events: []EventFilter{
 						{
 							EventType: cloudevent.TypeAttestation,
@@ -460,7 +460,7 @@ func TestTokenExchangeController_EvaluatingSACD_Attestations(t *testing.T) {
 			request: TokenRequest{
 				TokenID:            123,
 				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
-				CloudEvents: &CloudEvents{
+				CloudEvents: CloudEvents{
 					Events: []EventFilter{
 						{
 							EventType: cloudevent.TypeAttestation,
@@ -494,7 +494,7 @@ func TestTokenExchangeController_EvaluatingSACD_Attestations(t *testing.T) {
 			request: TokenRequest{
 				TokenID:            123,
 				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
-				CloudEvents: &CloudEvents{
+				CloudEvents: CloudEvents{
 					Events: []EventFilter{
 						{
 							EventType: cloudevent.TypeAttestation,
@@ -528,7 +528,7 @@ func TestTokenExchangeController_EvaluatingSACD_Attestations(t *testing.T) {
 			request: TokenRequest{
 				TokenID:            123,
 				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
-				CloudEvents: &CloudEvents{
+				CloudEvents: CloudEvents{
 					Events: []EventFilter{
 						{
 							EventType: cloudevent.TypeAttestation,
@@ -562,7 +562,7 @@ func TestTokenExchangeController_EvaluatingSACD_Attestations(t *testing.T) {
 			request: TokenRequest{
 				TokenID:            123,
 				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
-				CloudEvents: &CloudEvents{
+				CloudEvents: CloudEvents{
 					Events: []EventFilter{
 						{
 							EventType: cloudevent.TypeAttestation,
@@ -597,7 +597,7 @@ func TestTokenExchangeController_EvaluatingSACD_Attestations(t *testing.T) {
 			request: TokenRequest{
 				TokenID:            123,
 				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
-				CloudEvents: &CloudEvents{
+				CloudEvents: CloudEvents{
 					Events: []EventFilter{
 						{
 							EventType: cloudevent.TypeAttestation,
@@ -646,7 +646,7 @@ func TestTokenExchangeController_EvaluatingSACD_Attestations(t *testing.T) {
 			request: TokenRequest{
 				TokenID:            123,
 				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
-				CloudEvents: &CloudEvents{
+				CloudEvents: CloudEvents{
 					Events: []EventFilter{
 						{
 							EventType: cloudevent.TypeAttestation,
@@ -702,7 +702,7 @@ func TestTokenExchangeController_EvaluatingSACD_Attestations(t *testing.T) {
 			request: TokenRequest{
 				TokenID:            123,
 				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
-				CloudEvents: &CloudEvents{
+				CloudEvents: CloudEvents{
 					Events: []EventFilter{
 						{
 							EventType: cloudevent.TypeAttestation,
