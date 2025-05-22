@@ -118,9 +118,9 @@ func (t *TokenExchangeController) ExchangeToken(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, "Please provide at least one privilege or cloudevent")
 	}
 
-	ethAddr := api.GetUserEthAddr(c)
-	if ethAddr == nil {
-		return fiber.NewError(fiber.StatusUnauthorized, "Ethereum address required in JWT.")
+	ethAddr, err := api.GetUserEthAddr(c)
+	if err != nil {
+		return err
 	}
 
 	// TODO(elffjs): Still silly to create this every time.
@@ -129,7 +129,7 @@ func (t *TokenExchangeController) ExchangeToken(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusInternalServerError, "Could not connect to blockchain node")
 	}
 
-	resPermRecord, err := s.CurrentPermissionRecord(nil, nftAddr, big.NewInt(tokenReq.TokenID), *ethAddr)
+	resPermRecord, err := s.CurrentPermissionRecord(nil, nftAddr, big.NewInt(tokenReq.TokenID), ethAddr)
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 	}
@@ -149,7 +149,7 @@ func (t *TokenExchangeController) ExchangeToken(c *fiber.Ctx) error {
 }
 
 // Helper function to create and return the token
-func (t *TokenExchangeController) createAndReturnToken(c *fiber.Ctx, tokenReq *TokenRequest, ethAddr *common.Address) error {
+func (t *TokenExchangeController) createAndReturnToken(c *fiber.Ctx, tokenReq *TokenRequest, ethAddr common.Address) error {
 	aud := tokenReq.Audience
 	if len(aud) == 0 {
 		aud = defaultAudience
@@ -227,7 +227,7 @@ func (t *TokenExchangeController) getValidSacdDoc(ctx context.Context, source st
 // Returns:
 //   - error: An error if the document is invalid, expired, or missing requested permissions;
 //     nil if all permissions are valid and the token is successfully created and returned
-func (t *TokenExchangeController) evaluateSacdDoc(c *fiber.Ctx, record *models.PermissionRecord, tokenReq *TokenRequest, grantee *common.Address) error {
+func (t *TokenExchangeController) evaluateSacdDoc(c *fiber.Ctx, record *models.PermissionRecord, tokenReq *TokenRequest, grantee common.Address) error {
 	now := time.Now()
 	logger := t.logger.With().Str("grantee", grantee.Hex()).Logger()
 	if now.Before(record.Data.EffectiveAt) || now.After(record.Data.ExpiresAt) {
@@ -316,7 +316,7 @@ func (t *TokenExchangeController) evaluatePermissionsBits(
 	s contracts.Sacd,
 	nftAddr common.Address,
 	tokenReq *TokenRequest,
-	ethAddr *common.Address,
+	ethAddr common.Address,
 ) error {
 	// Convert pr.Privileges to 2-bit array format
 	mask, err := intArrayTo2BitArray(tokenReq.Privileges, 128) // Assuming max privilege is 128
@@ -324,7 +324,7 @@ func (t *TokenExchangeController) evaluatePermissionsBits(
 		return fiber.NewError(fiber.StatusBadRequest, err.Error())
 	}
 
-	ret, err := s.GetPermissions(nil, nftAddr, big.NewInt(tokenReq.TokenID), *ethAddr, mask)
+	ret, err := s.GetPermissions(nil, nftAddr, big.NewInt(tokenReq.TokenID), ethAddr, mask)
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 	}
@@ -347,7 +347,7 @@ func (t *TokenExchangeController) evaluatePermissionsBits(
 		}
 
 		for _, p := range tokenReq.Privileges {
-			hasPriv, err := m.HasPrivilege(nil, big.NewInt(tokenReq.TokenID), big.NewInt(p), *ethAddr)
+			hasPriv, err := m.HasPrivilege(nil, big.NewInt(tokenReq.TokenID), big.NewInt(p), ethAddr)
 			if err != nil {
 				return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 			}
