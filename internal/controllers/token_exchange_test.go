@@ -333,7 +333,7 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 		t.Run(tc.name, func(t *testing.T) {
 			jsonBytes, _ := json.Marshal(tc.permissionTokenRequest)
 			app := fiber.New()
-			app.Post("/tokens/exchange", authInjectorTestHandler(tc.tokenClaims), c.GetDeviceCommandPermissionWithScope)
+			app.Post("/tokens/exchange", authInjectorTestHandler(tc.tokenClaims), c.ExchangeToken)
 
 			// setup mock expectations
 			tc.mockSetup()

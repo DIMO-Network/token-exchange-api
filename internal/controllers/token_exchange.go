@@ -90,7 +90,7 @@ func NewTokenExchangeController(logger *zerolog.Logger, settings *config.Setting
 	}, nil
 }
 
-// GetDeviceCommandPermissionWithScope godoc
+// ExchangeToken godoc
 // @Description Returns a signed token with the requested privileges.
 // @Summary     The authenticated user must have a confirmed Ethereum address with those
 // @Summary     privileges on the correct token.
@@ -100,7 +100,7 @@ func NewTokenExchangeController(logger *zerolog.Logger, settings *config.Setting
 // @Success     200 {object} controllers.TokenResponse
 // @Security    BearerAuth
 // @Router      /tokens/exchange [post]
-func (t *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.Ctx) error {
+func (t *TokenExchangeController) ExchangeToken(c *fiber.Ctx) error {
 	tokenReq := &TokenRequest{}
 	if err := c.BodyParser(tokenReq); err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "Couldn't parse request body.")
