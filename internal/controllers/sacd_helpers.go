@@ -13,9 +13,11 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
+// evaluateCloudEvent returns an error if and only if the CloudEvent access request is
+// disallowed under the grants in the agreement map.
 func evaluateCloudEvent(agreement map[string]map[string]*set.StringSet, req EventFilter) error {
 	if !common.IsHexAddress(req.Source) && req.Source != tokenclaims.GlobalIdentifier {
-		return fmt.Errorf("requested source %s invalid: must be %s or valid hex address", req.Source, tokenclaims.GlobalIdentifier)
+		return fmt.Errorf("requested source %q invalid: must be %s or valid hex address", req.Source, tokenclaims.GlobalIdentifier)
 	}
 
 	if len(req.IDs) == 0 {
@@ -59,6 +61,7 @@ func evaluateIDsByGrantSource(globalGrants *set.StringSet, sourceGrants *set.Str
 
 func userGrantMap(record *models.PermissionRecord, nftAddr string, tokenID int64) (map[string]bool, map[string]map[string]*set.StringSet, error) {
 	userPermGrants := make(map[string]bool)
+	// type -> source -> ids
 	cloudEvtGrants := make(map[string]map[string]*set.StringSet)
 
 	if err := validAssetDID(record.Data.Asset, nftAddr, tokenID); err != nil {
@@ -89,7 +92,6 @@ func userGrantMap(record *models.PermissionRecord, nftAddr string, tokenID int64
 			for _, id := range agreement.IDs {
 				cloudEvtGrants[agreement.EventType][agreement.Source].Add(id)
 			}
-
 		case "permission":
 			// Add permissions from this agreement
 			for _, permission := range agreement.Permissions {
