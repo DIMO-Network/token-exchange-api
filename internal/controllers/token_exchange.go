@@ -288,9 +288,8 @@ func evaluatePermissions(userPermissions map[string]bool, tokenReq *TokenRequest
 func evaluateCloudEvents(agreement map[string]map[string]*set.StringSet, tokenReq *TokenRequest) error {
 	var err error
 	for _, req := range tokenReq.CloudEvents.Events {
-		if ceErr := evaluateCloudEvent(agreement, req); ceErr != nil {
-			err = errors.Join(err, ceErr)
-		}
+		ceErr := evaluateCloudEvent(agreement, req)
+		err = errors.Join(err, ceErr)
 	}
 
 	return err

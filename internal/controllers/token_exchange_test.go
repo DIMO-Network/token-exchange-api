@@ -38,7 +38,7 @@ import (
 
 //go:generate mockgen -source ./token_exchange.go -destination ./token_exchange_mock_test.go -package controllers
 
-func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.T) {
+func TestTokenExchangeController_ExchangeToken(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
@@ -546,7 +546,7 @@ func TestTokenExchangeController_EvaluatingSACD_Attestations(t *testing.T) {
 					},
 				}
 			},
-			err: fmt.Errorf("requested source  invalid: must be * or valid hex address"),
+			err: fmt.Errorf("requested source \"\" invalid: must be * or valid hex address"),
 		},
 		{
 			name: "Fail: source not valid hex address",
@@ -581,7 +581,7 @@ func TestTokenExchangeController_EvaluatingSACD_Attestations(t *testing.T) {
 					},
 				}
 			},
-			err: fmt.Errorf("requested source 0x123 invalid: must be * or valid hex address"),
+			err: fmt.Errorf("requested source \"0x123\" invalid: must be * or valid hex address"),
 		},
 		{
 			name: "Fail: permission not granted, address must match exactly",
