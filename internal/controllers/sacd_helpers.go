@@ -14,7 +14,6 @@ import (
 )
 
 func evaluateCloudEvent(agreement map[string]map[string]*set.StringSet, req EventFilter) error {
-
 	if !common.IsHexAddress(req.Source) && req.Source != tokenclaims.GlobalIdentifier {
 		return fmt.Errorf("requested source %s invalid: must be %s or valid hex address", req.Source, tokenclaims.GlobalIdentifier)
 	}
