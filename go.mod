@@ -6,7 +6,7 @@ replace github.com/dexidp/dex/api/v2 => github.com/DIMO-Network/dex/api/v2 v2.0.
 
 require (
 	github.com/DIMO-Network/cloudevent v0.1.0
-	github.com/DIMO-Network/shared v1.0.2
+	github.com/DIMO-Network/shared v1.0.3
 	github.com/dexidp/dex/api/v2 v2.35.3
 	github.com/ethereum/go-ethereum v1.15.11
 	github.com/gofiber/contrib/jwt v1.1.2

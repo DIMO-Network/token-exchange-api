@@ -47,12 +47,16 @@ func evaluateCloudEvent(agreement map[string]map[string]*set.StringSet, req Even
 }
 
 func evaluateIDsByGrantSource(globalGrants *set.StringSet, sourceGrants *set.StringSet, requestedIDs []string) []string {
-	if (globalGrants != nil && globalGrants.Contains(tokenclaims.GlobalIdentifier)) || (sourceGrants != nil && sourceGrants.Contains(tokenclaims.GlobalIdentifier)) {
+	// Note that when the request is for the source "*" then these are the same set.
+	grantsUnion := NewNilSafeUnion(globalGrants, sourceGrants)
+
+	if grantsUnion.Contains(tokenclaims.GlobalIdentifier) {
 		return nil
 	}
+
 	var missingIDs []string
 	for _, reqID := range requestedIDs {
-		if (globalGrants != nil && !globalGrants.Contains(reqID)) && (sourceGrants != nil && !sourceGrants.Contains(reqID)) {
+		if grantsUnion.Contains(reqID) {
 			missingIDs = append(missingIDs, reqID)
 		}
 	}
@@ -145,4 +149,16 @@ func intArrayTo2BitArray(indices []int64, length int) (*big.Int, error) {
 	}
 
 	return mask, nil
+}
+
+type NilSafeUnion struct {
+	s1, s2 *set.StringSet
+}
+
+func NewNilSafeUnion(s1, s2 *set.StringSet) NilSafeUnion {
+	return NilSafeUnion{s1: s1, s2: s2}
+}
+
+func (s *NilSafeUnion) Contains(x string) bool {
+	return s.s1 != nil && s.s1.Contains(x) || s.s2 != nil && s.s2.Contains(x)
 }
