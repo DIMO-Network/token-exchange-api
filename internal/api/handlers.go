@@ -20,15 +20,33 @@ func ErrorResponseHandler(c *fiber.Ctx, err error, status int) error {
 	})
 }
 
-func GetUserEthAddr(c *fiber.Ctx) *common.Address {
+const ethereumAddressClaimName = "ethereum_address"
+
+var zeroAddr common.Address
+
+// GetUserEthAddr returns the Ethereum address in the JWT provided for the current request.
+// If no address is found then this function returns a Fiber error that can be safely returned
+// to the client.
+func GetUserEthAddr(c *fiber.Ctx) (common.Address, error) {
+	// If the Fiber middleware runs then these are safe.
 	token := c.Locals("user").(*jwt.Token)
 	claims := token.Claims.(jwt.MapClaims)
-	ethAddr, ok := claims["ethereum_address"].(string)
-	if !ok || !common.IsHexAddress(ethAddr) {
-		return nil
+
+	addrClaim, ok := claims[ethereumAddressClaimName]
+	if !ok {
+		return zeroAddr, fiber.NewError(fiber.StatusUnauthorized, "No Ethereum address claim found.")
 	}
-	e := common.HexToAddress(ethAddr)
-	return &e
+
+	addrString, ok := addrClaim.(string)
+	if !ok {
+		return zeroAddr, fiber.NewError(fiber.StatusUnauthorized, "Ethereum address claim is not a string.")
+	}
+
+	if !common.IsHexAddress(addrString) {
+		return zeroAddr, fiber.NewError(fiber.StatusUnauthorized, "Ethereum address claim is not a valid hex address.")
+	}
+
+	return common.HexToAddress(addrString), nil
 }
 
 // ErrorHandler custom handler to log recovered errors using our logger and return json instead of string
