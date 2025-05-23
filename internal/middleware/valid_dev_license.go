@@ -14,16 +14,16 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
+type keyType string
+
 const (
 	// mobileAppAudience is the audience field for a DIMO mobile "user JWT".
 	mobileAppAudience = "dimo-driver"
+
+	// resultSubjectKey is the Fiber context key for the "result subject", the JWT
+	// "sub" field in the token returned from this service.
+	resultSubjectKey keyType = "resultSubject"
 )
-
-type keyType string
-
-// resultSubjectKey is the Fiber context key for the "result subject", the JWT
-// "sub" field in the token returned from this service.
-const resultSubjectKey keyType = "resultSubject"
 
 //go:generate mockgen -source valid_dev_license.go -destination mocks/valid_dev_license_mock.go
 type IdentityService interface {
