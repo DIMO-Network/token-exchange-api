@@ -18,6 +18,7 @@ const (
 	// mobileAppAudience is the audience field for a DIMO mobile "user JWT".
 	mobileAppAudience = "dimo-driver"
 
+	// devLicenseKey is the context key for the developer license address.
 	devLicenseKey keyType = "developerLicense"
 )
 
