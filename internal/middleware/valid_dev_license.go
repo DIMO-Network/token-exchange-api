@@ -14,8 +14,16 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-// mobileAppAudience Audience in DIMO mobile JWT
-const mobileAppAudience = "dimo-driver"
+const (
+	// mobileAppAudience is the audience field for a DIMO mobile "user JWT".
+	mobileAppAudience = "dimo-driver"
+
+	devLicenseKey keyType = "developerLicense"
+)
+
+type keyType string
+
+// const
 
 //go:generate mockgen -source valid_dev_license.go -destination mocks/valid_dev_license_mock.go
 type IdentityService interface {
@@ -62,16 +70,32 @@ func NewDevLicenseValidator(idSvc IdentityService, logger zerolog.Logger) fiber.
 			return fiber.NewError(fiber.StatusBadRequest, "user id is not valid hex address")
 		}
 
-		valid, err := idSvc.IsDevLicense(c.Context(), common.HexToAddress(user.UserId))
+		clientAddress := common.HexToAddress(user.UserId)
+
+		valid, err := idSvc.IsDevLicense(c.Context(), clientAddress)
 		if err != nil {
 			return err
 		}
 
 		if valid {
+			c.Locals(devLicenseKey, clientAddress)
 			return c.Next()
 		}
 
 		logger.Debug().Str("subject", user.UserId).Any("audience", aud).Msg("not a dev license")
 		return fiber.NewError(fiber.StatusForbidden, fmt.Sprintf("not a dev license: %s", user.UserId))
 	}
+}
+
+var zeroAddr common.Address
+
+// GetDevLicense returns the address of the developer license making the request. If
+// the request is not coming from a developer license then this function returns the
+// zero address.
+func GetDevLicense(c *fiber.Ctx) common.Address {
+	addr, ok := c.Locals(devLicenseKey).(common.Address)
+	if !ok {
+		return zeroAddr
+	}
+	return addr
 }

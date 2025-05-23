@@ -12,6 +12,7 @@ import (
 	"github.com/DIMO-Network/token-exchange-api/internal/api"
 	"github.com/DIMO-Network/token-exchange-api/internal/config"
 	"github.com/DIMO-Network/token-exchange-api/internal/contracts"
+	"github.com/DIMO-Network/token-exchange-api/internal/middleware"
 	"github.com/DIMO-Network/token-exchange-api/internal/models"
 	"github.com/DIMO-Network/token-exchange-api/internal/services"
 	"github.com/DIMO-Network/token-exchange-api/pkg/tokenclaims"
@@ -160,6 +161,7 @@ func (t *TokenExchangeController) createAndReturnToken(c *fiber.Ctx, tokenReq *T
 		PrivilegeIDs:       tokenReq.Privileges,
 		NFTContractAddress: tokenReq.NFTContractAddress,
 		Audience:           aud,
+		DevLicense:         middleware.GetDevLicense(c),
 	}
 
 	if tokenReq.CloudEvents != nil {

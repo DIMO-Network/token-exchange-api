@@ -11,11 +11,14 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
+var zeroAddr common.Address
+
 // CustomClaims is the custom claims for token-exchange related information.
 type CustomClaims struct {
 	ContractAddress common.Address         `json:"contract_address"`
 	TokenID         string                 `json:"token_id"`
 	PrivilegeIDs    []privileges.Privilege `json:"privilege_ids"`
+	DevLicense      common.Address         `json:"developer_license,omitzero"`
 	CloudEvents     *CloudEvents           `json:"cloud_events"`
 }
 
@@ -64,14 +67,18 @@ func (c *CustomClaims) Proto() (*structpb.Struct, error) {
 		}
 	}
 
-	return structpb.NewStruct(
-		map[string]any{
-			"contract_address": hexutil.Encode(c.ContractAddress[:]),
-			"token_id":         c.TokenID,
-			"privilege_ids":    ap,
-			"cloud_events":     ces,
-		},
-	)
+	out := map[string]any{
+		"contract_address": hexutil.Encode(c.ContractAddress[:]),
+		"token_id":         c.TokenID,
+		"privilege_ids":    ap,
+		"cloud_events":     ces,
+	}
+
+	if c.DevLicense != zeroAddr {
+		out["developer_license"] = c.DevLicense.Hex()
+	}
+
+	return structpb.NewStruct(out)
 }
 
 // Sub returns the subject of the token.
