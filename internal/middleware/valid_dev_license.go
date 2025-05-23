@@ -14,8 +14,16 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-// mobileAppAudience Audience in DIMO mobile JWT
-const mobileAppAudience = "dimo-driver"
+type keyType string
+
+const (
+	// mobileAppAudience is the audience field for a DIMO mobile "user JWT".
+	mobileAppAudience = "dimo-driver"
+
+	// resultSubjectKey is the Fiber context key for the "result subject", the JWT
+	// "sub" field in the token returned from this service.
+	resultSubjectKey keyType = "resultSubject"
+)
 
 //go:generate mockgen -source valid_dev_license.go -destination mocks/valid_dev_license_mock.go
 type IdentityService interface {
@@ -39,6 +47,7 @@ func NewDevLicenseValidator(idSvc IdentityService, logger zerolog.Logger) fiber.
 		// no additional checks for mobile app
 		// TODO(ae): add additional security here eventually
 		if slices.Contains(aud, mobileAppAudience) {
+			c.Locals(resultSubjectKey, mobileAppAudience)
 			return c.Next()
 		}
 
@@ -62,16 +71,31 @@ func NewDevLicenseValidator(idSvc IdentityService, logger zerolog.Logger) fiber.
 			return fiber.NewError(fiber.StatusBadRequest, "user id is not valid hex address")
 		}
 
-		valid, err := idSvc.IsDevLicense(c.Context(), common.HexToAddress(user.UserId))
+		clientAddress := common.HexToAddress(user.UserId)
+
+		valid, err := idSvc.IsDevLicense(c.Context(), clientAddress)
 		if err != nil {
 			return err
 		}
 
 		if valid {
+			c.Locals(resultSubjectKey, clientAddress.Hex())
 			return c.Next()
 		}
 
 		logger.Debug().Str("subject", user.UserId).Any("audience", aud).Msg("not a dev license")
 		return fiber.NewError(fiber.StatusForbidden, fmt.Sprintf("not a dev license: %s", user.UserId))
 	}
+}
+
+// GetResultSubject returns the checksummed address of the developer license making
+// the request. The only exception occurs when the request emanates from the mobile map,
+// in which case the result is "dimo-driver".
+func GetResultSubject(c *fiber.Ctx) string {
+	addr, ok := c.Locals(resultSubjectKey).(string)
+	if !ok {
+		// This branch existing is a bit embarrassing.
+		return mobileAppAudience
+	}
+	return addr
 }

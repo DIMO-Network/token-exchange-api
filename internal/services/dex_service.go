@@ -30,6 +30,7 @@ type PrivilegeTokenDTO struct {
 	NFTContractAddress string
 	Audience           []string
 	CloudEvents        *tokenclaims.CloudEvents
+	ResultSubject      string
 }
 
 func NewDexClient(log *zerolog.Logger, dexgRPCAddr string) (*DexClient, error) {
@@ -63,7 +64,7 @@ func (d *DexClient) SignPrivilegePayload(ctx context.Context, req PrivilegeToken
 	}
 
 	args := &dgrpc.SignTokenReq{
-		Subject:      cc.Sub(),
+		Subject:      req.ResultSubject,
 		CustomClaims: ps,
 		Audience:     req.Audience,
 	}
