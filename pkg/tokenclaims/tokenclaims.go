@@ -64,12 +64,14 @@ func (c *CustomClaims) Proto() (*structpb.Struct, error) {
 		}
 	}
 
-	return structpb.NewStruct(map[string]any{
-		"contract_address": hexutil.Encode(c.ContractAddress[:]),
-		"token_id":         c.TokenID,
-		"privilege_ids":    ap,
-		"cloud_events":     ces,
-	})
+	return structpb.NewStruct(
+		map[string]any{
+			"contract_address": hexutil.Encode(c.ContractAddress[:]),
+			"token_id":         c.TokenID,
+			"privilege_ids":    ap,
+			"cloud_events":     ces,
+		},
+	)
 }
 
 // Sub returns the subject of the token.
