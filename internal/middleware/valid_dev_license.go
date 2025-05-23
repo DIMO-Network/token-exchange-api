@@ -94,6 +94,7 @@ func NewDevLicenseValidator(idSvc IdentityService, logger zerolog.Logger) fiber.
 func GetResultSubject(c *fiber.Ctx) string {
 	addr, ok := c.Locals(resultSubjectKey).(string)
 	if !ok {
+		// This branch existing is a bit embarrassing.
 		return mobileAppAudience
 	}
 	return addr
