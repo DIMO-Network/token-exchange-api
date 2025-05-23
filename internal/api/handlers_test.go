@@ -28,21 +28,35 @@ func TestGetUserEthAddr(t *testing.T) {
 	tests := []struct {
 		name         string
 		tokenClaims  jwt.MapClaims
-		expectedAddr *common.Address
-		expectingNil bool
+		expectedAddr common.Address
+		expectingErr bool
 	}{
 		{
 			name: "Token With Ethereum Address",
 			tokenClaims: jwt.MapClaims{
 				"ethereum_address": "0x20Ca3bE69a8B95D3093383375F0473A8c6341727",
 			},
-			expectedAddr: &common.Address{0x20, 0xca, 0x3b, 0xe6, 0x9a, 0x8b, 0x95, 0xd3, 0x09, 0x33, 0x83, 0x37, 0x5f, 0x04, 0x73, 0xa8, 0xc6, 0x34, 0x17, 0x27},
-			expectingNil: false,
+			expectedAddr: common.HexToAddress("0x20Ca3bE69a8B95D3093383375F0473A8c6341727"),
+			expectingErr: false,
+		},
+		{
+			name: "Token with Ethereum address claim, wrong type",
+			tokenClaims: jwt.MapClaims{
+				"ethereum_address": 5,
+			},
+			expectingErr: true,
+		},
+		{
+			name: "Token with Ethereum address claim, string that isn't a Hex address",
+			tokenClaims: jwt.MapClaims{
+				"ethereum_address": "k5",
+			},
+			expectingErr: true,
 		},
 		{
 			name:         "Token Without Ethereum Address",
 			tokenClaims:  jwt.MapClaims{},
-			expectingNil: true,
+			expectingErr: true,
 		},
 	}
 
@@ -53,12 +67,12 @@ func TestGetUserEthAddr(t *testing.T) {
 			}
 			ctx.Locals("user", token)
 
-			result := GetUserEthAddr(ctx)
+			result, err := GetUserEthAddr(ctx)
 
-			if tc.expectingNil {
-				assert.Nil(t, result)
+			if tc.expectingErr {
+				assert.Error(t, err)
 			} else {
-				assert.NotNil(t, result)
+				assert.NoError(t, err)
 				assert.Equal(t, tc.expectedAddr, result)
 			}
 		})

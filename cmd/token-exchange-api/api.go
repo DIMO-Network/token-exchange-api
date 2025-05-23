@@ -111,7 +111,7 @@ func startWebAPI(ctx context.Context, logger zerolog.Logger, settings *config.Se
 	tokenRoutes := v1Route.Group("/tokens", handlers...)
 	ctrWhitelistWare := middleware.NewContractWhiteList(settings, logger, ctrAddressesWhitelist)
 
-	tokenRoutes.Post("/exchange", ctrWhitelistWare, vtxController.GetDeviceCommandPermissionWithScope)
+	tokenRoutes.Post("/exchange", ctrWhitelistWare, vtxController.ExchangeToken)
 
 	go serveMonitoring(settings.MonPort, &logger) //nolint
 
