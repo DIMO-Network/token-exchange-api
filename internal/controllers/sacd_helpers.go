@@ -35,7 +35,7 @@ func evaluateCloudEvent(agreement map[string]map[string]*set.StringSet, req Even
 	}
 
 	sourceGrantIDs, ok := grantedAggs[req.Source]
-	if globalGrantIDs == nil && !ok {
+	if !ok {
 		return fmt.Errorf("no %s grants for source: %s", req.EventType, req.Source)
 	}
 
