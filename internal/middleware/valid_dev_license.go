@@ -17,12 +17,13 @@ import (
 const (
 	// mobileAppAudience is the audience field for a DIMO mobile "user JWT".
 	mobileAppAudience = "dimo-driver"
-
-	// devLicenseKey is the context key for the developer license address.
-	devLicenseKey keyType = "developerLicense"
 )
 
 type keyType string
+
+// resultSubjectKey is the Fiber context key for the "result subject", the JWT
+// "sub" field in the token returned from this service.
+const resultSubjectKey keyType = "resultSubject"
 
 //go:generate mockgen -source valid_dev_license.go -destination mocks/valid_dev_license_mock.go
 type IdentityService interface {
@@ -46,6 +47,7 @@ func NewDevLicenseValidator(idSvc IdentityService, logger zerolog.Logger) fiber.
 		// no additional checks for mobile app
 		// TODO(ae): add additional security here eventually
 		if slices.Contains(aud, mobileAppAudience) {
+			c.Locals(resultSubjectKey, mobileAppAudience)
 			return c.Next()
 		}
 
@@ -77,7 +79,7 @@ func NewDevLicenseValidator(idSvc IdentityService, logger zerolog.Logger) fiber.
 		}
 
 		if valid {
-			c.Locals(devLicenseKey, clientAddress)
+			c.Locals(resultSubjectKey, clientAddress.Hex())
 			return c.Next()
 		}
 
@@ -86,15 +88,13 @@ func NewDevLicenseValidator(idSvc IdentityService, logger zerolog.Logger) fiber.
 	}
 }
 
-var zeroAddr common.Address
-
-// GetDevLicense returns the address of the developer license making the request. If
-// the request is not coming from a developer license then this function returns the
-// zero address.
-func GetDevLicense(c *fiber.Ctx) common.Address {
-	addr, ok := c.Locals(devLicenseKey).(common.Address)
+// GetResultSubject returns the checksummed address of the developer license making
+// the request. The only exception occurs when the request emanates from the mobile map,
+// in which case the result is "dimo-driver".
+func GetResultSubject(c *fiber.Ctx) string {\
+	addr, ok := c.Locals(resultSubjectKey).(string)
 	if !ok {
-		return zeroAddr
+		return mobileAppAudience
 	}
 	return addr
 }

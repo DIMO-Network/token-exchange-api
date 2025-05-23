@@ -161,7 +161,7 @@ func (t *TokenExchangeController) createAndReturnToken(c *fiber.Ctx, tokenReq *T
 		PrivilegeIDs:       tokenReq.Privileges,
 		NFTContractAddress: tokenReq.NFTContractAddress,
 		Audience:           aud,
-		DevLicense:         middleware.GetDevLicense(c),
+		ResultSubject:      middleware.GetResultSubject(c),
 	}
 
 	if tokenReq.CloudEvents != nil {
