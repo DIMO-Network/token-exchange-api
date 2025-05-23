@@ -60,18 +60,26 @@ type TokenRequest struct {
 	NFTContractAddress string `json:"nftContractAddress" example:"0xbA5738a18d83D41847dfFbDC6101d37C69c9B0cF" validate:"required"`
 	// Audience is the intended audience for the token.
 	Audience []string `json:"audience" validate:"optional"`
-	// CloudEvent request, includes attestations
-	CloudEvents *CloudEvents `json:"cloudEvents"`
+	// CloudEvents contains requests for access to CloudEvents attached to the specified NFT.
+	CloudEvents CloudEvents `json:"cloudEvents"`
 }
 
 type CloudEvents struct {
+	// Events is a list of CloudEvent access requests.
 	Events []EventFilter `json:"events"`
 }
 
 type EventFilter struct {
-	EventType string   `json:"eventType"`
-	Source    string   `json:"source"`
-	IDs       []string `json:"ids"`
+	// EventType specifies the CloudEvent type field of the documents the client wants to access.
+	// It must be specified.
+	EventType string `json:"eventType" validate:"required"`
+	// Source specifies the CloudEvent source field for the documents the client wants to access.
+	// One may also use the special value "*" for this field to select all sources.
+	Source string `json:"source" validate:"required"`
+	// IDs is a list of ids for the CloudEvents that the client wants to access. This list must
+	// contain at least one element. If the list contains the special value "*" then the request
+	// has no restrictions on id.
+	IDs []string `json:"ids" validate:"required"`
 }
 
 type TokenResponse struct {
@@ -114,7 +122,7 @@ func (t *TokenExchangeController) ExchangeToken(c *fiber.Ctx) error {
 
 	t.logger.Debug().Interface("request", tokenReq).Msg("Got request.")
 
-	if len(tokenReq.Privileges) == 0 && (tokenReq.CloudEvents == nil || len(tokenReq.CloudEvents.Events) == 0) {
+	if len(tokenReq.Privileges) == 0 && len(tokenReq.CloudEvents.Events) == 0 {
 		return fiber.NewError(fiber.StatusBadRequest, "Please provide at least one privilege or cloudevent")
 	}
 
@@ -136,7 +144,7 @@ func (t *TokenExchangeController) ExchangeToken(c *fiber.Ctx) error {
 
 	record, err := t.getValidSacdDoc(c.Context(), resPermRecord.Source)
 	if err != nil {
-		if tokenReq.CloudEvents != nil {
+		if len(tokenReq.CloudEvents.Events) != 0 {
 			return fiber.NewError(fiber.StatusBadRequest, "failed to get valid sacd document, cannot evaluate claims")
 		}
 		t.logger.Warn().Err(err).Msg("Failed to get valid SACD document")
@@ -163,7 +171,7 @@ func (t *TokenExchangeController) createAndReturnToken(c *fiber.Ctx, tokenReq *T
 		Audience:           aud,
 	}
 
-	if tokenReq.CloudEvents != nil {
+	if len(tokenReq.CloudEvents.Events) != 0 {
 		var ces tokenclaims.CloudEvents
 		for _, ce := range tokenReq.CloudEvents.Events {
 			ces.Events = append(ces.Events, tokenclaims.Event{
