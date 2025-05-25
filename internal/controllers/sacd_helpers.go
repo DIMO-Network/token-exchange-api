@@ -29,15 +29,8 @@ func evaluateCloudEvent(agreement map[string]map[string]*set.StringSet, req Even
 		return fmt.Errorf("lacking grant for requested event type: %s", req.EventType)
 	}
 
-	globalGrantIDs, ok := grantedAggs[tokenclaims.GlobalIdentifier]
-	if ok && globalGrantIDs.Contains(tokenclaims.GlobalIdentifier) {
-		return nil
-	}
-
-	sourceGrantIDs, ok := grantedAggs[req.Source]
-	if globalGrantIDs == nil && !ok {
-		return fmt.Errorf("no %s grants for source: %s", req.EventType, req.Source)
-	}
+	globalGrantIDs := grantedAggs[tokenclaims.GlobalIdentifier]
+	sourceGrantIDs := grantedAggs[req.Source]
 
 	if missingIDs := evaluateIDsByGrantSource(globalGrantIDs, sourceGrantIDs, req.IDs); len(missingIDs) > 0 {
 		return fmt.Errorf("lacking %s grant for source %s with ids: %s", req.EventType, req.Source, strings.Join(missingIDs, ","))

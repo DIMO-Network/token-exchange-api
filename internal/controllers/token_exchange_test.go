@@ -616,7 +616,7 @@ func TestTokenExchangeController_EvaluatingSACD_Attestations(t *testing.T) {
 					},
 				}
 			},
-			err: fmt.Errorf("no dimo.attestation grants for source: 0xcce4eF41A67E28C3CF3dbc51a6CD3d004F53aCBB"),
+			err: fmt.Errorf("lacking dimo.attestation grant for source 0xcce4eF41A67E28C3CF3dbc51a6CD3d004F53aCBB with ids: 1"),
 		},
 		{
 			name: "Pass: Asking for implicit grant (global) ",
