@@ -5,12 +5,12 @@ go 1.24.0
 replace github.com/dexidp/dex/api/v2 => github.com/DIMO-Network/dex/api/v2 v2.0.1-0.20240402140037-3b70843c1bed
 
 require (
-	github.com/DIMO-Network/cloudevent v0.0.4
-	github.com/DIMO-Network/shared v1.0.2
+	github.com/DIMO-Network/cloudevent v0.1.0
+	github.com/DIMO-Network/shared v1.0.3
 	github.com/dexidp/dex/api/v2 v2.35.3
 	github.com/ethereum/go-ethereum v1.15.11
 	github.com/gofiber/contrib/jwt v1.1.2
-	github.com/gofiber/fiber/v2 v2.52.6
+	github.com/gofiber/fiber/v2 v2.52.8
 	github.com/gofiber/swagger v1.1.1
 	github.com/golang-jwt/jwt/v5 v5.2.2
 	github.com/prometheus/client_golang v1.22.0
@@ -36,7 +36,7 @@ require (
 	github.com/consensys/gnark-crypto v0.16.0 // indirect
 	github.com/crate-crypto/go-eth-kzg v1.3.0 // indirect
 	github.com/crate-crypto/go-ipa v0.0.0-20240724233137-53bbb0ceb27a // indirect
-	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/deckarep/golang-set/v2 v2.6.0 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.2.0 // indirect
 	github.com/ethereum/c-kzg-4844/v2 v2.1.0 // indirect
@@ -79,9 +79,9 @@ require (
 	golang.org/x/sync v0.14.0 // indirect
 	golang.org/x/sys v0.33.0 // indirect
 	golang.org/x/text v0.25.0 // indirect
-	golang.org/x/tools v0.29.0 // indirect
+	golang.org/x/tools v0.30.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250218202821-56aae31c358a // indirect
-	google.golang.org/protobuf v1.36.5
+	google.golang.org/protobuf v1.36.6
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	rsc.io/tmplfunc v0.0.3 // indirect
 )
