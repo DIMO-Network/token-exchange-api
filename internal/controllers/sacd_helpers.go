@@ -58,16 +58,12 @@ func evaluateIDsByGrantSource(globalGrants *set.StringSet, sourceGrants *set.Str
 	return missingIDs
 }
 
-func userGrantMap(record *models.PermissionRecord, nftAddr string, tokenID int64) (map[string]bool, map[string]map[string]*set.StringSet, error) {
+func userGrantMap(record *models.PermissionData) (map[string]bool, map[string]map[string]*set.StringSet, error) {
 	userPermGrants := make(map[string]bool)
 	cloudEvtGrants := make(map[string]map[string]*set.StringSet)
 
-	if err := validAssetDID(record.Data.Asset, nftAddr, tokenID); err != nil {
-		return nil, nil, fmt.Errorf("failed to validate permission asset: %s", record.Data.Asset)
-	}
-
 	// Aggregates all the permission and attestation grants the user has.
-	for _, agreement := range record.Data.Agreements {
+	for _, agreement := range record.Agreements {
 		now := time.Now()
 		if !agreement.EffectiveAt.IsZero() && now.Before(agreement.EffectiveAt) {
 			continue

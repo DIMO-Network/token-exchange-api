@@ -1,15 +1,17 @@
 package models
 
 import (
+	"encoding/json"
 	"time"
 )
 
 // PermissionRecord is the top-level structure for permission events
 type PermissionRecord struct {
-	SpecVersion string         `json:"specversion"`
-	Timestamp   time.Time      `json:"timestamp"`
-	Type        string         `json:"type"`
-	Data        PermissionData `json:"data"`
+	SpecVersion string          `json:"specversion"`
+	Timestamp   time.Time       `json:"timestamp"`
+	Type        string          `json:"type"`
+	Data        json.RawMessage `json:"data"`
+	Signature   string          `json:"signature"`
 }
 
 // PermissionData contains the core permission data

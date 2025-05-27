@@ -68,30 +68,32 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 
 	effectiveAt := time.Now().Add(-5 * time.Hour)
 	expiresAt := time.Now().Add(5 * time.Hour)
-	ipfsRecord := models.PermissionRecord{
-		Type: "dimo.sacd",
-		Data: models.PermissionData{
-			Grantor: models.Address{
-				Address: common.BigToAddress(big.NewInt(1)).Hex(),
-			},
-			Grantee: models.Address{
-				Address: userEthAddr.Hex(),
-			},
-			EffectiveAt: time.Now().Add(-5 * time.Hour),
-			ExpiresAt:   time.Now().Add(5 * time.Hour),
-			Asset:       "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
-			Agreements: []models.Agreement{
-				{
-					Type:        "cloudevent",
-					EffectiveAt: effectiveAt,
-					ExpiresAt:   expiresAt,
-					EventType:   cloudevent.TypeAttestation,
-					Source:      common.BigToAddress(big.NewInt(1)).Hex(),
-					IDs:         []string{"1"},
-					Asset:       "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
-				},
+	grantData := models.PermissionData{
+		Grantor: models.Address{
+			Address: common.BigToAddress(big.NewInt(1)).Hex(),
+		},
+		Grantee: models.Address{
+			Address: userEthAddr.Hex(),
+		},
+		EffectiveAt: time.Now().Add(-5 * time.Hour),
+		ExpiresAt:   time.Now().Add(5 * time.Hour),
+		Asset:       "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
+		Agreements: []models.Agreement{
+			{
+				Type:        "cloudevent",
+				EffectiveAt: effectiveAt,
+				ExpiresAt:   expiresAt,
+				EventType:   cloudevent.TypeAttestation,
+				Source:      common.BigToAddress(big.NewInt(1)).Hex(),
+				IDs:         []string{"1"},
+				Asset:       "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
 			},
 		},
+	}
+	grantDataBytes, _ := json.Marshal(grantData)
+	ipfsRecord := models.PermissionRecord{
+		Type: "dimo.sacd",
+		Data: grantDataBytes,
 	}
 
 	ipfsBytes, _ := json.Marshal(ipfsRecord)
@@ -356,19 +358,21 @@ func TestTokenExchangeController_EvaluatingSACD_Attestations(t *testing.T) {
 	oneMinAgo := time.Now().Add(-1 * time.Minute)
 	oneMinFuture := time.Now().Add(1 * time.Minute)
 
+	grantData := models.PermissionData{
+		Grantor: models.Address{
+			Address: common.BigToAddress(big.NewInt(1)).Hex(),
+		},
+		Grantee: models.Address{
+			Address: userEthAddr.Hex(),
+		},
+		EffectiveAt: oneMinAgo,
+		ExpiresAt:   oneMinFuture,
+		Asset:       "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
+	}
+
 	ipfsRecord := models.PermissionRecord{
 		Type: "dimo.sacd",
-		Data: models.PermissionData{
-			Grantor: models.Address{
-				Address: common.BigToAddress(big.NewInt(1)).Hex(),
-			},
-			Grantee: models.Address{
-				Address: userEthAddr.Hex(),
-			},
-			EffectiveAt: oneMinAgo,
-			ExpiresAt:   oneMinFuture,
-			Asset:       "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
-		},
+		// Data: grantDataBytes,
 	}
 
 	tests := []struct {
@@ -733,9 +737,12 @@ func TestTokenExchangeController_EvaluatingSACD_Attestations(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			ipfsRecord.Data.Agreements = tc.agreement
+			grantData.Agreements = tc.agreement
+			grantDataBytes, _ := json.Marshal(grantData)
+
+			ipfsRecord.Data = grantDataBytes
 			expectedCEGrants := tc.expectedCEGrants()
-			_, ceGrants, err := userGrantMap(&ipfsRecord, tc.request.NFTContractAddress, tc.request.TokenID)
+			_, ceGrants, err := userGrantMap(&grantData)
 			require.Nil(t, err)
 			for eventType, evtMap := range expectedCEGrants {
 				_, ok := ceGrants[eventType]

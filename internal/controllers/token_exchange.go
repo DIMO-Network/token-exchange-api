@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"time"
 
+	utils "github.com/DIMO-Network/shared/pkg/crypto"
 	"github.com/DIMO-Network/shared/pkg/set"
 	"github.com/DIMO-Network/token-exchange-api/internal/api"
 	"github.com/DIMO-Network/token-exchange-api/internal/config"
@@ -230,15 +231,34 @@ func (t *TokenExchangeController) getValidSacdDoc(ctx context.Context, source st
 func (t *TokenExchangeController) evaluateSacdDoc(c *fiber.Ctx, record *models.PermissionRecord, tokenReq *TokenRequest, grantee *common.Address) error {
 	now := time.Now()
 	logger := t.logger.With().Str("grantee", grantee.Hex()).Logger()
-	if now.Before(record.Data.EffectiveAt) || now.After(record.Data.ExpiresAt) {
+
+	var data models.PermissionData
+	if err := json.Unmarshal(record.Data, &data); err != nil {
+		fiber.NewError(fiber.StatusInternalServerError, "Failed to parse permission data")
+	}
+
+	if err := validAssetDID(data.Asset, tokenReq.NFTContractAddress, tokenReq.TokenID); err != nil {
+		return fmt.Errorf("failed to validate asset did: %s", data.Asset)
+	}
+
+	// valid, err := validSignature(record.Data, record.Signature, data.Grantee.Address)
+	// if err != nil {
+	// 	return fiber.NewError(fiber.StatusBadRequest, "failed to validate grant signature")
+	// }
+
+	// if !valid {
+	// 	return fiber.NewError(fiber.StatusBadRequest, "invalid grant signature")
+	// }
+
+	if now.Before(data.EffectiveAt) || now.After(data.ExpiresAt) {
 		return fiber.NewError(fiber.StatusBadRequest, "Permission record is expired or not yet effective")
 	}
 
-	if record.Data.Grantee.Address != grantee.Hex() {
+	if data.Grantee.Address != grantee.Hex() {
 		return fiber.NewError(fiber.StatusBadRequest, "Grantee address in permission record doesn't match requester")
 	}
 
-	userPermGrants, cloudEvtGrants, err := userGrantMap(record, tokenReq.NFTContractAddress, tokenReq.TokenID)
+	userPermGrants, cloudEvtGrants, err := userGrantMap(&data)
 	if err != nil {
 		logger.Err(err).Msg("failed to generate user grant map")
 		return fiber.NewError(fiber.StatusBadRequest, "failed to validate request")
@@ -255,6 +275,17 @@ func (t *TokenExchangeController) evaluateSacdDoc(c *fiber.Ctx, record *models.P
 	}
 	// If we get here, all permission and attestation claims are valid
 	return t.createAndReturnToken(c, tokenReq, grantee)
+}
+
+func validSignature(payload json.RawMessage, signature, ethAddr string) (bool, error) {
+	sig := common.FromHex(signature)
+
+	data, err := json.Marshal(payload)
+	if err != nil {
+		return false, fmt.Errorf("failed to marshal data: %w", err)
+	}
+
+	return utils.VerifySignature(data, sig, common.HexToAddress(ethAddr))
 }
 
 func evaluatePermissions(userPermissions map[string]bool, tokenReq *TokenRequest) error {
