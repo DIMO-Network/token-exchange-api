@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/big"
-	"strconv"
 	"time"
 
 	"github.com/DIMO-Network/cloudevent"
@@ -42,12 +41,13 @@ var PermissionMap = map[int]string{
 }
 
 type TokenExchangeController struct {
-	logger      *zerolog.Logger
-	settings    *config.Settings
-	dexService  services.DexService
-	ctmr        contracts.Manager
-	ethClient   bind.ContractBackend
-	ipfsService IPFSService
+	logger              *zerolog.Logger
+	sacdContractAddress string
+	registryChainID     uint64
+	dexService          services.DexService
+	ctmr                contracts.Manager
+	ethClient           bind.ContractBackend
+	ipfsService         IPFSService
 }
 
 type TokenRequest struct {
@@ -63,6 +63,9 @@ type TokenRequest struct {
 	Audience []string `json:"audience" validate:"optional"`
 	// CloudEvent request, includes attestations
 	CloudEvents *CloudEvents `json:"cloudEvents"`
+	// ChainID is the chain ID of the NFT contract.
+	// If not provided, the chain ID for the DIMO registry will be used.
+	ChainID uint64 `json:"chainId" validate:"optional"`
 }
 
 type CloudEvents struct {
@@ -83,12 +86,13 @@ func NewTokenExchangeController(logger *zerolog.Logger, settings *config.Setting
 	contractsMgr contracts.Manager, ethClient bind.ContractBackend) (*TokenExchangeController, error) {
 
 	return &TokenExchangeController{
-		logger:      logger,
-		settings:    settings,
-		dexService:  dexService,
-		ctmr:        contractsMgr,
-		ethClient:   ethClient,
-		ipfsService: ipfsService,
+		logger:              logger,
+		sacdContractAddress: settings.ContractAddressSacd,
+		registryChainID:     settings.DIMORegistryChainID,
+		dexService:          dexService,
+		ctmr:                contractsMgr,
+		ethClient:           ethClient,
+		ipfsService:         ipfsService,
 	}, nil
 }
 
@@ -125,8 +129,16 @@ func (t *TokenExchangeController) GetDeviceCommandPermissionWithScope(c *fiber.C
 		return fiber.NewError(fiber.StatusUnauthorized, "Ethereum address required in JWT.")
 	}
 
+	// If the chain ID is not provided, use the default chain ID.
+	// If the chain ID is provided, it must be the DIMO registry chain ID.
+	if tokenReq.ChainID == 0 {
+		tokenReq.ChainID = t.registryChainID
+	} else if tokenReq.ChainID != t.registryChainID {
+		return fiber.NewError(fiber.StatusBadRequest, "Unsupported chain ID requested.")
+	}
+
 	// TODO(elffjs): Still silly to create this every time.
-	s, err := t.ctmr.GetSacd(t.settings.ContractAddressSacd, t.ethClient)
+	s, err := t.ctmr.GetSacd(t.sacdContractAddress, t.ethClient)
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Could not connect to blockchain node")
 	}
@@ -156,9 +168,10 @@ func (t *TokenExchangeController) createAndReturnToken(c *fiber.Ctx, tokenReq *T
 
 	privTokenDTO := services.PrivilegeTokenDTO{
 		UserEthAddress:     ethAddr.Hex(),
-		TokenID:            strconv.FormatInt(tokenReq.TokenID, 10),
+		TokenID:            big.NewInt(tokenReq.TokenID),
 		PrivilegeIDs:       tokenReq.Privileges,
-		NFTContractAddress: tokenReq.NFTContractAddress,
+		NFTContractAddress: common.HexToAddress(tokenReq.NFTContractAddress),
+		ChainID:            tokenReq.ChainID,
 		Audience:           aud,
 	}
 

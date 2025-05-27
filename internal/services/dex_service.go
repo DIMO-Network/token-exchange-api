@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"fmt"
+	"math/big"
 
 	"github.com/DIMO-Network/shared/pkg/privileges"
 	"github.com/DIMO-Network/token-exchange-api/pkg/tokenclaims"
@@ -25,9 +26,10 @@ type DexClient struct {
 
 type PrivilegeTokenDTO struct {
 	UserEthAddress     string
-	TokenID            string
+	TokenID            *big.Int
 	PrivilegeIDs       []int64
-	NFTContractAddress string
+	ChainID            uint64
+	NFTContractAddress common.Address
 	Audience           []string
 	CloudEvents        *tokenclaims.CloudEvents
 }
@@ -45,13 +47,24 @@ func NewDexClient(log *zerolog.Logger, dexgRPCAddr string) (*DexClient, error) {
 }
 
 func (d *DexClient) SignPrivilegePayload(ctx context.Context, req PrivilegeTokenDTO) (string, error) {
+	if req.TokenID == nil {
+		return "", fmt.Errorf("token ID is required")
+	}
+	if req.NFTContractAddress == (common.Address{}) {
+		return "", fmt.Errorf("NFT contract address is required")
+	}
+	if req.ChainID == 0 {
+		return "", fmt.Errorf("chain ID is required")
+	}
+
 	privs := make([]privileges.Privilege, len(req.PrivilegeIDs))
 	for i, iD := range req.PrivilegeIDs {
 		privs[i] = privileges.Privilege(iD)
 	}
 
 	cc := tokenclaims.CustomClaims{
-		ContractAddress: common.HexToAddress(req.NFTContractAddress),
+		ChainID:         req.ChainID,
+		ContractAddress: req.NFTContractAddress,
 		TokenID:         req.TokenID,
 		PrivilegeIDs:    privs,
 		CloudEvents:     req.CloudEvents,
@@ -63,7 +76,7 @@ func (d *DexClient) SignPrivilegePayload(ctx context.Context, req PrivilegeToken
 	}
 
 	args := &dgrpc.SignTokenReq{
-		Subject:      cc.Sub(),
+		Subject:      "", // TODO: Merge with dev_license
 		CustomClaims: ps,
 		Audience:     req.Audience,
 	}
