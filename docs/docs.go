@@ -96,6 +96,10 @@ const docTemplate = `{
                         "type": "string"
                     }
                 },
+                "chainId": {
+                    "description": "ChainID is the chain ID of the NFT contract.\nIf not provided, the chain ID for the DIMO registry will be used.",
+                    "type": "integer"
+                },
                 "cloudEvents": {
                     "description": "CloudEvent request, includes attestations",
                     "allOf": [

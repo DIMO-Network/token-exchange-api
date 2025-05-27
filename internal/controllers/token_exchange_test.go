@@ -34,7 +34,7 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
-//go:generate mockgen -source ./token_exchange.go -destination ./token_exchange_mock_test.go -package controllers
+//go:generate go tool mockgen -source ./token_exchange.go -destination ./token_exchange_mock_test.go -package controllers
 
 func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.T) {
 	mockCtrl := gomock.NewController(t)

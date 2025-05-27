@@ -25,6 +25,11 @@ definitions:
         items:
           type: string
         type: array
+      chainId:
+        description: |-
+          ChainID is the chain ID of the NFT contract.
+          If not provided, the chain ID for the DIMO registry will be used.
+        type: integer
       cloudEvents:
         allOf:
         - $ref: '#/definitions/internal_controllers.CloudEvents'
