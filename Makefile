@@ -107,8 +107,8 @@ go-generate:## run go generate
 	@go generate ./...
 
 generate-swagger: ## generate swagger documentation
-	@swag -version
-	swag init -g cmd/token-exchange-api/main.go --parseDependency --parseInternal
+	@go tool swag -version
+	go tool swag init -g cmd/token-exchange-api/main.go --parseDependency --parseInternal
 
 generate-grpc: ## generate grpc files
 	@PATH=$$PATH protoc --version
