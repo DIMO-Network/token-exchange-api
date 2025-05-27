@@ -25,3 +25,5 @@ settings.yaml
 .vscode
 
 .idea/
+
+bin/
