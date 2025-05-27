@@ -3,6 +3,7 @@ package tokenclaims
 
 import (
 	"fmt"
+	"math/big"
 
 	"github.com/DIMO-Network/shared/pkg/privileges"
 	"github.com/ethereum/go-ethereum/common"
@@ -13,8 +14,9 @@ import (
 
 // CustomClaims is the custom claims for token-exchange related information.
 type CustomClaims struct {
+	ChainID         uint64                 `json:"chain_id"`
 	ContractAddress common.Address         `json:"contract_address"`
-	TokenID         string                 `json:"token_id"`
+	TokenID         *big.Int               `json:"token_id"`
 	PrivilegeIDs    []privileges.Privilege `json:"privilege_ids"`
 	CloudEvents     *CloudEvents           `json:"cloud_events"`
 }
@@ -67,14 +69,9 @@ func (c *CustomClaims) Proto() (*structpb.Struct, error) {
 	return structpb.NewStruct(
 		map[string]any{
 			"contract_address": hexutil.Encode(c.ContractAddress[:]),
-			"token_id":         c.TokenID,
+			"token_id":         c.TokenID.String(),
 			"privilege_ids":    ap,
 			"cloud_events":     ces,
 		},
 	)
-}
-
-// Sub returns the subject of the token.
-func (c *CustomClaims) Sub() string {
-	return fmt.Sprintf("%s/%s", c.ContractAddress, c.TokenID)
 }

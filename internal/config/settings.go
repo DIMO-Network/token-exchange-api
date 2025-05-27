@@ -17,4 +17,5 @@ type Settings struct {
 	IPFSBaseURL              string `yaml:"IPFS_BASE_URL"`
 	DevLiscFeatureFlag       bool   `yaml:"DEV_LICENSE_VALIDATOR_FEATURE_FLAG"`
 	IPFSTimeout              string `yaml:"IPFS_TIMEOUT"`
+	DIMORegistryChainID      uint64 `yaml:"DIMO_REGISTRY_CHAIN_ID"`
 }

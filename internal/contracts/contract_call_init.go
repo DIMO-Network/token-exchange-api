@@ -2,7 +2,7 @@ package contracts
 
 import "github.com/ethereum/go-ethereum/ethclient"
 
-//go:generate mockgen -source contract_call_init.go -destination mocks/contract_call_init_mock.go
+//go:generate go tool mockgen -source contract_call_init.go -destination mocks/contract_call_init_mock.go
 type ContractCallInitializer interface {
 	InitContractCall(nodeURL string) (*ethclient.Client, error)
 }

@@ -17,7 +17,7 @@ import (
 // mobileAppAudience Audience in DIMO mobile JWT
 const mobileAppAudience = "dimo-driver"
 
-//go:generate mockgen -source valid_dev_license.go -destination mocks/valid_dev_license_mock.go
+//go:generate go tool mockgen -source valid_dev_license.go -destination mocks/valid_dev_license_mock.go
 type IdentityService interface {
 	IsDevLicense(ctx context.Context, ethAddr common.Address) (bool, error)
 }
