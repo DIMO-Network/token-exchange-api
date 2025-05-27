@@ -11,6 +11,8 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
+const GlobalIdentifier = "*"
+
 // CustomClaims is the custom claims for token-exchange related information.
 type CustomClaims struct {
 	ContractAddress common.Address         `json:"contract_address"`
@@ -38,7 +40,6 @@ type Token struct {
 // Proto converts the CustomClaims to a protobuf struct.
 func (c *CustomClaims) Proto() (*structpb.Struct, error) {
 	ap := make([]any, len(c.PrivilegeIDs))
-
 	for i := range c.PrivilegeIDs {
 		ap[i] = int64(c.PrivilegeIDs[i])
 	}
