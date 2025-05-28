@@ -4,7 +4,7 @@ import (
 	"context"
 	"os"
 
-	"github.com/DIMO-Network/shared"
+	"github.com/DIMO-Network/shared/pkg/settings"
 	_ "github.com/DIMO-Network/token-exchange-api/docs"
 	"github.com/DIMO-Network/token-exchange-api/internal/config"
 	"github.com/rs/zerolog"
@@ -25,7 +25,7 @@ func main() {
 		Str("git-sha1", gitSha1).
 		Logger()
 
-	settings, err := shared.LoadConfig[config.Settings]("settings.yaml")
+	settings, err := settings.LoadConfig[config.Settings]("settings.yaml")
 	if err != nil {
 		logger.Fatal().Err(err).Msg("could not load settings")
 	}
