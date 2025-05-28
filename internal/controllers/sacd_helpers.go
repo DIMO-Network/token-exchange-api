@@ -1,12 +1,14 @@
 package controllers
 
 import (
+	"encoding/json"
 	"fmt"
 	"math/big"
 	"strings"
 	"time"
 
 	"github.com/DIMO-Network/cloudevent"
+	utils "github.com/DIMO-Network/shared/pkg/crypto"
 	"github.com/DIMO-Network/shared/pkg/set"
 	"github.com/DIMO-Network/token-exchange-api/internal/models"
 	"github.com/DIMO-Network/token-exchange-api/pkg/tokenclaims"
@@ -140,4 +142,15 @@ func intArrayTo2BitArray(indices []int64, length int) (*big.Int, error) {
 	}
 
 	return mask, nil
+}
+
+func validSignature(payload json.RawMessage, signature, ethAddr string) (bool, error) {
+	sig := common.FromHex(signature)
+
+	data, err := json.Marshal(payload)
+	if err != nil {
+		return false, fmt.Errorf("failed to marshal data: %w", err)
+	}
+
+	return utils.VerifySignature(data, sig, common.HexToAddress(ethAddr))
 }

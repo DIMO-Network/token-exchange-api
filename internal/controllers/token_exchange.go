@@ -9,7 +9,6 @@ import (
 	"strconv"
 	"time"
 
-	utils "github.com/DIMO-Network/shared/pkg/crypto"
 	"github.com/DIMO-Network/shared/pkg/set"
 	"github.com/DIMO-Network/token-exchange-api/internal/api"
 	"github.com/DIMO-Network/token-exchange-api/internal/config"
@@ -241,14 +240,14 @@ func (t *TokenExchangeController) evaluateSacdDoc(c *fiber.Ctx, record *models.P
 		return fmt.Errorf("failed to validate asset did: %s", data.Asset)
 	}
 
-	// valid, err := validSignature(record.Data, record.Signature, data.Grantee.Address)
-	// if err != nil {
-	// 	return fiber.NewError(fiber.StatusBadRequest, "failed to validate grant signature")
-	// }
+	valid, err := validSignature(record.Data, record.Signature, data.Grantee.Address)
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "failed to validate grant signature")
+	}
 
-	// if !valid {
-	// 	return fiber.NewError(fiber.StatusBadRequest, "invalid grant signature")
-	// }
+	if !valid {
+		return fiber.NewError(fiber.StatusBadRequest, "invalid grant signature")
+	}
 
 	if now.Before(data.EffectiveAt) || now.After(data.ExpiresAt) {
 		return fiber.NewError(fiber.StatusBadRequest, "Permission record is expired or not yet effective")
@@ -275,17 +274,6 @@ func (t *TokenExchangeController) evaluateSacdDoc(c *fiber.Ctx, record *models.P
 	}
 	// If we get here, all permission and attestation claims are valid
 	return t.createAndReturnToken(c, tokenReq, grantee)
-}
-
-func validSignature(payload json.RawMessage, signature, ethAddr string) (bool, error) {
-	sig := common.FromHex(signature)
-
-	data, err := json.Marshal(payload)
-	if err != nil {
-		return false, fmt.Errorf("failed to marshal data: %w", err)
-	}
-
-	return utils.VerifySignature(data, sig, common.HexToAddress(ethAddr))
 }
 
 func evaluatePermissions(userPermissions map[string]bool, tokenReq *TokenRequest) error {
