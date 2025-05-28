@@ -21,6 +21,7 @@ const grantor = `0x07B584f6a7125491C991ca2a45ab9e641B1CeE1b`
 func Test_ValidSACDSignature(t *testing.T) {
 	var ipfs models.PermissionRecord
 	err := json.Unmarshal([]byte(signedSACD), &ipfs)
+	require.NoError(t, err)
 	res, err := validSignature(ipfs.Data, ipfs.Signature, grantor)
 	require.NoError(t, err)
 	require.True(t, res)

@@ -233,7 +233,7 @@ func (t *TokenExchangeController) evaluateSacdDoc(c *fiber.Ctx, record *models.P
 
 	var data models.PermissionData
 	if err := json.Unmarshal(record.Data, &data); err != nil {
-		fiber.NewError(fiber.StatusInternalServerError, "Failed to parse permission data")
+		return fiber.NewError(fiber.StatusInternalServerError, "Failed to parse permission data")
 	}
 
 	if err := validAssetDID(data.Asset, tokenReq.NFTContractAddress, tokenReq.TokenID); err != nil {
