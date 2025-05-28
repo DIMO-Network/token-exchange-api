@@ -620,7 +620,7 @@ func TestTokenExchangeController_EvaluatingSACD_Attestations(t *testing.T) {
 					},
 				}
 			},
-			err: fmt.Errorf("no dimo.attestation grants for source: 0xcce4eF41A67E28C3CF3dbc51a6CD3d004F53aCBB"),
+			err: fmt.Errorf("invalid grant source request: dimo.attestation: 0xcce4eF41A67E28C3CF3dbc51a6CD3d004F53aCBB"),
 		},
 		{
 			name: "Pass: Asking for implicit grant (global) ",
@@ -765,6 +765,173 @@ func TestTokenExchangeController_EvaluatingSACD_Attestations(t *testing.T) {
 			} else {
 				require.Nil(t, err)
 			}
+		})
+	}
+}
+
+func Test_EvaluatingCloudEventType(t *testing.T) {
+	tests := []struct {
+		name      string
+		ceGrants  func() map[string]map[string]*set.StringSet
+		eventType string
+		err       error
+	}{
+		{
+			name: "Pass: attestation grant",
+			ceGrants: func() map[string]map[string]*set.StringSet {
+				gset := set.NewStringSet()
+				gset.Add("*")
+				return map[string]map[string]*set.StringSet{
+					cloudevent.TypeAttestation: {
+						"*": gset,
+					},
+				}
+			},
+			eventType: cloudevent.TypeAttestation,
+		},
+		{
+			name: "Pass: fingerprint grant",
+			ceGrants: func() map[string]map[string]*set.StringSet {
+				gset := set.NewStringSet()
+				gset.Add("*")
+				return map[string]map[string]*set.StringSet{
+					cloudevent.TypeFingerprint: {
+						"*": gset,
+					},
+				}
+			},
+			eventType: cloudevent.TypeFingerprint,
+		},
+		{
+			name: "Pass: all cloud event types grant",
+			ceGrants: func() map[string]map[string]*set.StringSet {
+				gset := set.NewStringSet()
+				gset.Add("*")
+				return map[string]map[string]*set.StringSet{
+					tokenclaims.GlobalIdentifier: {
+						"*": gset,
+					},
+				}
+			},
+			eventType: cloudevent.TypeAttestation,
+		},
+		{
+			name: "Fail: no grants",
+			ceGrants: func() map[string]map[string]*set.StringSet {
+				gset := set.NewStringSet()
+				gset.Add("*")
+				return map[string]map[string]*set.StringSet{
+					cloudevent.TypeFingerprint: {
+						"*": gset,
+					},
+				}
+			},
+			eventType: cloudevent.TypeAttestation,
+			err:       ErrInvalidCloudEventRequest,
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			grants := tc.ceGrants()
+			_, err := evaluateCloudEventType(grants, tc.eventType)
+			require.True(t, errors.Is(err, tc.err))
+
+		})
+	}
+}
+
+func Test_EvaluatingGrants(t *testing.T) {
+	tests := []struct {
+		name       string
+		ceGrants   func() map[string]map[string]*set.StringSet
+		eventType  string
+		evtRequest EventFilter
+		err        error
+	}{
+		{
+			name: "Pass: Requesting * ce; Grant: all cloudevents -> all sources -> all ids",
+			ceGrants: func() map[string]map[string]*set.StringSet {
+				gset := set.NewStringSet()
+				gset.Add("*")
+				return map[string]map[string]*set.StringSet{
+					tokenclaims.GlobalIdentifier: {
+						"*": gset,
+					},
+				}
+			},
+			eventType: tokenclaims.GlobalIdentifier,
+			evtRequest: EventFilter{
+				EventType: tokenclaims.GlobalIdentifier,
+				Source:    "*",
+				IDs:       []string{"*"},
+			},
+		},
+		{
+			name: "Pass: Requesting attestation ce; Grant: all cloudevents -> all sources -> all ids",
+			ceGrants: func() map[string]map[string]*set.StringSet {
+				gset := set.NewStringSet()
+				gset.Add("*")
+				return map[string]map[string]*set.StringSet{
+					tokenclaims.GlobalIdentifier: {
+						"*": gset,
+					},
+				}
+			},
+			eventType: cloudevent.TypeAttestation,
+			evtRequest: EventFilter{
+				EventType: tokenclaims.GlobalIdentifier,
+				Source:    "*",
+				IDs:       []string{"*"},
+			},
+		},
+		{
+			name: "Pass: CE: *; Source: specificAddr; IDs: *",
+			ceGrants: func() map[string]map[string]*set.StringSet {
+				gset := set.NewStringSet()
+				gset.Add("*")
+				return map[string]map[string]*set.StringSet{
+					tokenclaims.GlobalIdentifier: {
+						common.BigToAddress(big.NewInt(1)).Hex(): gset,
+					},
+				}
+			},
+			eventType: cloudevent.TypeAttestation,
+			evtRequest: EventFilter{
+				EventType: tokenclaims.GlobalIdentifier,
+				Source:    common.BigToAddress(big.NewInt(1)).Hex(),
+				IDs:       []string{"*"},
+			},
+		},
+		{
+			name: "Fail: CE: *; Source: specificAddr; IDs: *",
+			ceGrants: func() map[string]map[string]*set.StringSet {
+				gset := set.NewStringSet()
+				gset.Add("*")
+				return map[string]map[string]*set.StringSet{
+					tokenclaims.GlobalIdentifier: {
+						common.BigToAddress(big.NewInt(1)).Hex(): gset,
+					},
+				}
+			},
+			eventType: cloudevent.TypeAttestation,
+			evtRequest: EventFilter{
+				EventType: tokenclaims.GlobalIdentifier,
+				Source:    tokenclaims.GlobalIdentifier,
+				IDs:       []string{tokenclaims.GlobalIdentifier},
+			},
+			err: ErrInvalidGrantSourceRequest,
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			grants := tc.ceGrants()
+			err := evaluateCloudEvent(grants, tc.evtRequest)
+			if err != nil {
+				require.ErrorContains(t, err, tc.err.Error())
+			} else {
+				require.Nil(t, err, tc.err)
+			}
+
 		})
 	}
 }

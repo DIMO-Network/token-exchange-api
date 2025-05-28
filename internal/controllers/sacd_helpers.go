@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"errors"
 	"fmt"
 	"math/big"
 	"strings"
@@ -13,6 +14,9 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
+var ErrInvalidCloudEventRequest = errors.New("invalid cloudevent type request")
+var ErrInvalidGrantSourceRequest = errors.New("invalid grant source request")
+
 func evaluateCloudEvent(agreement map[string]map[string]*set.StringSet, req EventFilter) error {
 
 	if !common.IsHexAddress(req.Source) && req.Source != tokenclaims.GlobalIdentifier {
@@ -23,8 +27,8 @@ func evaluateCloudEvent(agreement map[string]map[string]*set.StringSet, req Even
 		return fmt.Errorf("must request at least one cloudevent id or global access request (%s)", tokenclaims.GlobalIdentifier)
 	}
 
-	grantedAggs, ok := agreement[req.EventType]
-	if !ok {
+	grantedAggs, err := evaluateCloudEventType(agreement, req.EventType)
+	if err != nil {
 		return fmt.Errorf("lacking grant for requested event type: %s", req.EventType)
 	}
 
@@ -35,7 +39,7 @@ func evaluateCloudEvent(agreement map[string]map[string]*set.StringSet, req Even
 
 	sourceGrantIDs, ok := grantedAggs[req.Source]
 	if globalGrantIDs == nil && !ok {
-		return fmt.Errorf("no %s grants for source: %s", req.EventType, req.Source)
+		return fmt.Errorf("%w: %s: %s", ErrInvalidGrantSourceRequest, req.EventType, req.Source)
 	}
 
 	if missingIDs := evaluateIDsByGrantSource(globalGrantIDs, sourceGrantIDs, req.IDs); len(missingIDs) > 0 {
@@ -43,6 +47,39 @@ func evaluateCloudEvent(agreement map[string]map[string]*set.StringSet, req Even
 	}
 
 	return nil
+}
+
+func evaluateCloudEventType(agreement map[string]map[string]*set.StringSet, eventType string) (map[string]*set.StringSet, error) {
+	allGrants := make(map[string]*set.StringSet)
+	ceTypeGrants := agreement[eventType]
+	for source, ids := range ceTypeGrants {
+		if _, ok := allGrants[source]; !ok {
+			allGrants[source] = ids
+			continue
+		}
+
+		for _, id := range ids.Slice() {
+			allGrants[source].Add(id)
+		}
+	}
+
+	globalGrants := agreement[tokenclaims.GlobalIdentifier]
+	for source, ids := range globalGrants {
+		if _, ok := allGrants[source]; !ok {
+			allGrants[source] = ids
+			continue
+		}
+
+		for _, id := range ids.Slice() {
+			allGrants[source].Add(id)
+		}
+	}
+
+	if len(allGrants) == 0 {
+		return nil, ErrInvalidCloudEventRequest
+	}
+
+	return allGrants, nil
 }
 
 func evaluateIDsByGrantSource(globalGrants *set.StringSet, sourceGrants *set.StringSet, requestedIDs []string) []string {
