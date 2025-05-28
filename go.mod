@@ -24,6 +24,7 @@ require (
 require (
 	github.com/DIMO-Network/yaml v0.1.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
+	github.com/joho/godotenv v1.5.1 // indirect
 	github.com/tidwall/sjson v1.2.5 // indirect
 	golang.org/x/time v0.9.0 // indirect
 )
