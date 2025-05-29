@@ -158,7 +158,7 @@ func (t *TokenExchangeController) ExchangeToken(c *fiber.Ctx) error {
 }
 
 // Helper function to create and return the token
-func (t *TokenExchangeController) createAndReturnToken(c *fiber.Ctx, tokenReq *TokenRequest, ethAddr common.Address) error {
+func (t *TokenExchangeController) createAndReturnToken(c *fiber.Ctx, tokenReq *TokenRequest) error {
 	aud := tokenReq.Audience
 	if len(aud) == 0 {
 		aud = defaultAudience
@@ -268,7 +268,7 @@ func (t *TokenExchangeController) evaluateSacdDoc(c *fiber.Ctx, record *models.P
 		return fiber.NewError(fiber.StatusBadRequest, err.Error())
 	}
 	// If we get here, all permission and attestation claims are valid
-	return t.createAndReturnToken(c, tokenReq, grantee)
+	return t.createAndReturnToken(c, tokenReq)
 }
 
 func evaluatePermissions(userPermissions map[string]bool, tokenReq *TokenRequest) error {
@@ -373,5 +373,5 @@ func (t *TokenExchangeController) evaluatePermissionsBits(
 		t.logger.Warn().Msgf("Still using privileges %v for %s_%d", tokenReq.Privileges, nftAddr.Hex(), tokenReq.TokenID)
 	}
 
-	return t.createAndReturnToken(c, tokenReq, ethAddr)
+	return t.createAndReturnToken(c, tokenReq)
 }

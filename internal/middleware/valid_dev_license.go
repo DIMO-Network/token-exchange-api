@@ -101,6 +101,7 @@ func GetResponseSubject(c *fiber.Ctx) (string, error) {
 	if !ok {
 		return "", ErrNoSubject
 	}
+
 	return addr, nil
 }
 

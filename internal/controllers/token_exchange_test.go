@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -20,6 +21,7 @@ import (
 	mock_contracts "github.com/DIMO-Network/token-exchange-api/internal/contracts/mocks"
 	"github.com/DIMO-Network/token-exchange-api/internal/contracts/sacd"
 	"github.com/DIMO-Network/token-exchange-api/internal/middleware"
+	"github.com/DIMO-Network/token-exchange-api/internal/middleware/dex"
 	mock_middleware "github.com/DIMO-Network/token-exchange-api/internal/middleware/mocks"
 	"github.com/DIMO-Network/token-exchange-api/internal/models"
 	"github.com/DIMO-Network/token-exchange-api/internal/services"
@@ -34,6 +36,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/tidwall/gjson"
 	"go.uber.org/mock/gomock"
+	"google.golang.org/protobuf/proto"
 )
 
 //go:generate mockgen -source ./token_exchange.go -destination ./token_exchange_mock_test.go -package controllers
@@ -66,6 +69,18 @@ func TestTokenExchangeController_ExchangeToken(t *testing.T) {
 	require.NoError(t, err, "Failed to initialize token exchange controller")
 
 	userEthAddr := common.HexToAddress("0x20Ca3bE69a8B95D3093383375F0473A8c6341727")
+
+	devLicenseAddr := common.HexToAddress("0x69F5C4D08F6bC8cD29fE5f004d46FB566270868d")
+
+	u := dex.User{
+		ConnId: "web3",
+		UserId: devLicenseAddr.Hex(),
+	}
+
+	b, err := proto.Marshal(&u)
+	require.NoError(t, err)
+
+	devLicenseSub := base64.RawURLEncoding.EncodeToString(b)
 
 	effectiveAt := time.Now().Add(-5 * time.Hour)
 	expiresAt := time.Now().Add(5 * time.Hour)
@@ -137,6 +152,36 @@ func TestTokenExchangeController_ExchangeToken(t *testing.T) {
 				}).Return("jwt", nil)
 				mockSacd.EXPECT().CurrentPermissionRecord(nil, common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr).Return(emptyPermRecord, nil)
 				mockSacd.EXPECT().GetPermissions(nil, common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr, big.NewInt(0b1100000000)).Return(big.NewInt(0b1100000000), nil)
+			},
+			expectedCode: fiber.StatusOK,
+		},
+		{
+			name: "valid request from developer license",
+			tokenClaims: jwt.MapClaims{
+				"ethereum_address": devLicenseAddr.Hex(),
+				"nbf":              time.Now().Unix(),
+				"aud":              devLicenseAddr.Hex(),
+				"sub":              devLicenseSub,
+			},
+			userEthAddr: &userEthAddr,
+			permissionTokenRequest: &TokenRequest{
+				TokenID:            123,
+				Privileges:         []int64{4},
+				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
+			},
+			mockSetup: func() {
+				contractsMgr.EXPECT().GetSacd(c.settings.ContractAddressSacd, &client).Return(mockSacd, nil)
+				mockipfs.EXPECT().Fetch(gomock.Any(), gomock.Any()).Return(nil, errors.New("no valid doc"))
+				mockIdent.EXPECT().IsDevLicense(gomock.Any(), devLicenseAddr).Return(true, nil)
+				dexService.EXPECT().SignPrivilegePayload(gomock.Any(), services.PrivilegeTokenDTO{
+					TokenID:            strconv.FormatInt(123, 10),
+					PrivilegeIDs:       []int64{4},
+					NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
+					Audience:           defaultAudience,
+					ResponseSubject:    devLicenseAddr.Hex(),
+				}).Return("jwt", nil)
+				mockSacd.EXPECT().CurrentPermissionRecord(nil, common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), devLicenseAddr).Return(emptyPermRecord, nil)
+				mockSacd.EXPECT().GetPermissions(nil, common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), devLicenseAddr, big.NewInt(0b1100000000)).Return(big.NewInt(0b1100000000), nil)
 			},
 			expectedCode: fiber.StatusOK,
 		},
@@ -351,7 +396,7 @@ func TestTokenExchangeController_ExchangeToken(t *testing.T) {
 			require.NoError(t, err)
 
 			body, _ := io.ReadAll(response.Body)
-			fmt.Println("XPP", string(body))
+
 			assert.Equal(t, tc.expectedCode, response.StatusCode, "expected success")
 			if tc.expectedCode == fiber.StatusOK {
 				assert.Equal(t, "jwt", gjson.GetBytes(body, "token").Str)
