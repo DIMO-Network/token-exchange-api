@@ -329,7 +329,7 @@ func TestDevLicenseMiddleware(t *testing.T) {
 				},
 				devLicenseMiddleware,
 				func(c *fiber.Ctx) error {
-					sub = middleware.GetResultSubject(c)
+					sub = middleware.GetResponseSubject(c)
 					return c.Next()
 				},
 				func(c *fiber.Ctx) error { return c.SendStatus(fiber.StatusOK) })

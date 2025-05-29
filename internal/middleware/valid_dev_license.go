@@ -88,10 +88,11 @@ func NewDevLicenseValidator(idSvc IdentityService, logger zerolog.Logger) fiber.
 	}
 }
 
-// GetResultSubject returns the checksummed address of the developer license making
-// the request. The only exception occurs when the request emanates from the mobile map,
-// in which case the result is "dimo-driver".
-func GetResultSubject(c *fiber.Ctx) string {
+// GetResponseSubject returns the checksummed address of the developer license making
+// the request. The only exception occurs when the request emanates from the mobile app,
+// in which case the result is "dimo-driver". This should be the subject of the token
+// in the response to the client.
+func GetResponseSubject(c *fiber.Ctx) string {
 	addr, ok := c.Locals(resultSubjectKey).(string)
 	if !ok {
 		// This branch existing is a bit embarrassing.
