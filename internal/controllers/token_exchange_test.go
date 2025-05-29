@@ -213,7 +213,7 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 			tokenClaims: jwt.MapClaims{
 				"ethereum_address": userEthAddr.Hex(),
 				"nbf":              time.Now().Unix(),
-				"aud":              []string{"dimo.zone"},
+				"aud":              "dimo-driver",
 			},
 			userEthAddr: &userEthAddr,
 			permissionTokenRequest: &TokenRequest{
