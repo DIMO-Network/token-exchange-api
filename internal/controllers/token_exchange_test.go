@@ -85,6 +85,7 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 			tokenClaims: jwt.MapClaims{
 				"ethereum_address": userEthAddr.Hex(),
 				"nbf":              time.Now().Unix(),
+				"aud":              "dimo-driver",
 			},
 			userEthAddr: &userEthAddr,
 			permissionTokenRequest: &TokenRequest{
@@ -113,6 +114,7 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 			tokenClaims: jwt.MapClaims{
 				"ethereum_address": userEthAddr.Hex(),
 				"nbf":              time.Now().Unix(),
+				"aud":              "dimo-driver",
 			},
 			userEthAddr: &userEthAddr,
 			permissionTokenRequest: &TokenRequest{
@@ -141,6 +143,7 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 			tokenClaims: jwt.MapClaims{
 				"ethereum_address": userEthAddr.Hex(),
 				"nbf":              time.Now().Unix(),
+				"aud":              "dimo-driver",
 			},
 			userEthAddr: &userEthAddr,
 			permissionTokenRequest: &TokenRequest{
@@ -164,6 +167,7 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 			tokenClaims: jwt.MapClaims{
 				"ethereum_address": userEthAddr.Hex(),
 				"nbf":              time.Now().Unix(),
+				"aud":              "dimo-driver",
 			},
 			userEthAddr: &userEthAddr,
 			permissionTokenRequest: &TokenRequest{
@@ -196,6 +200,7 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 			tokenClaims: jwt.MapClaims{
 				"sub": "user-id-123",
 				"nbf": time.Now().Unix(),
+				"aud": "dimo-driver",
 			},
 			userEthAddr: &userEthAddr,
 			permissionTokenRequest: &TokenRequest{
@@ -241,7 +246,7 @@ func TestTokenExchangeController_GetDeviceCommandPermissionWithScope(t *testing.
 		t.Run(tc.name, func(t *testing.T) {
 			jsonBytes, _ := json.Marshal(tc.permissionTokenRequest)
 			app := fiber.New()
-			app.Post("/tokens/exchange", authInjectorTestHandler(tc.tokenClaims), c.GetDeviceCommandPermissionWithScope)
+			app.Post("/tokens/exchange", authInjectorTestHandler(tc.tokenClaims), middleware.NewDevLicenseValidator(nil, zerolog.Nop()), c.GetDeviceCommandPermissionWithScope)
 
 			// setup mock expectations
 			tc.mockSetup()
@@ -329,7 +334,11 @@ func TestDevLicenseMiddleware(t *testing.T) {
 				},
 				devLicenseMiddleware,
 				func(c *fiber.Ctx) error {
-					sub = middleware.GetResponseSubject(c)
+					var err error
+					sub, err = middleware.GetResponseSubject(c)
+					if err != nil {
+						require.NoError(t, err, "subject extraction failed")
+					}
 					return c.Next()
 				},
 				func(c *fiber.Ctx) error { return c.SendStatus(fiber.StatusOK) })

@@ -3,6 +3,7 @@ package middleware
 import (
 	"context"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"slices"
 
@@ -20,9 +21,9 @@ const (
 	// mobileAppAudience is the audience field for a DIMO mobile "user JWT".
 	mobileAppAudience = "dimo-driver"
 
-	// resultSubjectKey is the Fiber context key for the "result subject", the JWT
+	// responseSubjectKey is the Fiber context key for the "result subject", the JWT
 	// "sub" field in the token returned from this service.
-	resultSubjectKey keyType = "resultSubject"
+	responseSubjectKey keyType = "responseSubject"
 )
 
 //go:generate mockgen -source valid_dev_license.go -destination mocks/valid_dev_license_mock.go
@@ -47,7 +48,7 @@ func NewDevLicenseValidator(idSvc IdentityService, logger zerolog.Logger) fiber.
 		// no additional checks for mobile app
 		// TODO(ae): add additional security here eventually
 		if slices.Contains(aud, mobileAppAudience) {
-			c.Locals(resultSubjectKey, mobileAppAudience)
+			c.Locals(responseSubjectKey, mobileAppAudience)
 			return c.Next()
 		}
 
@@ -79,7 +80,7 @@ func NewDevLicenseValidator(idSvc IdentityService, logger zerolog.Logger) fiber.
 		}
 
 		if valid {
-			c.Locals(resultSubjectKey, clientAddress.Hex())
+			c.Locals(responseSubjectKey, clientAddress.Hex())
 			return c.Next()
 		}
 
@@ -89,14 +90,21 @@ func NewDevLicenseValidator(idSvc IdentityService, logger zerolog.Logger) fiber.
 }
 
 // GetResponseSubject returns the checksummed address of the developer license making
-// the request. The only exception occurs when the request emanates from the mobile app,
-// in which case the result is "dimo-driver". This should be the subject of the token
-// in the response to the client.
-func GetResponseSubject(c *fiber.Ctx) string {
-	addr, ok := c.Locals(resultSubjectKey).(string)
+// the request, to be used as the JWT sub field of the token in the response to the
+// client.
+//
+// The only exception to this occurs when the request emanates from the mobile
+// app, in which case the subject returned is "dimo-driver". This legacy mode will
+// disappear in the near future.
+func GetResponseSubject(c *fiber.Ctx) (string, error) {
+	addr, ok := c.Locals(responseSubjectKey).(string)
 	if !ok {
-		// This branch existing is a bit embarrassing.
-		return mobileAppAudience
+		return "", ErrNoSubject
 	}
-	return addr
+	return addr, nil
 }
+
+// ErrNoSubject indicates that the subject of the token in the response
+// was not found in the request context. This suggests that the dev license
+// middleware was skipped or has a bug.
+var ErrNoSubject = errors.New("no subject value found in request context")

@@ -155,13 +155,18 @@ func (t *TokenExchangeController) createAndReturnToken(c *fiber.Ctx, tokenReq *T
 		aud = defaultAudience
 	}
 
+	respSub, err := middleware.GetResponseSubject(c)
+	if err != nil {
+		return err
+	}
+
 	privTokenDTO := services.PrivilegeTokenDTO{
 		UserEthAddress:     ethAddr.Hex(),
 		TokenID:            strconv.FormatInt(tokenReq.TokenID, 10),
 		PrivilegeIDs:       tokenReq.Privileges,
 		NFTContractAddress: tokenReq.NFTContractAddress,
 		Audience:           aud,
-		ResultSubject:      middleware.GetResponseSubject(c),
+		ResultSubject:      respSub,
 	}
 
 	if tokenReq.CloudEvents != nil {
