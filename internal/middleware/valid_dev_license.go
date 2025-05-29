@@ -21,8 +21,8 @@ const (
 	// mobileAppAudience is the audience field for a DIMO mobile "user JWT".
 	mobileAppAudience = "dimo-driver"
 
-	// responseSubjectKey is the Fiber context key for the "result subject", the JWT
-	// "sub" field in the token returned from this service.
+	// responseSubjectKey is the Fiber context key for the "response subject", the JWT
+	// "sub" field in the token returned to the client.
 	responseSubjectKey keyType = "responseSubject"
 )
 
