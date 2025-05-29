@@ -24,7 +24,6 @@ type DexClient struct {
 }
 
 type PrivilegeTokenDTO struct {
-	UserEthAddress     string
 	TokenID            string
 	PrivilegeIDs       []int64
 	NFTContractAddress string

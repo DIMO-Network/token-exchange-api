@@ -161,7 +161,6 @@ func (t *TokenExchangeController) createAndReturnToken(c *fiber.Ctx, tokenReq *T
 	}
 
 	privTokenDTO := services.PrivilegeTokenDTO{
-		UserEthAddress:     ethAddr.Hex(),
 		TokenID:            strconv.FormatInt(tokenReq.TokenID, 10),
 		PrivilegeIDs:       tokenReq.Privileges,
 		NFTContractAddress: tokenReq.NFTContractAddress,
