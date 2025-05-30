@@ -15,11 +15,15 @@ import (
 	"strings"
 	"time"
 
+	"github.com/DIMO-Network/shared/pkg/settings"
 	dex "github.com/DIMO-Network/token-exchange-api"
+	"github.com/DIMO-Network/token-exchange-api/internal/config"
 	"github.com/DIMO-Network/token-exchange-api/internal/models"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/joho/godotenv"
+	"github.com/rs/zerolog"
 )
 
 // privilege prefix to denote the 1:1 mapping to bit values and to make them easier to deprecate if desired in the future
@@ -35,19 +39,29 @@ var PermissionMap = map[int]string{
 }
 
 func main() {
+	logger := zerolog.New(os.Stdout).With().
+		Timestamp().
+		Str("app", "token-exchange-api").
+		Logger()
+
+	signedDoc := signDocument("settings.yaml", "sacd/permission01.json", &logger)
+	res, err := uploadSigned(signedDoc)
+
+	fmt.Println("SUCCESS: ", res, err)
+
 	// cid, err := uploadSACDAgreement("sacd/permission01.json")
 	// if err != nil {
 	// 	log.Fatalf("Failed to upload SACD: %v", err)
 	// }
 	// fmt.Printf("IPFS CID: %s", cid)
 
-	jwt := getJwtToken()
-	resp, err := postTokenExchange(jwt)
-	if err != nil {
-		log.Fatalf("Failed to token exchange: %v", err)
-	}
-	fmt.Printf("\n")
-	fmt.Println(resp)
+	// jwt := getJwtToken()
+	// resp, err := postTokenExchange(jwt)
+	// if err != nil {
+	// 	log.Fatalf("Failed to token exchange: %v", err)
+	// }
+	// fmt.Printf("\n")
+	// fmt.Println(resp)
 
 	// body, err := fetchFromIPj
 	// fmt.Printf("%s", body)
@@ -419,4 +433,115 @@ func evaluateSacdDoc(record *models.PermissionRecord, privileges []int64, grante
 
 	// If we get here, all permissions are valid
 	return true, nil
+}
+
+func signDocument(settingsStr, jsonFilePath string, logger *zerolog.Logger) models.SACD {
+	settings, err := settings.LoadConfig[config.Settings](settingsStr)
+	if err != nil {
+		logger.Fatal().Err(err).Msg("could not load settings")
+	}
+
+	jsonData, err := os.ReadFile(jsonFilePath)
+	if err != nil {
+		logger.Fatal().Err(err).Msg("failed to read permission file")
+	}
+
+	var record models.SACD
+	if err := json.Unmarshal(jsonData, &record); err != nil {
+		logger.Fatal().Err(err).Msg("invalid permission JSON format")
+	}
+
+	privateKeyBytes, err := hexutil.Decode(settings.TestingPK)
+	if err != nil {
+		log.Fatalf("Error decoding private key: %v", err)
+	}
+
+	privateKey, err := crypto.ToECDSA(privateKeyBytes)
+	if err != nil {
+		log.Fatalf("Error parsing private key: %v", err)
+	}
+
+	data, _ := json.Marshal(record.Data)
+	allData := append([]byte("\x19Ethereum Signed Message\n"+fmt.Sprintf("%d", len(data))), data...)
+	msgHash := crypto.Keccak256(allData)
+
+	signature, err := crypto.Sign(msgHash, privateKey)
+	if err != nil {
+		logger.Fatal().Err(err).Msg("failed to sign")
+	}
+
+	signature[64] += 27
+
+	record.Signature = "0x" + common.Bytes2Hex(signature)
+	// body, err := json.Marshal(record)
+	// if err != nil {
+	// 	logger.Fatal().Err(err).Msg("failed to marshal record")
+	// }
+
+	return record
+
+}
+
+func uploadSigned(agreement models.SACD) (string, error) {
+	// Parse IPFS URL
+	ipfsURL, err := url.Parse("https://assets.dimo.org/ipfs")
+	if err != nil {
+		return "", fmt.Errorf("failed to parse IPFS URL: %v", err)
+	}
+
+	// Create HTTP client
+	client := &http.Client{
+		Timeout: 30 * time.Second,
+		Transport: &debugTransport{
+			Transport: http.DefaultTransport,
+		},
+	}
+
+	reqBody, err := json.Marshal(agreement)
+	if err != nil {
+		panic(err)
+	}
+
+	// Create request
+	req, err := http.NewRequest("POST", ipfsURL.String(), bytes.NewBuffer(reqBody))
+	if err != nil {
+		return "", fmt.Errorf("failed to create request: %v", err)
+	}
+
+	// Add headers
+	req.Header.Set("Content-Type", "application/json")
+
+	// Send request
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("request failed: %v", err)
+	}
+	defer resp.Body.Close()
+
+	// Read response body
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("failed to read response body: %v", err)
+	}
+
+	// Check response status
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("IPFS upload failed with status %d: %s", resp.StatusCode, string(body))
+	}
+
+	// Parse response to get IPFS CID
+	var response struct {
+		CID string `json:"cid"`
+	}
+
+	if err := json.Unmarshal(body, &response); err != nil {
+		// If the response format is different, try to extract the CID from the raw response
+		// Some IPFS APIs just return the CID as plain text
+		cid := strings.TrimSpace(string(body))
+		fmt.Printf("Successfully uploaded to IPFS. CID: %s\n", cid)
+		return cid, nil
+	}
+
+	fmt.Printf("Successfully uploaded to IPFS. CID: %s\n", response.CID)
+	return response.CID, nil
 }
