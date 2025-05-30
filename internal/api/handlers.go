@@ -9,17 +9,6 @@ import (
 	"strconv"
 )
 
-// ErrorResponseHandler is deprecated. it doesn't log. We prefer to return an err and have the ErrorHandler in api.go handle stuff.
-func ErrorResponseHandler(c *fiber.Ctx, err error, status int) error {
-	msg := ""
-	if err != nil {
-		msg = err.Error()
-	}
-	return c.Status(status).JSON(fiber.Map{
-		"errorMessage": msg,
-	})
-}
-
 const ethereumAddressClaimName = "ethereum_address"
 
 var zeroAddr common.Address

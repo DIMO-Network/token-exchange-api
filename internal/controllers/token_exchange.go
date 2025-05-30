@@ -140,7 +140,7 @@ func (t *TokenExchangeController) ExchangeToken(c *fiber.Ctx) error {
 
 	resPermRecord, err := s.CurrentPermissionRecord(nil, nftAddr, big.NewInt(tokenReq.TokenID), ethAddr)
 	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+		return fiber.NewError(fiber.StatusInternalServerError, fmt.Sprintf("Failed to get permission record: %s", err))
 	}
 
 	record, err := t.getValidSacdDoc(c.Context(), resPermRecord.Source)
@@ -191,7 +191,7 @@ func (t *TokenExchangeController) createAndReturnToken(c *fiber.Ctx, tokenReq *T
 
 	tk, err := t.dexService.SignPrivilegePayload(c.Context(), privTokenDTO)
 	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+		return fiber.NewError(fiber.StatusInternalServerError, fmt.Sprintf("Failed to sign privilege payload: %s", err))
 	}
 
 	return c.JSON(TokenResponse{
@@ -334,12 +334,12 @@ func (t *TokenExchangeController) evaluatePermissionsBits(
 	// Convert pr.Privileges to 2-bit array format
 	mask, err := intArrayTo2BitArray(tokenReq.Privileges, 128) // Assuming max privilege is 128
 	if err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, err.Error())
+		return fiber.NewError(fiber.StatusBadRequest, fmt.Sprintf("Failed to convert privileges to 2-bit array: %s", err))
 	}
 
 	ret, err := s.GetPermissions(nil, nftAddr, big.NewInt(tokenReq.TokenID), ethAddr, mask)
 	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+		return fiber.NewError(fiber.StatusInternalServerError, fmt.Sprintf("Failed to get permissions: %s", err))
 	}
 
 	// Collecting these because in the future we'd like to list all of them.
@@ -362,7 +362,7 @@ func (t *TokenExchangeController) evaluatePermissionsBits(
 		for _, p := range tokenReq.Privileges {
 			hasPriv, err := m.HasPrivilege(nil, big.NewInt(tokenReq.TokenID), big.NewInt(p), ethAddr)
 			if err != nil {
-				return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+				return fiber.NewError(fiber.StatusInternalServerError, fmt.Sprintf("Failed to check privilege: %s", err))
 			}
 
 			if !hasPriv {
