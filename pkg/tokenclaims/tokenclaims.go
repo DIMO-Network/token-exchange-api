@@ -74,8 +74,3 @@ func (c *CustomClaims) Proto() (*structpb.Struct, error) {
 		},
 	)
 }
-
-// Sub returns the subject of the token.
-func (c *CustomClaims) Sub() string {
-	return fmt.Sprintf("%s/%s", c.ContractAddress, c.TokenID)
-}

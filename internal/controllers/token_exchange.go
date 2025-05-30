@@ -13,6 +13,7 @@ import (
 	"github.com/DIMO-Network/token-exchange-api/internal/api"
 	"github.com/DIMO-Network/token-exchange-api/internal/config"
 	"github.com/DIMO-Network/token-exchange-api/internal/contracts"
+	"github.com/DIMO-Network/token-exchange-api/internal/middleware"
 	"github.com/DIMO-Network/token-exchange-api/internal/models"
 	"github.com/DIMO-Network/token-exchange-api/internal/services"
 	"github.com/DIMO-Network/token-exchange-api/pkg/tokenclaims"
@@ -157,18 +158,23 @@ func (t *TokenExchangeController) ExchangeToken(c *fiber.Ctx) error {
 }
 
 // Helper function to create and return the token
-func (t *TokenExchangeController) createAndReturnToken(c *fiber.Ctx, tokenReq *TokenRequest, ethAddr common.Address) error {
+func (t *TokenExchangeController) createAndReturnToken(c *fiber.Ctx, tokenReq *TokenRequest) error {
 	aud := tokenReq.Audience
 	if len(aud) == 0 {
 		aud = defaultAudience
 	}
 
+	respSub, err := middleware.GetResponseSubject(c)
+	if err != nil {
+		return err
+	}
+
 	privTokenDTO := services.PrivilegeTokenDTO{
-		UserEthAddress:     ethAddr.Hex(),
 		TokenID:            strconv.FormatInt(tokenReq.TokenID, 10),
 		PrivilegeIDs:       tokenReq.Privileges,
 		NFTContractAddress: tokenReq.NFTContractAddress,
 		Audience:           aud,
+		ResponseSubject:    respSub,
 	}
 
 	if len(tokenReq.CloudEvents.Events) != 0 {
@@ -262,7 +268,7 @@ func (t *TokenExchangeController) evaluateSacdDoc(c *fiber.Ctx, record *models.P
 		return fiber.NewError(fiber.StatusBadRequest, err.Error())
 	}
 	// If we get here, all permission and attestation claims are valid
-	return t.createAndReturnToken(c, tokenReq, grantee)
+	return t.createAndReturnToken(c, tokenReq)
 }
 
 func evaluatePermissions(userPermissions map[string]bool, tokenReq *TokenRequest) error {
@@ -367,5 +373,5 @@ func (t *TokenExchangeController) evaluatePermissionsBits(
 		t.logger.Warn().Msgf("Still using privileges %v for %s_%d", tokenReq.Privileges, nftAddr.Hex(), tokenReq.TokenID)
 	}
 
-	return t.createAndReturnToken(c, tokenReq, ethAddr)
+	return t.createAndReturnToken(c, tokenReq)
 }
