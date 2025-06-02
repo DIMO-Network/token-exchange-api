@@ -148,7 +148,8 @@ func (t *TokenExchangeController) ExchangeToken(c *fiber.Ctx) error {
 		if len(tokenReq.CloudEvents.Events) != 0 {
 			return fiber.NewError(fiber.StatusBadRequest, "failed to get valid sacd document, cannot evaluate claims")
 		}
-		t.logger.Warn().Err(err).Msg("Failed to get valid SACD document")
+		// TODO(elffjs): This is in debug for now because all prod grants are in an old format.
+		t.logger.Debug().Err(err).Msg("Failed to get valid SACD document")
 		// If the user doesn't have a valid IPFS doc, check bitstring
 		// We call the contract again because this handles the case where the caller is the owner of the asset.
 		return t.evaluatePermissionsBits(c, s, nftAddr, tokenReq, ethAddr)
