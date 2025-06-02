@@ -100,10 +100,7 @@ func startWebAPI(ctx context.Context, logger zerolog.Logger, settings *config.Se
 		JWKSetURLs: []string{settings.JWKKeySetURL},
 	})
 
-	handlers := []fiber.Handler{jwtAuth}
-	if settings.DevLiscFeatureFlag {
-		handlers = append(handlers, devLicenseMiddleware)
-	}
+	handlers := []fiber.Handler{jwtAuth, devLicenseMiddleware}
 
 	// All api routes should be under v1
 	v1Route := app.Group("/v1")
