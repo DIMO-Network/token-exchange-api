@@ -33,7 +33,6 @@ env:
   CONTRACT_ADDRESS_SACD: '0x4E5F9320b1c7cB3DE5ebDD760aD67375B66cF8a3'
   IDENTITY_URL: http://identity-api-dev:8080/query
   IPFS_BASE_URL: https://assets.dimo.xyz/ipfs
-  DEV_LICENSE_VALIDATOR_FEATURE_FLAG: true
   IPFS_TIMEOUT: 30s
 service:
   type: ClusterIP
