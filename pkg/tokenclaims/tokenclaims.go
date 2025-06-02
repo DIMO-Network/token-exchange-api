@@ -42,28 +42,34 @@ func (c *CustomClaims) Proto() (*structpb.Struct, error) {
 		ap[i] = int64(c.PrivilegeIDs[i])
 	}
 
-	var ces any = nil
+	out := map[string]any{
+		"contract_address": hexutil.Encode(c.ContractAddress[:]),
+		"token_id":         c.TokenID,
+		"privilege_ids":    ap,
+	}
+
 	if c.CloudEvents != nil {
+		events := []any{}
 		for _, evt := range c.CloudEvents.Events {
 			ids := []any{}
 			for _, id := range evt.IDs {
 				ids = append(ids, id)
 			}
 
-			ces = map[string]any{
-				"event_type": evt.EventType,
-				"source":     evt.Source,
-				"ids":        ids,
-			}
+			events = append(
+				events,
+				map[string]any{
+					"event_type": evt.EventType,
+					"source":     evt.Source,
+					"ids":        ids,
+				},
+			)
+		}
+
+		out["cloud_events"] = map[string]any{
+			"events": events,
 		}
 	}
 
-	return structpb.NewStruct(
-		map[string]any{
-			"contract_address": hexutil.Encode(c.ContractAddress[:]),
-			"token_id":         c.TokenID,
-			"privilege_ids":    ap,
-			"cloud_events":     ces,
-		},
-	)
+	return structpb.NewStruct(out)
 }
