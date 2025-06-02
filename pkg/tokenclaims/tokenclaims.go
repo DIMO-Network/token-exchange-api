@@ -2,8 +2,6 @@
 package tokenclaims
 
 import (
-	"fmt"
-
 	"github.com/DIMO-Network/shared/pkg/privileges"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -44,7 +42,7 @@ func (c *CustomClaims) Proto() (*structpb.Struct, error) {
 		ap[i] = int64(c.PrivilegeIDs[i])
 	}
 
-	ces := []any{}
+	var ces any = nil
 	if c.CloudEvents != nil {
 		for _, evt := range c.CloudEvents.Events {
 			ids := []any{}
@@ -52,16 +50,11 @@ func (c *CustomClaims) Proto() (*structpb.Struct, error) {
 				ids = append(ids, id)
 			}
 
-			e, err := structpb.NewStruct(map[string]any{
+			ces = map[string]any{
 				"event_type": evt.EventType,
 				"source":     evt.Source,
 				"ids":        ids,
-			})
-			if err != nil {
-				return nil, fmt.Errorf("failed to create pb struct from cloudevent: %w", err)
 			}
-
-			ces = append(ces, e.AsMap())
 		}
 	}
 
