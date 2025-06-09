@@ -3,13 +3,11 @@ package controllers
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"math/big"
 	"strconv"
 	"time"
 
-	"github.com/DIMO-Network/shared/pkg/set"
 	"github.com/DIMO-Network/token-exchange-api/internal/api"
 	"github.com/DIMO-Network/token-exchange-api/internal/config"
 	"github.com/DIMO-Network/token-exchange-api/internal/contracts"
@@ -298,16 +296,6 @@ func evaluatePermissions(userPermissions map[string]bool, tokenReq *TokenRequest
 
 	// If we get here, all permissions are valid
 	return nil
-}
-
-func evaluateCloudEvents(agreement map[string]map[string]*set.StringSet, tokenReq *TokenRequest) error {
-	var err error
-	for _, req := range tokenReq.CloudEvents.Events {
-		ceErr := evaluateCloudEvent(agreement, req)
-		err = errors.Join(err, ceErr)
-	}
-
-	return err
 }
 
 // evaluatePermissionsBits checks if the user has the requested privileges using the on-chain permission bits system.

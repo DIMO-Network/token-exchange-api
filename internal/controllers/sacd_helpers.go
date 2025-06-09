@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"errors"
 	"fmt"
 	"math/big"
 	"strings"
@@ -13,6 +14,16 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
+func evaluateCloudEvents(agreement map[string]map[string]*set.StringSet, tokenReq *TokenRequest) error {
+	var err error
+	for _, req := range tokenReq.CloudEvents.Events {
+		ceErr := evaluateCloudEvent(agreement, req)
+		err = errors.Join(err, ceErr)
+	}
+
+	return err
+}
+
 // evaluateCloudEvent returns an error if and only if the CloudEvent access request is
 // disallowed under the grants in the agreement map.
 func evaluateCloudEvent(agreement map[string]map[string]*set.StringSet, req EventFilter) error {
@@ -24,8 +35,8 @@ func evaluateCloudEvent(agreement map[string]map[string]*set.StringSet, req Even
 		return fmt.Errorf("must request at least one cloudevent id or global access request (%s)", tokenclaims.GlobalIdentifier)
 	}
 
-	grantedAggs, ok := agreement[req.EventType]
-	if !ok {
+	grantedAggs := getValidAgreements(agreement, req.EventType)
+	if len(grantedAggs) == 0 {
 		return fmt.Errorf("lacking grant for requested event type: %s", req.EventType)
 	}
 
@@ -44,6 +55,33 @@ func evaluateCloudEvent(agreement map[string]map[string]*set.StringSet, req Even
 	}
 
 	return nil
+}
+
+func getValidAgreements(agreement map[string]map[string]*set.StringSet, ceType string) map[string]*set.StringSet {
+	allAgreements := map[string]*set.StringSet{}
+
+	globalAggs := agreement[tokenclaims.GlobalIdentifier]
+	eventAggs, ok := agreement[ceType]
+	if !ok && len(globalAggs) == 0 {
+		return allAgreements
+	}
+
+	for source, idSet := range globalAggs {
+		allAgreements[source] = idSet
+	}
+
+	for source, idSet := range eventAggs {
+		if _, ok := allAgreements[source]; !ok {
+			allAgreements[source] = idSet
+			continue
+		}
+
+		for _, id := range idSet.Slice() {
+			allAgreements[source].Add(id)
+		}
+	}
+
+	return allAgreements
 }
 
 func evaluateIDsByGrantSource(globalGrants *set.StringSet, sourceGrants *set.StringSet, requestedIDs []string) []string {
