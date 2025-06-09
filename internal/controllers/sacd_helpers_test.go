@@ -16,15 +16,33 @@ import (
 )
 
 const signedSACD = `{"specversion":"1.0","timestamp":"2025-03-11T14:30:00Z","type":"dimo.sacd","data":{"grantor":{"address":"0x07B584f6a7125491C991ca2a45ab9e641B1CeE1b","name":"Alice"},"grantee":{"address":"0x07B584f6a7125491C991ca2a45ab9e641B1CeE1b","name":"Bob"},"effectiveAt":"2025-03-11T14:30:00Z","expiresAt":"2030-12-20T05:20:45Z","asset":"did:erc721:80002:0x45fbCD3ef7361d156e8b16F5538AE36DEdf61Da8:928","additionalDates":{},"agreements":[{"type":"cloudevent","eventType":"dimo.attestation","source":"0x07B584f6a7125491C991ca2a45ab9e641B1CeE1b","ids":["unique-attestation-id-1","unique-attestation-id-2"],"effectiveAt":"2022-03-11T14:30:00Z","expiresAt":"2030-12-20T05:20:45Z"}],"extensions":{}},"signature":"0x92e576fbce2c2c29ede118c8e674d4aae6f1e606f5f84c3096fbe962840f3ec608a961d90c40c3331de13ba29ae4526498fe2eed5dfd4486c3f3e36fd97715631c"}`
+const signedSACDWithPrefix = `{"specversion":"1.0","timestamp":"2025-03-11T14:30:00Z","type":"dimo.sacd","data":{"grantor":{"address":"0x07B584f6a7125491C991ca2a45ab9e641B1CeE1b","name":"Alice"},"grantee":{"address":"0x07B584f6a7125491C991ca2a45ab9e641B1CeE1b","name":"Bob"},"effectiveAt":"2025-03-11T14:30:00Z","expiresAt":"2030-12-20T05:20:45Z","asset":"did:erc721:80002:0x45fbCD3ef7361d156e8b16F5538AE36DEdf61Da8:928","additionalDates":{},"agreements":[{"type":"cloudevent","eventType":"dimo.attestation","source":"0x07B584f6a7125491C991ca2a45ab9e641B1CeE1b","ids":["unique-attestation-id-1","unique-attestation-id-2"],"effectiveAt":"2022-03-11T14:30:00Z","expiresAt":"2030-12-20T05:20:45Z"}],"extensions":{}},"signature":"0x92e576fbce2c2c29ede118c8e674d4aae6f1e606f5f84c3096fbe962840f3ec608a961d90c40c3331de13ba29ae4526498fe2eed5dfd4486c3f3e36fd97715631c"}`
+
 const grantor = `0x07B584f6a7125491C991ca2a45ab9e641B1CeE1b`
 
+type temp struct {
+	Name    string
+	Payload string
+}
+
 func Test_ValidSACDSignature(t *testing.T) {
-	var ipfs models.PermissionRecord
-	err := json.Unmarshal([]byte(signedSACD), &ipfs)
-	require.NoError(t, err)
-	res, err := validSignature(ipfs.Data, ipfs.Signature, grantor)
-	require.NoError(t, err)
-	require.True(t, res)
+	for _, test := range []struct {
+		Name    string
+		Payload string
+	}{
+		{
+			Name:    "With Prefix",
+			Payload: signedSACD,
+		},
+	} {
+		var ipfs models.PermissionRecord
+		err := json.Unmarshal([]byte(test.Payload), &ipfs)
+		require.NoError(t, err)
+		res, err := validSignature(ipfs.Data, ipfs.Signature, grantor)
+		require.NoError(t, err)
+		require.True(t, res)
+	}
+
 }
 
 func TestTokenExchangeController_EvaluatingSACD_Attestations(t *testing.T) {

@@ -145,9 +145,11 @@ func intArrayTo2BitArray(indices []int64, length int) (*big.Int, error) {
 }
 
 func validSignature(payload json.RawMessage, signature, ethAddr string) (bool, error) {
+
 	sig := common.FromHex(signature)
 
-	data, err := json.Marshal(payload)
+	payloadNoPrefix := strings.Replace(string(payload), fmt.Sprintf("\x19Ethereum Signed Message:\n%d%s", len(payload), payload), "", 1)
+	data, err := json.Marshal(payloadNoPrefix)
 	if err != nil {
 		return false, fmt.Errorf("failed to marshal data: %w", err)
 	}
