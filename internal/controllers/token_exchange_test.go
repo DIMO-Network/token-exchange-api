@@ -535,6 +535,40 @@ func TestTokenExchangeController_EvaluatingSACD_Attestations(t *testing.T) {
 			},
 		},
 		{
+			name: "Pass: granted all cloud events, asking for attestation with source and ids",
+			agreement: []models.Agreement{
+				{
+					Type:      "cloudevent",
+					EventType: tokenclaims.GlobalIdentifier,
+					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
+					IDs:       []string{tokenclaims.GlobalIdentifier},
+					Source:    tokenclaims.GlobalIdentifier,
+				},
+			},
+			request: TokenRequest{
+				TokenID:            123,
+				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
+				CloudEvents: CloudEvents{
+					Events: []EventFilter{
+						{
+							EventType: cloudevent.TypeAttestation,
+							Source:    common.BigToAddress(big.NewInt(1)).Hex(),
+							IDs:       []string{"1, 2, 3"},
+						},
+					},
+				},
+			},
+			expectedCEGrants: func() map[string]map[string]*set.StringSet {
+				gset := set.NewStringSet()
+				gset.Add("*")
+				return map[string]map[string]*set.StringSet{
+					tokenclaims.GlobalIdentifier: {
+						"*": gset,
+					},
+				}
+			},
+		},
+		{
 			name: "Fail: not requesting any ids",
 			agreement: []models.Agreement{
 				{
@@ -951,6 +985,11 @@ func Test_ProtobufSerializer(t *testing.T) {
 				EventType: cloudevent.TypeFingerprint,
 				Source:    "*",
 			},
+			{
+				EventType: tokenclaims.GlobalIdentifier,
+				Source:    "0x123",
+				IDs:       []string{"attestation-10"},
+			},
 		},
 	}
 	cc := tokenclaims.CustomClaims{
@@ -969,9 +1008,13 @@ func Test_ProtobufSerializer(t *testing.T) {
 	require.True(t, ok, "expected privilege_ids to be included in output")
 	require.Equal(t, len(privCheck), len(privs))
 
-	ceCheck, ok := value["cloud_events"].([]any)
+	ceCheck, ok := value["cloud_events"].(map[string]any)
 	require.True(t, ok, "expected cloud_events to be included in output")
-	require.Equal(t, len(ceCheck), len(ce.Events))
+
+	events, ok := ceCheck["events"].([]any)
+	require.True(t, ok, "expected events to be valid key in cloud_events")
+
+	require.Equal(t, len(events), len(ce.Events))
 
 }
 
