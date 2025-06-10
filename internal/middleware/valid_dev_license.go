@@ -3,6 +3,7 @@ package middleware
 import (
 	"context"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"slices"
 
@@ -14,8 +15,16 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-// mobileAppAudience Audience in DIMO mobile JWT
-const mobileAppAudience = "dimo-driver"
+type keyType string
+
+const (
+	// mobileAppAudience is the audience field for a DIMO mobile "user JWT".
+	mobileAppAudience = "dimo-driver"
+
+	// responseSubjectKey is the Fiber context key for the "response subject", the JWT
+	// "sub" field in the token returned to the client.
+	responseSubjectKey keyType = "responseSubject"
+)
 
 //go:generate mockgen -source valid_dev_license.go -destination mocks/valid_dev_license_mock.go
 type IdentityService interface {
@@ -39,6 +48,7 @@ func NewDevLicenseValidator(idSvc IdentityService, logger zerolog.Logger) fiber.
 		// no additional checks for mobile app
 		// TODO(ae): add additional security here eventually
 		if slices.Contains(aud, mobileAppAudience) {
+			c.Locals(responseSubjectKey, mobileAppAudience)
 			return c.Next()
 		}
 
@@ -62,12 +72,15 @@ func NewDevLicenseValidator(idSvc IdentityService, logger zerolog.Logger) fiber.
 			return fiber.NewError(fiber.StatusBadRequest, "user id is not valid hex address")
 		}
 
-		valid, err := idSvc.IsDevLicense(c.Context(), common.HexToAddress(user.UserId))
+		clientAddress := common.HexToAddress(user.UserId)
+
+		valid, err := idSvc.IsDevLicense(c.Context(), clientAddress)
 		if err != nil {
 			return err
 		}
 
 		if valid {
+			c.Locals(responseSubjectKey, clientAddress.Hex())
 			return c.Next()
 		}
 
@@ -75,3 +88,24 @@ func NewDevLicenseValidator(idSvc IdentityService, logger zerolog.Logger) fiber.
 		return fiber.NewError(fiber.StatusForbidden, fmt.Sprintf("not a dev license: %s", user.UserId))
 	}
 }
+
+// GetResponseSubject returns the checksummed address of the developer license making
+// the request, to be used as the JWT sub field of the token in the response to the
+// client.
+//
+// The only exception to this occurs when the request emanates from the mobile
+// app, in which case the subject returned is "dimo-driver". This legacy mode will
+// disappear in the near future.
+func GetResponseSubject(c *fiber.Ctx) (string, error) {
+	addr, ok := c.Locals(responseSubjectKey).(string)
+	if !ok {
+		return "", ErrNoSubject
+	}
+
+	return addr, nil
+}
+
+// ErrNoSubject indicates that the subject of the token in the response
+// was not found in the request context. This suggests that the dev license
+// middleware was skipped or has a bug.
+var ErrNoSubject = errors.New("no subject value found in request context")

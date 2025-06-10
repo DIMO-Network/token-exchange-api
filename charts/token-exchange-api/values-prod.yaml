@@ -2,7 +2,7 @@ replicaCount: 2
 image:
   repository: dimozone/token-exchange-api
   pullPolicy: IfNotPresent
-  tag: 0.2.7
+  tag: 0.3.2
 cronJob:
   enabled: false
   schedule: 0 0 * * 0
@@ -15,7 +15,6 @@ env:
   CONTRACT_ADDRESS_SACD: '0x3c152B5d96769661008Ff404224d6530FCAC766d'
   IDENTITY_URL: http://identity-api-prod:8080/query
   IPFS_BASE_URL: https://assets.dimo.xyz/ipfs
-  DEV_LICENSE_VALIDATOR_FEATURE_FLAG: false
   IPFS_TIMEOUT: 30s
 resources:
   limits:

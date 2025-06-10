@@ -100,10 +100,7 @@ func startWebAPI(ctx context.Context, logger zerolog.Logger, settings *config.Se
 		JWKSetURLs: []string{settings.JWKKeySetURL},
 	})
 
-	handlers := []fiber.Handler{jwtAuth}
-	if settings.DevLiscFeatureFlag {
-		handlers = append(handlers, devLicenseMiddleware)
-	}
+	handlers := []fiber.Handler{jwtAuth, devLicenseMiddleware}
 
 	// All api routes should be under v1
 	v1Route := app.Group("/v1")
@@ -111,7 +108,7 @@ func startWebAPI(ctx context.Context, logger zerolog.Logger, settings *config.Se
 	tokenRoutes := v1Route.Group("/tokens", handlers...)
 	ctrWhitelistWare := middleware.NewContractWhiteList(settings, logger, ctrAddressesWhitelist)
 
-	tokenRoutes.Post("/exchange", ctrWhitelistWare, vtxController.GetDeviceCommandPermissionWithScope)
+	tokenRoutes.Post("/exchange", ctrWhitelistWare, vtxController.ExchangeToken)
 
 	go serveMonitoring(settings.MonPort, &logger) //nolint
 

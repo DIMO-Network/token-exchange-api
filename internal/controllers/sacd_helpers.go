@@ -7,18 +7,20 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ethereum/go-ethereum/crypto"
+
 	"github.com/DIMO-Network/cloudevent"
-	utils "github.com/DIMO-Network/shared/pkg/crypto"
 	"github.com/DIMO-Network/shared/pkg/set"
 	"github.com/DIMO-Network/token-exchange-api/internal/models"
 	"github.com/DIMO-Network/token-exchange-api/pkg/tokenclaims"
 	"github.com/ethereum/go-ethereum/common"
 )
 
+// evaluateCloudEvent returns an error if and only if the CloudEvent access request is
+// disallowed under the grants in the agreement map.
 func evaluateCloudEvent(agreement map[string]map[string]*set.StringSet, req EventFilter) error {
-
 	if !common.IsHexAddress(req.Source) && req.Source != tokenclaims.GlobalIdentifier {
-		return fmt.Errorf("requested source %s invalid: must be %s or valid hex address", req.Source, tokenclaims.GlobalIdentifier)
+		return fmt.Errorf("requested source %q invalid: must be %s or valid hex address", req.Source, tokenclaims.GlobalIdentifier)
 	}
 
 	if len(req.IDs) == 0 {
@@ -48,24 +50,29 @@ func evaluateCloudEvent(agreement map[string]map[string]*set.StringSet, req Even
 }
 
 func evaluateIDsByGrantSource(globalGrants *set.StringSet, sourceGrants *set.StringSet, requestedIDs []string) []string {
-	if (globalGrants != nil && globalGrants.Contains(tokenclaims.GlobalIdentifier)) || (sourceGrants != nil && sourceGrants.Contains(tokenclaims.GlobalIdentifier)) {
+	// Note that when the request is for the source "*" then these are the same set.
+	grantsUnion := NewNilSafeUnion(globalGrants, sourceGrants)
+
+	if grantsUnion.Contains(tokenclaims.GlobalIdentifier) {
 		return nil
 	}
+
 	var missingIDs []string
 	for _, reqID := range requestedIDs {
-		if (globalGrants != nil && !globalGrants.Contains(reqID)) && (sourceGrants != nil && !sourceGrants.Contains(reqID)) {
+		if !grantsUnion.Contains(reqID) {
 			missingIDs = append(missingIDs, reqID)
 		}
 	}
 	return missingIDs
 }
 
-func userGrantMap(record *models.PermissionData) (map[string]bool, map[string]map[string]*set.StringSet, error) {
+func userGrantMap(data *models.SACDData) (map[string]bool, map[string]map[string]*set.StringSet, error) {
 	userPermGrants := make(map[string]bool)
+	// type -> source -> ids
 	cloudEvtGrants := make(map[string]map[string]*set.StringSet)
 
 	// Aggregates all the permission and attestation grants the user has.
-	for _, agreement := range record.Agreements {
+	for _, agreement := range data.Agreements {
 		now := time.Now()
 		if !agreement.EffectiveAt.IsZero() && now.Before(agreement.EffectiveAt) {
 			continue
@@ -88,7 +95,6 @@ func userGrantMap(record *models.PermissionData) (map[string]bool, map[string]ma
 			for _, id := range agreement.IDs {
 				cloudEvtGrants[agreement.EventType][agreement.Source].Add(id)
 			}
-
 		case "permission":
 			// Add permissions from this agreement
 			for _, permission := range agreement.Permissions {
@@ -122,8 +128,8 @@ func validAssetDID(did string, nftContractAddr string, tokenID int64) error {
 			decodedDID.ContractAddress.Hex(), nftContractAddr)
 	}
 
-	if int64(decodedDID.TokenID.Int64()) != tokenID {
-		return fmt.Errorf("DID token ID %d does not match request token ID %d",
+	if decodedDID.TokenID.Cmp(big.NewInt(tokenID)) != 0 {
+		return fmt.Errorf("DID token id %d does not match request token id %d",
 			decodedDID.TokenID, tokenID)
 	}
 
@@ -144,15 +150,30 @@ func intArrayTo2BitArray(indices []int64, length int) (*big.Int, error) {
 	return mask, nil
 }
 
-func validSignature(payload json.RawMessage, signature, ethAddr string) (bool, error) {
+type NilSafeUnion struct {
+	s1, s2 *set.StringSet
+}
 
+func NewNilSafeUnion(s1, s2 *set.StringSet) NilSafeUnion {
+	return NilSafeUnion{s1: s1, s2: s2}
+}
+
+func (s *NilSafeUnion) Contains(x string) bool {
+	return s.s1 != nil && s.s1.Contains(x) || s.s2 != nil && s.s2.Contains(x)
+}
+
+func validSignature(payload json.RawMessage, signature string, ethAddr common.Address) (bool, error) {
 	sig := common.FromHex(signature)
+	sig[64] -= 27
+	prefixed := fmt.Sprintf("\x19Ethereum Signed Message:\n%d%s", len(payload), payload)
 
-	payloadNoPrefix := strings.Replace(string(payload), fmt.Sprintf("\x19Ethereum Signed Message:\n%d%s", len(payload), payload), "", 1)
-	data, err := json.Marshal(payloadNoPrefix)
+	// Step 6: Hash the message
+	hash := crypto.Keccak256Hash([]byte(prefixed))
+
+	recoveredPubKey, err := crypto.SigToPub(hash.Bytes(), sig)
 	if err != nil {
-		return false, fmt.Errorf("failed to marshal data: %w", err)
+		return false, err
 	}
-
-	return utils.VerifySignature(data, sig, common.HexToAddress(ethAddr))
+	recoveredAddr := crypto.PubkeyToAddress(*recoveredPubKey)
+	return recoveredAddr == ethAddr, nil
 }

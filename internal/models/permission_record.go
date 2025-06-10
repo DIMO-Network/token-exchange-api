@@ -5,8 +5,8 @@ import (
 	"time"
 )
 
-// PermissionRecord is the top-level structure for permission events
-type PermissionRecord struct {
+// SACDRecord is the top-level structure for permission events
+type SACDRecord struct {
 	SpecVersion string          `json:"specversion"`
 	Timestamp   time.Time       `json:"timestamp"`
 	Type        string          `json:"type"`
@@ -14,8 +14,8 @@ type PermissionRecord struct {
 	Signature   string          `json:"signature"`
 }
 
-// PermissionData contains the core permission data
-type PermissionData struct {
+// SACDData contains the core permission data
+type SACDData struct {
 	Grantor     Address     `json:"grantor"`
 	Grantee     Address     `json:"grantee"`
 	EffectiveAt time.Time   `json:"effectiveAt"`

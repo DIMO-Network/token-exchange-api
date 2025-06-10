@@ -1,7 +1,9 @@
 package controllers
 
 import (
+	"crypto/ecdsa"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math/big"
 	"testing"
@@ -12,45 +14,81 @@ import (
 	"github.com/DIMO-Network/token-exchange-api/internal/models"
 	"github.com/DIMO-Network/token-exchange-api/pkg/tokenclaims"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/stretchr/testify/require"
 )
 
-const signedSACD = `{"specversion":"1.0","timestamp":"2025-03-11T14:30:00Z","type":"dimo.sacd","data":{"grantor":{"address":"0x07B584f6a7125491C991ca2a45ab9e641B1CeE1b","name":"Alice"},"grantee":{"address":"0x07B584f6a7125491C991ca2a45ab9e641B1CeE1b","name":"Bob"},"effectiveAt":"2025-03-11T14:30:00Z","expiresAt":"2030-12-20T05:20:45Z","asset":"did:erc721:80002:0x45fbCD3ef7361d156e8b16F5538AE36DEdf61Da8:928","additionalDates":{},"agreements":[{"type":"cloudevent","eventType":"dimo.attestation","source":"0x07B584f6a7125491C991ca2a45ab9e641B1CeE1b","ids":["unique-attestation-id-1","unique-attestation-id-2"],"effectiveAt":"2022-03-11T14:30:00Z","expiresAt":"2030-12-20T05:20:45Z"}],"extensions":{}},"signature":"0x92e576fbce2c2c29ede118c8e674d4aae6f1e606f5f84c3096fbe962840f3ec608a961d90c40c3331de13ba29ae4526498fe2eed5dfd4486c3f3e36fd97715631c"}`
-const signedSACDWithPrefix = `{"specversion":"1.0","timestamp":"2025-03-11T14:30:00Z","type":"dimo.sacd","data":{"grantor":{"address":"0x07B584f6a7125491C991ca2a45ab9e641B1CeE1b","name":"Alice"},"grantee":{"address":"0x07B584f6a7125491C991ca2a45ab9e641B1CeE1b","name":"Bob"},"effectiveAt":"2025-03-11T14:30:00Z","expiresAt":"2030-12-20T05:20:45Z","asset":"did:erc721:80002:0x45fbCD3ef7361d156e8b16F5538AE36DEdf61Da8:928","additionalDates":{},"agreements":[{"type":"cloudevent","eventType":"dimo.attestation","source":"0x07B584f6a7125491C991ca2a45ab9e641B1CeE1b","ids":["unique-attestation-id-1","unique-attestation-id-2"],"effectiveAt":"2022-03-11T14:30:00Z","expiresAt":"2030-12-20T05:20:45Z"}],"extensions":{}},"signature":"0x92e576fbce2c2c29ede118c8e674d4aae6f1e606f5f84c3096fbe962840f3ec608a961d90c40c3331de13ba29ae4526498fe2eed5dfd4486c3f3e36fd97715631c"}`
-
-const grantor = `0x07B584f6a7125491C991ca2a45ab9e641B1CeE1b`
-
-type temp struct {
-	Name    string
-	Payload string
-}
-
 func Test_ValidSACDSignature(t *testing.T) {
+	signer := common.HexToAddress("0xa9BC6E60EC5b541aED230d366073067F839EbB14")
+	signedSACDWithPrefix := `{"specversion":"","timestamp":"0001-01-01T00:00:00Z","type":"","data":{"grantor":{"address":"0xa9BC6E60EC5b541aED230d366073067F839EbB14"},"grantee":{"address":"0x0000000000000000000000000000000000000001"},"effectiveAt":"0001-01-01T00:00:00Z","expiresAt":"0001-01-01T00:00:00Z","agreements":[{"type":"random-string","eventType":"random-string","ids":["a","b","c"],"effectiveAt":"0001-01-01T00:00:00Z","expiresAt":"0001-01-01T00:00:00Z","source":"random-string","asset":"","permissions":null}]},"signature":"0xf8f35c9faed52973bf5f6300b75813c1a8b3801515bfe2725401082f7ceaaa2477b141d237f47f1f3b9c64fb32808857a2fc562ffe97206238d20dbd71bdde2d1b"}`
+
 	for _, test := range []struct {
 		Name    string
 		Payload string
 	}{
 		{
 			Name:    "With Prefix",
-			Payload: signedSACD,
+			Payload: signedSACDWithPrefix,
 		},
 	} {
-		var ipfs models.PermissionRecord
-		err := json.Unmarshal([]byte(test.Payload), &ipfs)
+
+		var record models.SACDRecord
+		err := json.Unmarshal([]byte(test.Payload), &record)
 		require.NoError(t, err)
-		res, err := validSignature(ipfs.Data, ipfs.Signature, grantor)
+
+		res, err := validSignature(record.Data, record.Signature, signer)
 		require.NoError(t, err)
 		require.True(t, res)
 	}
 
 }
 
+func signSACDHelper(grantData *models.SACDData) (*models.SACDRecord, error) {
+	privateKey, err := crypto.GenerateKey()
+	if err != nil {
+		return nil, err
+	}
+
+	publicKey := privateKey.Public()
+	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
+	if !ok {
+		return nil, errors.New("failed to derive public key")
+	}
+
+	address := crypto.PubkeyToAddress(*publicKeyECDSA)
+
+	grantData.Grantor = models.Address{
+		Address: address.Hex(),
+	}
+
+	msgBytes, err := json.Marshal(grantData)
+	if err != nil {
+		return nil, err
+	}
+
+	prefixed := fmt.Sprintf("\x19Ethereum Signed Message:\n%d%s", len(msgBytes), msgBytes)
+
+	hash := crypto.Keccak256Hash([]byte(prefixed))
+	signature, err := crypto.Sign(hash.Bytes(), privateKey)
+	if err != nil {
+		return nil, err
+	}
+
+	signature[64] += 27
+
+	var final models.SACDRecord
+	final.Signature = "0x" + common.Bytes2Hex(signature)
+	final.Data = msgBytes
+	final.Type = "dimo.sacd"
+	// finalBytes, err := json.Marshal(final)
+	return &final, nil
+}
 func TestTokenExchangeController_EvaluatingSACD_Attestations(t *testing.T) {
 	userEthAddr := common.HexToAddress("0x20Ca3bE69a8B95D3093383375F0473A8c6341727")
 	oneMinAgo := time.Now().Add(-1 * time.Minute)
 	oneMinFuture := time.Now().Add(1 * time.Minute)
 
-	grantData := models.PermissionData{
+	permData := models.SACDData{
 		Grantor: models.Address{
 			Address: common.BigToAddress(big.NewInt(1)).Hex(),
 		},
@@ -60,11 +98,6 @@ func TestTokenExchangeController_EvaluatingSACD_Attestations(t *testing.T) {
 		EffectiveAt: oneMinAgo,
 		ExpiresAt:   oneMinFuture,
 		Asset:       "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
-	}
-
-	ipfsRecord := models.PermissionRecord{
-		Type: "dimo.sacd",
-		// Data: grantDataBytes,
 	}
 
 	tests := []struct {
@@ -88,7 +121,7 @@ func TestTokenExchangeController_EvaluatingSACD_Attestations(t *testing.T) {
 			request: TokenRequest{
 				TokenID:            123,
 				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
-				CloudEvents: &CloudEvents{
+				CloudEvents: CloudEvents{
 					Events: []EventFilter{
 						{
 							EventType: cloudevent.TypeAttestation,
@@ -122,7 +155,7 @@ func TestTokenExchangeController_EvaluatingSACD_Attestations(t *testing.T) {
 			request: TokenRequest{
 				TokenID:            123,
 				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
-				CloudEvents: &CloudEvents{
+				CloudEvents: CloudEvents{
 					Events: []EventFilter{
 						{
 							EventType: cloudevent.TypeAttestation,
@@ -156,7 +189,7 @@ func TestTokenExchangeController_EvaluatingSACD_Attestations(t *testing.T) {
 			request: TokenRequest{
 				TokenID:            123,
 				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
-				CloudEvents: &CloudEvents{
+				CloudEvents: CloudEvents{
 					Events: []EventFilter{
 						{
 							EventType: cloudevent.TypeAttestation,
@@ -190,7 +223,7 @@ func TestTokenExchangeController_EvaluatingSACD_Attestations(t *testing.T) {
 			request: TokenRequest{
 				TokenID:            123,
 				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
-				CloudEvents: &CloudEvents{
+				CloudEvents: CloudEvents{
 					Events: []EventFilter{
 						{
 							EventType: cloudevent.TypeAttestation,
@@ -224,7 +257,7 @@ func TestTokenExchangeController_EvaluatingSACD_Attestations(t *testing.T) {
 			request: TokenRequest{
 				TokenID:            123,
 				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
-				CloudEvents: &CloudEvents{
+				CloudEvents: CloudEvents{
 					Events: []EventFilter{
 						{
 							EventType: cloudevent.TypeAttestation,
@@ -242,7 +275,7 @@ func TestTokenExchangeController_EvaluatingSACD_Attestations(t *testing.T) {
 					},
 				}
 			},
-			err: fmt.Errorf("requested source  invalid: must be * or valid hex address"),
+			err: fmt.Errorf("requested source \"\" invalid: must be * or valid hex address"),
 		},
 		{
 			name: "Fail: source not valid hex address",
@@ -258,7 +291,7 @@ func TestTokenExchangeController_EvaluatingSACD_Attestations(t *testing.T) {
 			request: TokenRequest{
 				TokenID:            123,
 				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
-				CloudEvents: &CloudEvents{
+				CloudEvents: CloudEvents{
 					Events: []EventFilter{
 						{
 							EventType: cloudevent.TypeAttestation,
@@ -277,7 +310,7 @@ func TestTokenExchangeController_EvaluatingSACD_Attestations(t *testing.T) {
 					},
 				}
 			},
-			err: fmt.Errorf("requested source 0x123 invalid: must be * or valid hex address"),
+			err: fmt.Errorf("requested source \"0x123\" invalid: must be * or valid hex address"),
 		},
 		{
 			name: "Fail: permission not granted, address must match exactly",
@@ -293,7 +326,7 @@ func TestTokenExchangeController_EvaluatingSACD_Attestations(t *testing.T) {
 			request: TokenRequest{
 				TokenID:            123,
 				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
-				CloudEvents: &CloudEvents{
+				CloudEvents: CloudEvents{
 					Events: []EventFilter{
 						{
 							EventType: cloudevent.TypeAttestation,
@@ -342,7 +375,7 @@ func TestTokenExchangeController_EvaluatingSACD_Attestations(t *testing.T) {
 			request: TokenRequest{
 				TokenID:            123,
 				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
-				CloudEvents: &CloudEvents{
+				CloudEvents: CloudEvents{
 					Events: []EventFilter{
 						{
 							EventType: cloudevent.TypeAttestation,
@@ -398,7 +431,7 @@ func TestTokenExchangeController_EvaluatingSACD_Attestations(t *testing.T) {
 			request: TokenRequest{
 				TokenID:            123,
 				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
-				CloudEvents: &CloudEvents{
+				CloudEvents: CloudEvents{
 					Events: []EventFilter{
 						{
 							EventType: cloudevent.TypeAttestation,
@@ -429,12 +462,9 @@ func TestTokenExchangeController_EvaluatingSACD_Attestations(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			grantData.Agreements = tc.agreement
-			grantDataBytes, _ := json.Marshal(grantData)
-
-			ipfsRecord.Data = grantDataBytes
+			permData.Agreements = tc.agreement
 			expectedCEGrants := tc.expectedCEGrants()
-			_, ceGrants, err := userGrantMap(&grantData)
+			_, ceGrants, err := userGrantMap(&permData)
 			require.Nil(t, err)
 			for eventType, evtMap := range expectedCEGrants {
 				_, ok := ceGrants[eventType]
