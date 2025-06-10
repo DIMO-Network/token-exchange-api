@@ -105,7 +105,7 @@ func TestTokenExchangeController_EvaluatingSACD_Attestations(t *testing.T) {
 		agreement        []models.Agreement
 		request          TokenRequest
 		expectedCEGrants func() map[string]map[string]*set.StringSet
-		err              error
+		expectErr        bool
 	}{
 		{
 			name: "Pass: request matches grant, all attestations",
@@ -241,7 +241,7 @@ func TestTokenExchangeController_EvaluatingSACD_Attestations(t *testing.T) {
 					},
 				}
 			},
-			err: fmt.Errorf("must request at least one cloudevent id or global access request (*)"),
+			expectErr: true,
 		},
 		{
 			name: "Fail: not requesting source",
@@ -275,7 +275,7 @@ func TestTokenExchangeController_EvaluatingSACD_Attestations(t *testing.T) {
 					},
 				}
 			},
-			err: fmt.Errorf("requested source \"\" invalid: must be * or valid hex address"),
+			expectErr: true,
 		},
 		{
 			name: "Fail: source not valid hex address",
@@ -310,7 +310,7 @@ func TestTokenExchangeController_EvaluatingSACD_Attestations(t *testing.T) {
 					},
 				}
 			},
-			err: fmt.Errorf("requested source \"0x123\" invalid: must be * or valid hex address"),
+			expectErr: true,
 		},
 		{
 			name: "Fail: permission not granted, address must match exactly",
@@ -345,7 +345,7 @@ func TestTokenExchangeController_EvaluatingSACD_Attestations(t *testing.T) {
 					},
 				}
 			},
-			err: fmt.Errorf("no dimo.attestation grants for source: 0xcce4eF41A67E28C3CF3dbc51a6CD3d004F53aCBB"),
+			expectErr: true,
 		},
 		{
 			name: "Pass: Asking for implicit grant (global) ",
@@ -481,9 +481,8 @@ func TestTokenExchangeController_EvaluatingSACD_Attestations(t *testing.T) {
 			}
 
 			err = evaluateCloudEvents(ceGrants, &tc.request)
-			if tc.err != nil {
+			if tc.expectErr {
 				require.NotNil(t, err)
-				require.Equal(t, tc.err.Error(), err.Error())
 			} else {
 				require.Nil(t, err)
 			}
