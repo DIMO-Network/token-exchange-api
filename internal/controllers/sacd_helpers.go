@@ -165,11 +165,9 @@ func (s *NilSafeUnion) Contains(x string) bool {
 func validSignature(payload json.RawMessage, signature string, ethAddr common.Address) (bool, error) {
 	sig := common.FromHex(signature)
 	sig[64] -= 27
+
 	prefixed := fmt.Sprintf("\x19Ethereum Signed Message:\n%d%s", len(payload), payload)
-
-	// Step 6: Hash the message
 	hash := crypto.Keccak256Hash([]byte(prefixed))
-
 	recoveredPubKey, err := crypto.SigToPub(hash.Bytes(), sig)
 	if err != nil {
 		return false, err
