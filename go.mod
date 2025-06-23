@@ -5,12 +5,12 @@ go 1.24.0
 replace github.com/dexidp/dex/api/v2 => github.com/DIMO-Network/dex/api/v2 v2.0.1-0.20240402140037-3b70843c1bed
 
 require (
-	github.com/DIMO-Network/cloudevent v0.1.0
-	github.com/DIMO-Network/shared v1.0.3
+	github.com/DIMO-Network/cloudevent v0.1.1
+	github.com/DIMO-Network/shared v1.0.4
 	github.com/dexidp/dex/api/v2 v2.35.3
 	github.com/ethereum/go-ethereum v1.15.11
 	github.com/gofiber/contrib/jwt v1.1.2
-	github.com/gofiber/fiber/v2 v2.52.6
+	github.com/gofiber/fiber/v2 v2.52.8
 	github.com/gofiber/swagger v1.1.1
 	github.com/golang-jwt/jwt/v5 v5.2.2
 	github.com/prometheus/client_golang v1.22.0
@@ -20,7 +20,7 @@ require (
 	github.com/tidwall/gjson v1.18.0
 	github.com/valyala/fasthttp v1.62.0
 	go.uber.org/mock v0.5.2
-	google.golang.org/grpc v1.72.1
+	google.golang.org/grpc v1.73.0
 )
 
 require (
@@ -68,7 +68,7 @@ require (
 	github.com/supranational/blst v0.3.14 // indirect
 	github.com/swaggo/files/v2 v2.0.2 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
-	github.com/tidwall/pretty v1.2.0 // indirect
+	github.com/tidwall/pretty v1.2.1 // indirect
 	github.com/tidwall/sjson v1.2.5 // indirect
 	github.com/tklauser/go-sysconf v0.3.13 // indirect
 	github.com/tklauser/numcpus v0.7.0 // indirect
@@ -79,9 +79,9 @@ require (
 	golang.org/x/sync v0.14.0 // indirect
 	golang.org/x/sys v0.33.0 // indirect
 	golang.org/x/text v0.25.0 // indirect
-	golang.org/x/tools v0.30.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20250218202821-56aae31c358a // indirect
-	google.golang.org/protobuf v1.36.5
+	golang.org/x/tools v0.32.0 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20250324211829-b45e905df463 // indirect
+	google.golang.org/protobuf v1.36.6
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	rsc.io/tmplfunc v0.0.3 // indirect
 )
