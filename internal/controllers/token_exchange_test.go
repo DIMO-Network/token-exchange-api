@@ -605,20 +605,27 @@ func TestTokenExchangeController_EvaluatingSACD_Attestations(t *testing.T) {
 			},
 		},
 		{
-			name: "Fail: SACD grants global event type for a specific id to user and another event type with only some ids; user cannot access all ids for all types",
+			name: "Fail: The client requested id2 for dimo.attestation, to which he should not have access",
 			agreement: []models.Agreement{
-				{
-					Type:      "cloudevent",
-					EventType: "dimo.attestation",
-					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
-					IDs:       []string{"*"},
-					Source:    common.BigToAddress(big.NewInt(2)).Hex(),
-				},
 				{
 					Type:      "cloudevent",
 					EventType: "*",
 					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
-					IDs:       []string{"1"},
+					IDs:       []string{"id1"},
+					Source:    common.BigToAddress(big.NewInt(2)).Hex(),
+				},
+				{
+					Type:      "cloudevent",
+					EventType: "dimo.event",
+					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
+					IDs:       []string{"id2"},
+					Source:    common.BigToAddress(big.NewInt(2)).Hex(),
+				},
+				{
+					Type:      "cloudevent",
+					EventType: cloudevent.TypeAttestation,
+					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
+					IDs:       []string{"id3"},
 					Source:    common.BigToAddress(big.NewInt(2)).Hex(),
 				},
 			},
@@ -628,28 +635,41 @@ func TestTokenExchangeController_EvaluatingSACD_Attestations(t *testing.T) {
 				CloudEvents: CloudEvents{
 					Events: []EventFilter{
 						{
-							EventType: cloudevent.TypeFingerprint,
+							EventType: "dimo.event",
 							Source:    common.BigToAddress(big.NewInt(2)).Hex(),
-							IDs:       []string{"2"},
+							IDs:       []string{"id1", "id2"},
+						},
+						{
+							EventType: cloudevent.TypeAttestation,
+							Source:    common.BigToAddress(big.NewInt(2)).Hex(),
+							IDs:       []string{"id2"},
 						},
 					},
 				},
 			},
 			expectedCEGrants: func() map[string]map[string]*set.StringSet {
-				set1 := set.NewStringSet()
-				set1.Add("*")
-				set2 := set.NewStringSet()
-				set2.Add("1")
+				source := common.BigToAddress(big.NewInt(2)).Hex()
+				global := set.NewStringSet()
+				global.Add("id1")
+
+				event := set.NewStringSet()
+				event.Add("id2")
+
+				attest := set.NewStringSet()
+				attest.Add("id3")
 				return map[string]map[string]*set.StringSet{
-					cloudevent.TypeAttestation: {
-						common.BigToAddress(big.NewInt(2)).Hex(): set1,
+					"*": {
+						source: global,
 					},
-					tokenclaims.GlobalIdentifier: {
-						common.BigToAddress(big.NewInt(2)).Hex(): set2,
+					"dimo.event": {
+						source: event,
+					},
+					"dimo.attestation": {
+						source: attest,
 					},
 				}
 			},
-			err: fmt.Errorf("lacking dimo.fingerprint grant for source 0x0000000000000000000000000000000000000002 with ids: 2"),
+			err: fmt.Errorf("lacking dimo.attestation grant for source 0x0000000000000000000000000000000000000002 with ids: id2"),
 		},
 		{
 			name: "Fail: not requesting any ids",

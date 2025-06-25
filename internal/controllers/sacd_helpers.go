@@ -61,29 +61,30 @@ func evaluateCloudEvent(sacdAgreement map[string]map[string]*set.StringSet, req 
 // global grants (applied to all events) and event-specific grants are merged
 // input 'sacdAgreements' is a nested map: eventType -> source -> set of IDs.
 func getValidAgreements(sacdAgreements map[string]map[string]*set.StringSet, ceType string) map[string]*set.StringSet {
-	globalAgreements := sacdAgreements[tokenclaims.GlobalIdentifier]
-	eventAgreements := sacdAgreements[ceType]
-	if len(globalAgreements) == 0 && len(eventAgreements) == 0 {
-		return map[string]*set.StringSet{}
+	agreementsBySource := make(map[string]*set.StringSet)
+	eventGrants := sacdAgreements[ceType]
+	globlaGrants := sacdAgreements[tokenclaims.GlobalIdentifier]
+
+	for source, ids := range eventGrants {
+		agreementsBySource[source] = set.NewStringSet()
+
+		for _, id := range ids.Slice() {
+			agreementsBySource[source].Add(id)
+		}
+
 	}
 
-	validAgreements := map[string]*set.StringSet{}
-	for source, ids := range globalAgreements {
-		validAgreements[source] = ids
-	}
-
-	for source, ids := range eventAgreements {
-		if _, ok := validAgreements[source]; !ok {
-			validAgreements[source] = ids
-			continue
+	for source, ids := range globlaGrants {
+		if _, ok := agreementsBySource[source]; !ok {
+			agreementsBySource[source] = set.NewStringSet()
 		}
 
 		for _, id := range ids.Slice() {
-			validAgreements[source].Add(id)
+			agreementsBySource[source].Add(id)
 		}
 	}
 
-	return validAgreements
+	return agreementsBySource
 }
 
 func evaluateIDsByGrantSource(globalGrants *set.StringSet, sourceGrants *set.StringSet, requestedIDs []string) []string {
