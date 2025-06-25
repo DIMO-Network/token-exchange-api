@@ -7,13 +7,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ethereum/go-ethereum/crypto"
-
 	"github.com/DIMO-Network/cloudevent"
 	"github.com/DIMO-Network/shared/pkg/set"
 	"github.com/DIMO-Network/token-exchange-api/internal/models"
 	"github.com/DIMO-Network/token-exchange-api/pkg/tokenclaims"
+	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 // evaluateCloudEvent returns an error if and only if the CloudEvent access request is
@@ -66,7 +66,7 @@ func evaluateIDsByGrantSource(globalGrants *set.StringSet, sourceGrants *set.Str
 	return missingIDs
 }
 
-func userGrantMap(data *models.SACDData) (map[string]bool, map[string]map[string]*set.StringSet, error) {
+func userGrantMap(data *models.SACDData, nftContractAddr string, tokenID int64) (map[string]bool, map[string]map[string]*set.StringSet, error) {
 	userPermGrants := make(map[string]bool)
 	// type -> source -> ids
 	cloudEvtGrants := make(map[string]map[string]*set.StringSet)
@@ -80,6 +80,10 @@ func userGrantMap(data *models.SACDData) (map[string]bool, map[string]map[string
 
 		if !agreement.ExpiresAt.IsZero() && now.After(agreement.ExpiresAt) {
 			continue
+		}
+
+		if err := validAssetDID(agreement.Asset, nftContractAddr, tokenID); err != nil {
+			return nil, nil, fmt.Errorf("failed to validate agreement asset did: %s", data.Asset)
 		}
 
 		switch agreement.Type {
@@ -166,11 +170,10 @@ func validSignature(payload json.RawMessage, signature string, ethAddr common.Ad
 	sig := common.FromHex(signature)
 	sig[64] -= 27
 
-	prefixed := fmt.Sprintf("\x19Ethereum Signed Message:\n%d%s", len(payload), payload)
-	hash := crypto.Keccak256Hash([]byte(prefixed))
-	recoveredPubKey, err := crypto.SigToPub(hash.Bytes(), sig)
+	hashWithPrfx := accounts.TextHash(payload)
+	recoveredPubKey, err := crypto.SigToPub(hashWithPrfx, sig)
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("failed to determine public key from signature: %w", err)
 	}
 	recoveredAddr := crypto.PubkeyToAddress(*recoveredPubKey)
 	return recoveredAddr == ethAddr, nil

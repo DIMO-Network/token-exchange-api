@@ -8,6 +8,7 @@ import (
 	"math/big"
 	"strconv"
 
+	"github.com/DIMO-Network/cloudevent"
 	"github.com/DIMO-Network/shared/pkg/set"
 	"github.com/DIMO-Network/token-exchange-api/internal/api"
 	"github.com/DIMO-Network/token-exchange-api/internal/config"
@@ -208,13 +209,13 @@ func (t *TokenExchangeController) createAndReturnToken(c *fiber.Ctx, tokenReq *T
 // Returns:
 //   - *PermissionRecord: A pointer to the parsed permission record if valid, or nil if the document
 //     could not be fetched, parsed, or doesn't have the correct type
-func (t *TokenExchangeController) getValidSacdDoc(ctx context.Context, source string) (*models.SACDRecord, error) {
+func (t *TokenExchangeController) getValidSacdDoc(ctx context.Context, source string) (*cloudevent.RawEvent, error) {
 	sacdDoc, err := t.ipfsService.Fetch(ctx, source)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch JSON from IPFS: %w", err)
 	}
 
-	var record models.SACDRecord
+	var record cloudevent.RawEvent
 	if err := json.Unmarshal(sacdDoc, &record); err != nil {
 		return nil, fmt.Errorf("invalid JSON format: %w", err)
 	}
@@ -232,17 +233,17 @@ func (t *TokenExchangeController) getValidSacdDoc(ctx context.Context, source st
 //
 // Parameters:
 //   - c: The Fiber context for the HTTP request
-//   - record: The SACD permission record containing the grants and validity period
-//   - tokenReq: The permission token request containing the requested privileges and token information
+//   - record: The SACD record containing the grants and validity period
+//   - tokenReq: The token request containing the requested privileges, grants and token information
 //   - grantee: The Ethereum address of the user requesting permissions
 //
 // Returns:
 //   - error: An error if the document is invalid, expired, or missing requested permissions;
 //     nil if all permissions are valid and the token is successfully created and returned
-func (t *TokenExchangeController) evaluateSacdDoc(c *fiber.Ctx, record *models.SACDRecord, tokenReq *TokenRequest, grantee common.Address) error {
+func (t *TokenExchangeController) evaluateSacdDoc(c *fiber.Ctx, record *cloudevent.RawEvent, tokenReq *TokenRequest, grantee common.Address) error {
 	logger := t.logger.With().Str("grantee", grantee.Hex()).Logger()
 
-	var data *models.SACDData
+	var data models.SACDData
 	if err := json.Unmarshal(record.Data, &data); err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "failed to parse agreement data")
 	}
@@ -251,8 +252,14 @@ func (t *TokenExchangeController) evaluateSacdDoc(c *fiber.Ctx, record *models.S
 		return fiber.NewError(fiber.StatusBadRequest, "Grantee address in permission record doesn't match requester")
 	}
 
-	valid, err := validSignature(record.Data, record.Signature, common.HexToAddress(data.Grantor.Address))
+	signature, ok := record.Extras["signature"].(string)
+	if !ok {
+		return fiber.NewError(fiber.StatusBadRequest, "failed to find signature in SACD record")
+	}
+
+	valid, err := validSignature(record.Data, signature, common.HexToAddress(data.Grantor.Address))
 	if err != nil {
+		t.logger.Info().Err(err).Msg("failed to validate grant signature")
 		return fiber.NewError(fiber.StatusBadRequest, "failed to validate grant signature")
 	}
 
@@ -260,11 +267,7 @@ func (t *TokenExchangeController) evaluateSacdDoc(c *fiber.Ctx, record *models.S
 		return fiber.NewError(fiber.StatusBadRequest, "invalid grant signature")
 	}
 
-	if err := validAssetDID(data.Asset, tokenReq.NFTContractAddress, tokenReq.TokenID); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, fmt.Sprintf("failed to validate asset did: %s", data.Asset))
-	}
-
-	userPermGrants, cloudEvtGrants, err := userGrantMap(data)
+	userPermGrants, cloudEvtGrants, err := userGrantMap(&data, tokenReq.NFTContractAddress, tokenReq.TokenID)
 	if err != nil {
 		logger.Err(err).Msg("failed to generate user grant map")
 		return fiber.NewError(fiber.StatusBadRequest, "failed to validate request")

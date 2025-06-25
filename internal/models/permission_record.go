@@ -1,18 +1,8 @@
 package models
 
 import (
-	"encoding/json"
 	"time"
 )
-
-// SACDRecord is the top-level structure for permission events
-type SACDRecord struct {
-	SpecVersion string          `json:"specversion"`
-	Timestamp   time.Time       `json:"timestamp"`
-	Type        string          `json:"type"`
-	Data        json.RawMessage `json:"data"`
-	Signature   string          `json:"signature"`
-}
 
 // SACDData contains the core permission data
 type SACDData struct {

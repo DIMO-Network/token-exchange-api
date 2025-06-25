@@ -21,29 +21,46 @@ import (
 func Test_ValidSACDSignature(t *testing.T) {
 	signer := common.HexToAddress("0xa9BC6E60EC5b541aED230d366073067F839EbB14")
 	signedSACDWithPrefix := `{"specversion":"","timestamp":"0001-01-01T00:00:00Z","type":"","data":{"grantor":{"address":"0xa9BC6E60EC5b541aED230d366073067F839EbB14"},"grantee":{"address":"0x0000000000000000000000000000000000000001"},"effectiveAt":"0001-01-01T00:00:00Z","expiresAt":"0001-01-01T00:00:00Z","agreements":[{"type":"random-string","eventType":"random-string","ids":["a","b","c"],"effectiveAt":"0001-01-01T00:00:00Z","expiresAt":"0001-01-01T00:00:00Z","source":"random-string","asset":"","permissions":null}]},"signature":"0xf8f35c9faed52973bf5f6300b75813c1a8b3801515bfe2725401082f7ceaaa2477b141d237f47f1f3b9c64fb32808857a2fc562ffe97206238d20dbd71bdde2d1b"}`
+	noSignature := `{"specversion":"","timestamp":"0001-01-01T00:00:00Z","type":"","data":{"grantor":{"address":"0xa9BC6E60EC5b541aED230d366073067F839EbB14"},"grantee":{"address":"0x0000000000000000000000000000000000000001"},"effectiveAt":"0001-01-01T00:00:00Z","expiresAt":"0001-01-01T00:00:00Z","agreements":[{"type":"random-string","eventType":"random-string","ids":["a","b","c"],"effectiveAt":"0001-01-01T00:00:00Z","expiresAt":"0001-01-01T00:00:00Z","source":"random-string","asset":"","permissions":null}]}}`
 
 	for _, test := range []struct {
 		Name    string
+		Success bool
 		Payload string
 	}{
 		{
 			Name:    "With Prefix",
+			Success: true,
 			Payload: signedSACDWithPrefix,
+		},
+		{
+			Name:    "No Signature",
+			Success: false,
+			Payload: noSignature,
 		},
 	} {
 
-		var record models.SACDRecord
-		err := json.Unmarshal([]byte(test.Payload), &record)
+		var record cloudevent.RawEvent
+		err := record.UnmarshalJSON([]byte(test.Payload))
 		require.NoError(t, err)
 
-		res, err := validSignature(record.Data, record.Signature, signer)
-		require.NoError(t, err)
-		require.True(t, res)
+		if test.Success {
+			signature, ok := record.Extras["signature"].(string)
+			require.True(t, ok)
+
+			res, err := validSignature(record.Data, signature, signer)
+			require.NoError(t, err)
+			require.True(t, res)
+			continue
+		}
+
+		_, ok := record.Extras["signature"].(string)
+		require.False(t, ok)
 	}
 
 }
 
-func signSACDHelper(grantData *models.SACDData) (*models.SACDRecord, error) {
+func signSACDHelper(grantData *models.SACDData) (*cloudevent.RawEvent, error) {
 	privateKey, err := crypto.GenerateKey()
 	if err != nil {
 		return nil, err
@@ -76,8 +93,11 @@ func signSACDHelper(grantData *models.SACDData) (*models.SACDRecord, error) {
 
 	signature[64] += 27
 
-	var final models.SACDRecord
-	final.Signature = "0x" + common.Bytes2Hex(signature)
+	var final cloudevent.RawEvent
+	final.Extras = map[string]any{
+		"signature": "0x" + common.Bytes2Hex(signature),
+	}
+
 	final.Data = msgBytes
 	final.Type = "dimo.sacd"
 	// finalBytes, err := json.Marshal(final)
@@ -100,6 +120,7 @@ func TestTokenExchangeController_EvaluatingSACD_Attestations(t *testing.T) {
 		Asset:       "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
 	}
 
+	nftCtrAddr := "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"
 	tests := []struct {
 		name             string
 		agreement        []models.Agreement
@@ -120,7 +141,7 @@ func TestTokenExchangeController_EvaluatingSACD_Attestations(t *testing.T) {
 			},
 			request: TokenRequest{
 				TokenID:            123,
-				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
+				NFTContractAddress: nftCtrAddr,
 				CloudEvents: CloudEvents{
 					Events: []EventFilter{
 						{
@@ -154,7 +175,7 @@ func TestTokenExchangeController_EvaluatingSACD_Attestations(t *testing.T) {
 			},
 			request: TokenRequest{
 				TokenID:            123,
-				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
+				NFTContractAddress: nftCtrAddr,
 				CloudEvents: CloudEvents{
 					Events: []EventFilter{
 						{
@@ -188,7 +209,7 @@ func TestTokenExchangeController_EvaluatingSACD_Attestations(t *testing.T) {
 			},
 			request: TokenRequest{
 				TokenID:            123,
-				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
+				NFTContractAddress: nftCtrAddr,
 				CloudEvents: CloudEvents{
 					Events: []EventFilter{
 						{
@@ -222,7 +243,7 @@ func TestTokenExchangeController_EvaluatingSACD_Attestations(t *testing.T) {
 			},
 			request: TokenRequest{
 				TokenID:            123,
-				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
+				NFTContractAddress: nftCtrAddr,
 				CloudEvents: CloudEvents{
 					Events: []EventFilter{
 						{
@@ -256,7 +277,7 @@ func TestTokenExchangeController_EvaluatingSACD_Attestations(t *testing.T) {
 			},
 			request: TokenRequest{
 				TokenID:            123,
-				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
+				NFTContractAddress: nftCtrAddr,
 				CloudEvents: CloudEvents{
 					Events: []EventFilter{
 						{
@@ -290,7 +311,7 @@ func TestTokenExchangeController_EvaluatingSACD_Attestations(t *testing.T) {
 			},
 			request: TokenRequest{
 				TokenID:            123,
-				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
+				NFTContractAddress: nftCtrAddr,
 				CloudEvents: CloudEvents{
 					Events: []EventFilter{
 						{
@@ -325,7 +346,7 @@ func TestTokenExchangeController_EvaluatingSACD_Attestations(t *testing.T) {
 			},
 			request: TokenRequest{
 				TokenID:            123,
-				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
+				NFTContractAddress: nftCtrAddr,
 				CloudEvents: CloudEvents{
 					Events: []EventFilter{
 						{
@@ -374,7 +395,7 @@ func TestTokenExchangeController_EvaluatingSACD_Attestations(t *testing.T) {
 			},
 			request: TokenRequest{
 				TokenID:            123,
-				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
+				NFTContractAddress: nftCtrAddr,
 				CloudEvents: CloudEvents{
 					Events: []EventFilter{
 						{
@@ -430,7 +451,7 @@ func TestTokenExchangeController_EvaluatingSACD_Attestations(t *testing.T) {
 			},
 			request: TokenRequest{
 				TokenID:            123,
-				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
+				NFTContractAddress: nftCtrAddr,
 				CloudEvents: CloudEvents{
 					Events: []EventFilter{
 						{
@@ -464,7 +485,7 @@ func TestTokenExchangeController_EvaluatingSACD_Attestations(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			permData.Agreements = tc.agreement
 			expectedCEGrants := tc.expectedCEGrants()
-			_, ceGrants, err := userGrantMap(&permData)
+			_, ceGrants, err := userGrantMap(&permData, tc.request.NFTContractAddress, tc.request.TokenID)
 			require.Nil(t, err)
 			for eventType, evtMap := range expectedCEGrants {
 				_, ok := ceGrants[eventType]
