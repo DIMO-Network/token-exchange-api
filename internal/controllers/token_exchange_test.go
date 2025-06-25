@@ -569,6 +569,89 @@ func TestTokenExchangeController_EvaluatingSACD_Attestations(t *testing.T) {
 			},
 		},
 		{
+			name: "Pass: granted all cloud events, asking for attestation with specific source and ids",
+			agreement: []models.Agreement{
+				{
+					Type:      "cloudevent",
+					EventType: tokenclaims.GlobalIdentifier,
+					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
+					IDs:       []string{"a", "b", "c"},
+					Source:    common.BigToAddress(big.NewInt(100)).Hex(),
+				},
+			},
+			request: TokenRequest{
+				TokenID:            123,
+				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
+				CloudEvents: CloudEvents{
+					Events: []EventFilter{
+						{
+							EventType: cloudevent.TypeAttestation,
+							Source:    common.BigToAddress(big.NewInt(100)).Hex(),
+							IDs:       []string{"a", "b"},
+						},
+					},
+				},
+			},
+			expectedCEGrants: func() map[string]map[string]*set.StringSet {
+				gset := set.NewStringSet()
+				gset.Add("a")
+				gset.Add("b")
+				gset.Add("c")
+				return map[string]map[string]*set.StringSet{
+					tokenclaims.GlobalIdentifier: {
+						common.BigToAddress(big.NewInt(100)).Hex(): gset,
+					},
+				}
+			},
+		},
+		{
+			name: "Fail: SACD grants global event type for a specific id to user and another event type with only some ids; user cannot access all ids for all types",
+			agreement: []models.Agreement{
+				{
+					Type:      "cloudevent",
+					EventType: "dimo.attestation",
+					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
+					IDs:       []string{"*"},
+					Source:    common.BigToAddress(big.NewInt(2)).Hex(),
+				},
+				{
+					Type:      "cloudevent",
+					EventType: "*",
+					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
+					IDs:       []string{"1"},
+					Source:    common.BigToAddress(big.NewInt(2)).Hex(),
+				},
+			},
+			request: TokenRequest{
+				TokenID:            123,
+				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
+				CloudEvents: CloudEvents{
+					Events: []EventFilter{
+						{
+							EventType: cloudevent.TypeFingerprint,
+							Source:    common.BigToAddress(big.NewInt(2)).Hex(),
+							IDs:       []string{"2"},
+						},
+					},
+				},
+			},
+			expectedCEGrants: func() map[string]map[string]*set.StringSet {
+				set1 := set.NewStringSet()
+				set1.Add("*")
+				set2 := set.NewStringSet()
+				set2.Add("1")
+				return map[string]map[string]*set.StringSet{
+					cloudevent.TypeAttestation: {
+						common.BigToAddress(big.NewInt(2)).Hex(): set1,
+					},
+					tokenclaims.GlobalIdentifier: {
+						common.BigToAddress(big.NewInt(2)).Hex(): set2,
+					},
+				}
+			},
+			err: fmt.Errorf("lacking dimo.fingerprint grant for source 0x0000000000000000000000000000000000000002 with ids: 2"),
+		},
+		{
 			name: "Fail: not requesting any ids",
 			agreement: []models.Agreement{
 				{
