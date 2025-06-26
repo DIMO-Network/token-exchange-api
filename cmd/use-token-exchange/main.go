@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/DIMO-Network/cloudevent"
 	"github.com/DIMO-Network/shared/pkg/settings"
 	dex "github.com/DIMO-Network/token-exchange-api"
 	"github.com/DIMO-Network/token-exchange-api/internal/config"
@@ -435,7 +436,7 @@ func evaluateSacdDoc(record *models.PermissionRecord, privileges []int64, grante
 	return true, nil
 }
 
-func signDocument(settingsStr, jsonFilePath string, logger *zerolog.Logger) models.SACD {
+func signDocument(settingsStr, jsonFilePath string, logger *zerolog.Logger) cloudevent.RawEvent {
 	settings, err := settings.LoadConfig[config.Settings](settingsStr)
 	if err != nil {
 		logger.Fatal().Err(err).Msg("could not load settings")
@@ -446,8 +447,8 @@ func signDocument(settingsStr, jsonFilePath string, logger *zerolog.Logger) mode
 		logger.Fatal().Err(err).Msg("failed to read permission file")
 	}
 
-	var record models.SACD
-	if err := json.Unmarshal(jsonData, &record); err != nil {
+	var record cloudevent.RawEvent
+	if err := record.UnmarshalJSON(jsonData); err != nil {
 		logger.Fatal().Err(err).Msg("invalid permission JSON format")
 	}
 
@@ -482,7 +483,7 @@ func signDocument(settingsStr, jsonFilePath string, logger *zerolog.Logger) mode
 
 }
 
-func uploadSigned(agreement models.SACD) (string, error) {
+func uploadSigned(agreement cloudevent.RawEvent) (string, error) {
 	// Parse IPFS URL
 	ipfsURL, err := url.Parse("https://assets.dimo.org/ipfs")
 	if err != nil {
@@ -497,7 +498,7 @@ func uploadSigned(agreement models.SACD) (string, error) {
 		},
 	}
 
-	reqBody, err := json.Marshal(agreement)
+	reqBody, err := agreement.MarshalJSON()
 	if err != nil {
 		panic(err)
 	}
