@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math/big"
 	"strings"
@@ -16,9 +17,19 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 )
 
-// evaluateCloudEvent returns an error if and only if the CloudEvent access request is
+func evaluateCloudEvents(sacdAgreements map[string]map[string]*set.StringSet, tokenReq *TokenRequest) error {
+	var err error
+	for _, req := range tokenReq.CloudEvents.Events {
+		ceErr := evaluateCloudEvent(sacdAgreements, req)
+		err = errors.Join(err, ceErr)
+	}
+
+	return err
+}
+
+// evaluateCloudEvent returns an error if CloudEvent access request is
 // disallowed under the grants in the agreement map.
-func evaluateCloudEvent(agreement map[string]map[string]*set.StringSet, req EventFilter) error {
+func evaluateCloudEvent(sacdAgreement map[string]map[string]*set.StringSet, req EventFilter) error {
 	if !common.IsHexAddress(req.Source) && req.Source != tokenclaims.GlobalIdentifier {
 		return fmt.Errorf("requested source %q invalid: must be %s or valid hex address", req.Source, tokenclaims.GlobalIdentifier)
 	}
@@ -27,8 +38,8 @@ func evaluateCloudEvent(agreement map[string]map[string]*set.StringSet, req Even
 		return fmt.Errorf("must request at least one cloudevent id or global access request (%s)", tokenclaims.GlobalIdentifier)
 	}
 
-	grantedAggs, ok := agreement[req.EventType]
-	if !ok {
+	grantedAggs := getValidAgreements(sacdAgreement, req.EventType)
+	if len(grantedAggs) == 0 {
 		return fmt.Errorf("lacking grant for requested event type: %s", req.EventType)
 	}
 
@@ -47,6 +58,36 @@ func evaluateCloudEvent(agreement map[string]map[string]*set.StringSet, req Even
 	}
 
 	return nil
+}
+
+// getValidAgreements returns a map of sources to sets of valid IDs for a given CloudEvent type (`ceType`).
+// global grants (applied to all events) and event-specific grants are merged
+// input 'sacdAgreements' is a nested map: eventType -> source -> set of IDs.
+func getValidAgreements(sacdAgreements map[string]map[string]*set.StringSet, ceType string) map[string]*set.StringSet {
+	agreementsBySource := make(map[string]*set.StringSet)
+	eventGrants := sacdAgreements[ceType]
+	globlaGrants := sacdAgreements[tokenclaims.GlobalIdentifier]
+
+	for source, ids := range eventGrants {
+		agreementsBySource[source] = set.NewStringSet()
+
+		for _, id := range ids.Slice() {
+			agreementsBySource[source].Add(id)
+		}
+
+	}
+
+	for source, ids := range globlaGrants {
+		if _, ok := agreementsBySource[source]; !ok {
+			agreementsBySource[source] = set.NewStringSet()
+		}
+
+		for _, id := range ids.Slice() {
+			agreementsBySource[source].Add(id)
+		}
+	}
+
+	return agreementsBySource
 }
 
 func evaluateIDsByGrantSource(globalGrants *set.StringSet, sourceGrants *set.StringSet, requestedIDs []string) []string {
