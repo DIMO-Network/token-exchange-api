@@ -250,12 +250,7 @@ func (t *TokenExchangeController) evaluateSacdDoc(c *fiber.Ctx, record *cloudeve
 		return fiber.NewError(fiber.StatusBadRequest, "Grantee address in permission record doesn't match requester")
 	}
 
-	signature, ok := record.Extras["signature"].(string)
-	if !ok {
-		return fiber.NewError(fiber.StatusBadRequest, "failed to find signature in SACD record")
-	}
-
-	valid, err := validSignature(record.Data, signature, common.HexToAddress(data.Grantor.Address))
+	valid, err := validSignature(record.Data, record.Signature, common.HexToAddress(data.Grantor.Address))
 	if err != nil {
 		t.logger.Info().Err(err).Msg("failed to validate grant signature")
 		return fiber.NewError(fiber.StatusBadRequest, "failed to validate grant signature")

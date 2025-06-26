@@ -45,17 +45,13 @@ func Test_ValidSACDSignature(t *testing.T) {
 		require.NoError(t, err)
 
 		if test.Success {
-			signature, ok := record.Extras["signature"].(string)
-			require.True(t, ok)
-
-			res, err := validSignature(record.Data, signature, signer)
+			res, err := validSignature(record.Data, record.Signature, signer)
 			require.NoError(t, err)
 			require.True(t, res)
 			continue
 		}
 
-		_, ok := record.Extras["signature"].(string)
-		require.False(t, ok)
+		require.Equal(t, record.Signature, "")
 	}
 
 }
