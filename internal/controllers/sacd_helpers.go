@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
@@ -11,7 +12,9 @@ import (
 	"github.com/DIMO-Network/shared/pkg/set"
 	"github.com/DIMO-Network/token-exchange-api/internal/models"
 	"github.com/DIMO-Network/token-exchange-api/pkg/tokenclaims"
+	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 func evaluateCloudEvents(sacdAgreements map[string]map[string]*set.StringSet, tokenReq *TokenRequest) error {
@@ -104,17 +107,13 @@ func evaluateIDsByGrantSource(globalGrants *set.StringSet, sourceGrants *set.Str
 	return missingIDs
 }
 
-func userGrantMap(record *models.PermissionRecord, nftAddr string, tokenID int64) (map[string]bool, map[string]map[string]*set.StringSet, error) {
+func userGrantMap(data *models.SACDData, nftContractAddr string, tokenID int64) (map[string]bool, map[string]map[string]*set.StringSet, error) {
 	userPermGrants := make(map[string]bool)
 	// type -> source -> ids
 	cloudEvtGrants := make(map[string]map[string]*set.StringSet)
 
-	if err := validAssetDID(record.Data.Asset, nftAddr, tokenID); err != nil {
-		return nil, nil, fmt.Errorf("failed to validate permission asset: %s", record.Data.Asset)
-	}
-
 	// Aggregates all the permission and attestation grants the user has.
-	for _, agreement := range record.Data.Agreements {
+	for _, agreement := range data.Agreements {
 		now := time.Now()
 		if !agreement.EffectiveAt.IsZero() && now.Before(agreement.EffectiveAt) {
 			continue
@@ -122,6 +121,10 @@ func userGrantMap(record *models.PermissionRecord, nftAddr string, tokenID int64
 
 		if !agreement.ExpiresAt.IsZero() && now.After(agreement.ExpiresAt) {
 			continue
+		}
+
+		if err := validAssetDID(agreement.Asset, nftContractAddr, tokenID); err != nil {
+			return nil, nil, fmt.Errorf("failed to validate agreement asset did %s: %w", data.Asset, err)
 		}
 
 		switch agreement.Type {
@@ -202,4 +205,17 @@ func NewNilSafeUnion(s1, s2 *set.StringSet) NilSafeUnion {
 
 func (s *NilSafeUnion) Contains(x string) bool {
 	return s.s1 != nil && s.s1.Contains(x) || s.s2 != nil && s.s2.Contains(x)
+}
+
+func validSignature(payload json.RawMessage, signature string, ethAddr common.Address) (bool, error) {
+	sig := common.FromHex(signature)
+	sig[64] -= 27
+
+	hashWithPrfx := accounts.TextHash(payload)
+	recoveredPubKey, err := crypto.SigToPub(hashWithPrfx, sig)
+	if err != nil {
+		return false, fmt.Errorf("failed to determine public key from signature: %w", err)
+	}
+	recoveredAddr := crypto.PubkeyToAddress(*recoveredPubKey)
+	return recoveredAddr == ethAddr, nil
 }
