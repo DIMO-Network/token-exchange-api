@@ -124,7 +124,7 @@ func userGrantMap(data *models.SACDData, nftContractAddr string, tokenID int64) 
 		}
 
 		if err := validAssetDID(agreement.Asset, nftContractAddr, tokenID); err != nil {
-			return nil, nil, fmt.Errorf("failed to validate agreement asset did %s: %w", data.Asset, err)
+			return nil, nil, fmt.Errorf("failed to validate agreement asset did %s: %w", agreement.Asset, err)
 		}
 
 		switch agreement.Type {
