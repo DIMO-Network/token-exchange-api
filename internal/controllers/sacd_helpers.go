@@ -208,9 +208,16 @@ func (s *NilSafeUnion) Contains(x string) bool {
 }
 
 func validSignature(payload json.RawMessage, signature string, ethAddr common.Address) (bool, error) {
-	sig := common.FromHex(signature)
-	sig[64] -= 27
+	if signature == "" {
+		return false, errors.New("empty signature")
+	}
 
+	sig := common.FromHex(signature)
+	if len(sig) != 65 {
+		return false, fmt.Errorf("invalid signature length: %d", len(sig))
+	}
+
+	sig[64] -= 27
 	hashWithPrfx := accounts.TextHash(payload)
 	recoveredPubKey, err := crypto.SigToPub(hashWithPrfx, sig)
 	if err != nil {
