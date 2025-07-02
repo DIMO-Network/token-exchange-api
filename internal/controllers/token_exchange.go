@@ -268,12 +268,12 @@ func (t *TokenExchangeController) evaluateSacdDoc(c *fiber.Ctx, record *cloudeve
 
 	if err := evaluateCloudEvents(cloudEvtGrants, tokenReq); err != nil {
 		logger.Err(err).Msg("failed to validate cloudevents agreement")
-		return fiber.NewError(fiber.StatusBadRequest, err.Error())
+		return fiber.NewError(fiber.StatusForbidden, err.Error())
 	}
 
 	if err := evaluatePermissions(userPermGrants, tokenReq); err != nil {
 		logger.Err(err).Msg("failed to evaluate permissions agreement")
-		return fiber.NewError(fiber.StatusBadRequest, err.Error())
+		return fiber.NewError(fiber.StatusForbidden, err.Error())
 	}
 	// If we get here, all permission and attestation claims are valid
 	return t.createAndReturnToken(c, tokenReq)

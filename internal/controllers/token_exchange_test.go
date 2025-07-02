@@ -376,7 +376,7 @@ func TestTokenExchangeController_ExchangeToken(t *testing.T) {
 				mockipfs.EXPECT().Fetch(gomock.Any(), gomock.Any()).Return(ipfsBytes, nil)
 				mockSacd.EXPECT().CurrentPermissionRecord(nil, common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr).Return(emptyPermRecord, nil)
 			},
-			expectedCode: fiber.StatusBadRequest,
+			expectedCode: fiber.StatusForbidden,
 		},
 	}
 	for _, tc := range tests {
