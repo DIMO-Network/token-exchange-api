@@ -268,12 +268,12 @@ func (t *TokenExchangeController) evaluateSacdDoc(c *fiber.Ctx, record *cloudeve
 
 	if err := evaluateCloudEvents(cloudEvtGrants, tokenReq); err != nil {
 		logger.Err(err).Msg("failed to validate cloudevents agreement")
-		return fiber.NewError(fiber.StatusBadRequest, err.Error())
+		return fiber.NewError(fiber.StatusForbidden, err.Error())
 	}
 
 	if err := evaluatePermissions(userPermGrants, tokenReq); err != nil {
 		logger.Err(err).Msg("failed to evaluate permissions agreement")
-		return fiber.NewError(fiber.StatusBadRequest, err.Error())
+		return fiber.NewError(fiber.StatusForbidden, err.Error())
 	}
 	// If we get here, all permission and attestation claims are valid
 	return t.createAndReturnToken(c, tokenReq)
@@ -364,7 +364,7 @@ func (t *TokenExchangeController) evaluatePermissionsBits(
 			}
 
 			if !hasPriv {
-				return fiber.NewError(fiber.StatusBadRequest, fmt.Sprintf("Address %s lacks permission %d on token id %d for asset %s.", ethAddr.Hex(), p, tokenReq.TokenID, nftAddr))
+				return fiber.NewError(fiber.StatusForbidden, fmt.Sprintf("Address %s lacks permission %d on token id %d for asset %s.", ethAddr.Hex(), p, tokenReq.TokenID, nftAddr))
 			}
 		}
 

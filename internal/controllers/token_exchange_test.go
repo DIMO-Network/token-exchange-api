@@ -232,7 +232,7 @@ func TestTokenExchangeController_ExchangeToken(t *testing.T) {
 				contractsMgr.EXPECT().GetMultiPrivilege("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144", &client).Return(mockMultiPriv, nil)
 				mockMultiPriv.EXPECT().HasPrivilege(nil, big.NewInt(123), gomock.Any(), userEthAddr).Return(false, nil)
 			},
-			expectedCode: fiber.StatusBadRequest,
+			expectedCode: fiber.StatusForbidden,
 		},
 		{
 			name: "eth token, multiple perms requested, fail on SACD, succeed on privs",
@@ -376,7 +376,7 @@ func TestTokenExchangeController_ExchangeToken(t *testing.T) {
 				mockipfs.EXPECT().Fetch(gomock.Any(), gomock.Any()).Return(ipfsBytes, nil)
 				mockSacd.EXPECT().CurrentPermissionRecord(nil, common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr).Return(emptyPermRecord, nil)
 			},
-			expectedCode: fiber.StatusBadRequest,
+			expectedCode: fiber.StatusForbidden,
 		},
 	}
 	for _, tc := range tests {
