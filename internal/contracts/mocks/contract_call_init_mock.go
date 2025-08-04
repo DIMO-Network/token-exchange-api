@@ -20,7 +20,6 @@ import (
 type MockContractCallInitializer struct {
 	ctrl     *gomock.Controller
 	recorder *MockContractCallInitializerMockRecorder
-	isgomock struct{}
 }
 
 // MockContractCallInitializerMockRecorder is the mock recorder for MockContractCallInitializer.

@@ -24,7 +24,6 @@ import (
 type MockManager struct {
 	ctrl     *gomock.Controller
 	recorder *MockManagerMockRecorder
-	isgomock struct{}
 }
 
 // MockManagerMockRecorder is the mock recorder for MockManager.
@@ -78,7 +77,6 @@ func (mr *MockManagerMockRecorder) GetSacd(sacdAddress, client any) *gomock.Call
 type MockMultiPriv struct {
 	ctrl     *gomock.Controller
 	recorder *MockMultiPrivMockRecorder
-	isgomock struct{}
 }
 
 // MockMultiPrivMockRecorder is the mock recorder for MockMultiPriv.
@@ -117,7 +115,6 @@ func (mr *MockMultiPrivMockRecorder) HasPrivilege(opts, tokenID, privID, user an
 type MockSacd struct {
 	ctrl     *gomock.Controller
 	recorder *MockSacdMockRecorder
-	isgomock struct{}
 }
 
 // MockSacdMockRecorder is the mock recorder for MockSacd.

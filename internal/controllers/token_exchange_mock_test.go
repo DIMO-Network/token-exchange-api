@@ -20,7 +20,6 @@ import (
 type MockIPFSService struct {
 	ctrl     *gomock.Controller
 	recorder *MockIPFSServiceMockRecorder
-	isgomock struct{}
 }
 
 // MockIPFSServiceMockRecorder is the mock recorder for MockIPFSService.
