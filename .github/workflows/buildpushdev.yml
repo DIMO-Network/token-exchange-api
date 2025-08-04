@@ -3,14 +3,14 @@ on:
   push:
     branches:
       - main
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+env:
+  APP_NAME: token-exchange-api
+
 jobs:
-  build_test:
-    # The type of runner that the job will run on
+  build:
     name: buildpushdev
     runs-on: ubuntu-latest
     steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
@@ -21,25 +21,27 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      
+
       - name: Get short SHA
         id: slug
         run: echo "::set-output name=sha7::$(echo ${GITHUB_SHA} | cut -c1-7)"
-        
+
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
           context: .
-          platforms: linux/amd64
-          file: ./resources/docker/Dockerfile
+          file: ./Dockerfile
+          build-args: |
+            APP_NAME=${{ env.APP_NAME }}
           push: true
-          tags: dimozone/token-exchange-api:${{ steps.slug.outputs.sha7 }}, dimozone/token-exchange-api:latest
+          platforms: linux/amd64
+          tags: dimozone/${{ env.APP_NAME }}:${{ steps.slug.outputs.sha7 }}, dimozone/${{ env.APP_NAME }}:latest
 
-      - name: Update Image Version in the related HelmChart values.yaml
-        uses: fjogeleit/yaml-update-action@v0.16.1
+      - name: Update Image Version in the worker HelmChart values.yaml
+        uses: fjogeleit/yaml-update-action@master
         with:
-          valueFile: 'charts/token-exchange-api/values.yaml'
-          propertyPath: 'image.tag'
+          valueFile: "charts/${{ env.APP_NAME }}/values.yaml"
+          propertyPath: "image.tag"
           value: ${{ steps.slug.outputs.sha7 }}
           branch: main
-          message: 'Update Image Version to ${{ steps.slug.outputs.sha7 }}'
+          message: "Update Image Version to ${{ steps.slug.outputs.sha7 }}"

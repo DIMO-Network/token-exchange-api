@@ -1,8 +1,10 @@
-name: buildpushprod
+name: buildpush
 on:
   push:
     tags:
       - v*
+env:
+  APP_NAME: token-exchange-api
 
 jobs:
   build_test:
@@ -32,16 +34,18 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          platforms: linux/amd64
-          file: ./resources/docker/Dockerfile
+          file: ./Dockerfile
+          build-args: |
+            APP_NAME=${{ env.APP_NAME }}
           push: true
-          tags: dimozone/token-exchange-api:${{steps.tag.outputs.tag}}
+          platforms: linux/amd64
+          tags: dimozone/${{ env.APP_NAME }}:${{steps.tag.outputs.tag}}
 
       - name: Update Image Version in the related HelmChart values.yaml
-        uses: fjogeleit/yaml-update-action@master
+        uses: fjogeleit/yaml-update-action@v0.16.1
         with:
-          valueFile: 'charts/token-exchange-api/values-prod.yaml'
-          propertyPath: 'image.tag'
+          valueFile: "charts/${{ env.APP_NAME }}/values-prod.yaml"
+          propertyPath: "image.tag"
           value: ${{steps.tag.outputs.tag}}
           branch: main
-          message: 'Update Image Version to ${{steps.tag.outputs.tag}}'
+          message: "Update Image Version to ${{steps.tag.outputs.tag}}"
