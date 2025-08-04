@@ -353,26 +353,7 @@ func (t *TokenExchangeController) evaluatePermissionsBits(
 	}
 
 	if len(lack) != 0 {
-		// Fall back to checking old-style privileges.
-		// TODO(elffjs): If the whitelist is going to stick around, then we can probably pre-construct these.
-		m, err := t.ctmr.GetMultiPrivilege(nftAddr.Hex(), t.ethClient)
-		if err != nil {
-			return fiber.NewError(fiber.StatusInternalServerError, "Could not connect to blockchain node")
-		}
-
-		for _, p := range tokenReq.Privileges {
-			hasPriv, err := m.HasPrivilege(nil, big.NewInt(tokenReq.TokenID), big.NewInt(p), ethAddr)
-			if err != nil {
-				return fiber.NewError(fiber.StatusInternalServerError, fmt.Sprintf("Failed to check privilege: %s", err))
-			}
-
-			if !hasPriv {
-				return fiber.NewError(fiber.StatusForbidden, fmt.Sprintf("Address %s lacks permission %d on token id %d for asset %s.", ethAddr.Hex(), p, tokenReq.TokenID, nftAddr))
-			}
-		}
-
-		t.logger.Warn().Msgf("Still using privileges %v for %s_%d", tokenReq.Privileges, nftAddr.Hex(), tokenReq.TokenID)
+		return fiber.NewError(fiber.StatusForbidden, fmt.Sprintf("Address %s lacks permission %d on token id %d for asset %s.", ethAddr.Hex(), p, tokenReq.TokenID, nftAddr))
 	}
-
 	return t.createAndReturnToken(c, tokenReq)
 }
