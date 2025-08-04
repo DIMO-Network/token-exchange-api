@@ -20,6 +20,7 @@ VER_CUT   := $(shell echo $(VERSION) | cut -c2-)
 
 # Dependency versions
 GOLANGCI_VERSION   = latest
+PROTOC_VERSION		= 31.1
 
 
 help:
@@ -57,13 +58,29 @@ docker: dep ## build docker image
 	@docker build -f ./Dockerfile . -t dimozone/$(BIN_NAME):$(VER_CUT)
 	@docker tag dimozone/$(BIN_NAME):$(VER_CUT) dimozone/$(BIN_NAME):latest
 
+tools: tools-golangci-lint tools-protoc ## install all tools
+
 tools-golangci-lint: ## install golangci-lint
 	@mkdir -p $(PATHINSTBIN)
 	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | BINARY=golangci-lint bash -s -- ${GOLANGCI_VERSION}
 
-make tools: tools-golangci-lint ## install all tools
+tools-protoc: ## install protoc
+	@mkdir -p $(PATHINSTBIN)
+	rm -rf $(PATHINSTBIN)/protoc
+ifeq ($(shell uname | tr A-Z a-z), darwin)
+	curl -L https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOC_VERSION}/protoc-${PROTOC_VERSION}-osx-x86_64.zip > bin/protoc.zip
+endif
+ifeq ($(shell uname | tr A-Z a-z), linux)
+	curl -L https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOC_VERSION}/protoc-${PROTOC_VERSION}-linux-x86_64.zip > bin/protoc.zip
+endif
+	unzip -o $(PATHINSTBIN)/protoc.zip -d $(PATHINSTBIN)/protoclib 
+	mv -f $(PATHINSTBIN)/protoclib/bin/protoc $(PATHINSTBIN)/protoc
+	rm -rf $(PATHINSTBIN)/include
+	mv $(PATHINSTBIN)/protoclib/include $(PATHINSTBIN)/ 
+	rm $(PATHINSTBIN)/protoc.zip
 
-generate: generate-swagger generate-go ## run all file generation for the project
+
+generate: generate-swagger generate-go generate-grpc ## run all file generation for the project
 
 generate-swagger: ## generate swagger documentation
 	@go tool swag -version
@@ -71,3 +88,9 @@ generate-swagger: ## generate swagger documentation
 
 generate-go:## run go generate
 	@go generate ./...
+
+generate-grpc: ## generate grpc files
+	@PATH=$$PATH protoc --version
+	@PATH=$$PATH protoc --go_out=. --go_opt=paths=source_relative \
+    --go-grpc_out=. --go-grpc_opt=paths=source_relative \
+    pkg/grpc/*.proto

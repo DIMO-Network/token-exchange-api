@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+option go_package = "github.com/DIMO-Network/token-exchange-api/pkg/grpc";
+
+
+package grpc;
+
+service TokenExchangeService {
+  rpc AccessCheck(AccessCheckRequest) returns (AccessCheckResponse);
+}
+
+message AccessCheckRequest {
+  // The token Id of the VC to check.
+  string asset = 1;
+  // The permissions to check.
+  repeated string privileges = 2;
+
+}
+
+message AccessCheckResponse { 
+  bool has_access = 1;
+}
