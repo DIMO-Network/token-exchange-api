@@ -1,72 +1,73 @@
-.PHONY: all deps docker docker-cgo clean docs test test-race fmt lint install deploy-docs
+.PHONY: clean run build install dep test lint format docker
 
-TAGS =
+SHELL := /bin/bash
+PATHINSTBIN = $(abspath ./bin)
+SCRIPTS_DIR = $(abspath ./scripts)
+export PATH := $(PATHINSTBIN):$(SCRIPTS_DIR):$(PATH)
 
-INSTALL_DIR        = $(GOPATH)/bin
-DEST_DIR           = ./target
-PATHINSTBIN        = $(DEST_DIR)/bin
-PATHINSTDOCKER     = $(DEST_DIR)/docker
+BIN_NAME					?= token-exchange-api
+DEFAULT_INSTALL_DIR			:= $(go env GOPATH)/$(PATHINSTBIN)
+DEFAULT_ARCH				:= $(shell go env GOARCH)
+DEFAULT_GOOS				:= $(shell go env GOOS)
+ARCH						?= $(DEFAULT_ARCH)
+GOOS						?= $(DEFAULT_GOOS)
+INSTALL_DIR					?= $(DEFAULT_INSTALL_DIR)
+.DEFAULT_GOAL 				:= run
+
 
 VERSION   := $(shell git describe --tags || echo "v0.0.0")
 VER_CUT   := $(shell echo $(VERSION) | cut -c2-)
-VER_MAJOR := $(shell echo $(VER_CUT) | cut -f1 -d.)
-VER_MINOR := $(shell echo $(VER_CUT) | cut -f2 -d.)
-VER_PATCH := $(shell echo $(VER_CUT) | cut -f3 -d.)
-VER_RC    := $(shell echo $(VER_PATCH) | cut -f2 -d-)
-DATE      := $(shell date +"%Y-%m-%dT%H:%M:%SZ")
 
-LD_FLAGS   =
-GO_FLAGS   =
-DOCS_FLAGS =
-
-APPS = token-exchange-api
-all: $(APPS)
-
-install: $(APPS)
-	@mkdir -p bin
-	@cp $(PATHINSTBIN)/token-exchange-api ./bin/
-
-deps:
-	@go mod tidy
-	@go mod vendor
-
-SOURCE_FILES = $(shell find lib internal -type f -name "*.go")
+# Dependency versions
+GOLANGCI_VERSION   = latest
 
 
-$(PATHINSTBIN)/%: $(SOURCE_FILES) 
-	@go build $(GO_FLAGS) -tags "$(TAGS)" -ldflags "$(LD_FLAGS) " -o $@ ./cmd/$*
+help:
+	@echo "\nSpecify a subcommand:\n"
+	@grep -hE '^[0-9a-zA-Z_-]+:.*?## .*$$' ${MAKEFILE_LIST} | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[0;36m%-20s\033[m %s\n", $$1, $$2}'
+	@echo ""
 
-$(APPS): %: $(PATHINSTBIN)/%
+build: ## build the binary
+	@CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(ARCH) \
+		go build -o $(PATHINSTBIN)/$(BIN_NAME) ./cmd/$(BIN_NAME)
 
-docker-tags:
-	@echo "latest,$(VER_CUT),$(VER_MAJOR).$(VER_MINOR),$(VER_MAJOR)" > .tags
+run: build ## run the binary
+	@$(PATHINSTBIN)/$(BIN_NAME)
 
-docker-rc-tags:
-	@echo "latest,$(VER_CUT),$(VER_MAJOR)-$(VER_RC)" > .tags
+all: clean target
 
-docker-cgo-tags:
-	@echo "latest-cgo,$(VER_CUT)-cgo,$(VER_MAJOR).$(VER_MINOR)-cgo,$(VER_MAJOR)-cgo" > .tags
+clean: ## clean the binary
+	@rm -rf $(PATHINSTBIN)
+	
+install: build ## install the binary
+	@install -d $(INSTALL_DIR)
+	@rm -f $(INSTALL_DIR)/$(BIN_NAME)
+	@cp $(PATHINSTBIN)/$(BIN_NAME) $(INSTALL_DIR)/$(BIN_NAME)
 
-docker: deps
-	@docker build -f ./resources/docker/Dockerfile . -t dimozone/token-exchange-api:$(VER_CUT)
-	@docker tag dimozone/token-exchange-api:$(VER_CUT) dimozone/token-exchange-api:latest
-
-docker-cgo: deps
-	@docker build -f ./resources/docker/Dockerfile.cgo . -t dimozone/token-exchange-api:$(VER_CUT)-cgo
-	@docker tag dimozone/token-exchange-api:$(VER_CUT)-cgo dimozone/token-exchange-api:latest-cgo
-
-fmt:
-	@go list -f {{.Dir}} ./... | xargs -I{} gofmt -w -s {}
+tidy: ## tidy the go mod
 	@go mod tidy
 
-lint:
-	@go vet $(GO_FLAGS) ./...
+test: ## run tests
+	@go test ./...
 
-test: $(APPS)
-	@go test $(GO_FLAGS) -timeout 3m -race ./...
-	@$(PATHINSTBIN)/token-exchange-api test ./config/test/...
+lint: ## run linter
+	@PATH=$$PATH golangci-lint run --timeout 10m
 
-clean:
-	rm -rf $(PATHINSTBIN)
-	rm -rf $(DEST_DIR)/dist
-	rm -rf $(PATHINSTDOCKER)
+docker: dep ## build docker image
+	@docker build -f ./Dockerfile . -t dimozone/$(BIN_NAME):$(VER_CUT)
+	@docker tag dimozone/$(BIN_NAME):$(VER_CUT) dimozone/$(BIN_NAME):latest
+
+tools-golangci-lint: ## install golangci-lint
+	@mkdir -p $(PATHINSTBIN)
+	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | BINARY=golangci-lint bash -s -- ${GOLANGCI_VERSION}
+
+make tools: tools-golangci-lint ## install all tools
+
+generate: generate-swagger generate-go ## run all file generation for the project
+
+generate-swagger: ## generate swagger documentation
+	@go tool swag -version
+	go tool swag init -g cmd/$(BIN_NAME)/main.go --parseDependency --parseInternal
+
+generate-go:## run go generate
+	@go generate ./...

@@ -26,7 +26,6 @@ const (
 	responseSubjectKey keyType = "responseSubject"
 )
 
-//go:generate mockgen -source valid_dev_license.go -destination mocks/valid_dev_license_mock.go
 type IdentityService interface {
 	IsDevLicense(ctx context.Context, ethAddr common.Address) (bool, error)
 }
