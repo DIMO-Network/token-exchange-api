@@ -353,7 +353,7 @@ func (t *TokenExchangeController) evaluatePermissionsBits(
 	}
 
 	if len(lack) != 0 {
-		return fiber.NewError(fiber.StatusForbidden, fmt.Sprintf("Address %s lacks permission %d on token id %d for asset %s.", ethAddr.Hex(), p, tokenReq.TokenID, nftAddr))
+		return fiber.NewError(fiber.StatusForbidden, fmt.Sprintf("Address %s lacks permissions %v on token id %d for asset %s.", ethAddr.Hex(), lack, tokenReq.TokenID, nftAddr))
 	}
 	return t.createAndReturnToken(c, tokenReq)
 }
