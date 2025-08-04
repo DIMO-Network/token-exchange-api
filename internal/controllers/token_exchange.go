@@ -9,6 +9,7 @@ import (
 
 	"github.com/DIMO-Network/cloudevent"
 	"github.com/DIMO-Network/token-exchange-api/internal/api"
+	"github.com/DIMO-Network/token-exchange-api/internal/autheval"
 	"github.com/DIMO-Network/token-exchange-api/internal/config"
 	"github.com/DIMO-Network/token-exchange-api/internal/contracts"
 	"github.com/DIMO-Network/token-exchange-api/internal/middleware"
@@ -29,18 +30,6 @@ type DexService interface {
 }
 
 var defaultAudience = []string{"dimo.zone"}
-
-// privilege prefix to denote the 1:1 mapping to bit values and to make them easier to deprecate if desired in the future
-var PermissionMap = map[int]string{
-	1: "privilege:GetNonLocationHistory",  // All-time non-location data
-	2: "privilege:ExecuteCommands",        // Commands
-	3: "privilege:GetCurrentLocation",     // Current location
-	4: "privilege:GetLocationHistory",     // All-time location
-	5: "privilege:GetVINCredential",       // View VIN credential
-	6: "privilege:GetLiveData",            // Subscribe live data
-	7: "privilege:GetRawData",             // Raw data
-	8: "privilege:GetApproximateLocation", // Approximate location
-}
 
 type TokenExchangeController struct {
 	logger      *zerolog.Logger
@@ -65,23 +54,8 @@ type TokenRequest struct {
 	// CloudEvents contains requests for access to CloudEvents attached to the specified NFT.
 	CloudEvents CloudEvents `json:"cloudEvents"`
 }
-
 type CloudEvents struct {
-	// Events is a list of CloudEvent access requests.
-	Events []EventFilter `json:"events"`
-}
-
-type EventFilter struct {
-	// EventType specifies the CloudEvent type field of the documents the client wants to access.
-	// It must be specified.
-	EventType string `json:"eventType" validate:"required"`
-	// Source specifies the CloudEvent source field for the documents the client wants to access.
-	// One may also use the special value "*" for this field to select all sources.
-	Source string `json:"source" validate:"required"`
-	// IDs is a list of ids for the CloudEvents that the client wants to access. This list must
-	// contain at least one element. If the list contains the special value "*" then the request
-	// has no restrictions on id.
-	IDs []string `json:"ids" validate:"required"`
+	Events []autheval.EventFilter `json:"events"`
 }
 
 type TokenResponse struct {
@@ -253,7 +227,7 @@ func (t *TokenExchangeController) evaluateSacdDoc(c *fiber.Ctx, record *cloudeve
 		return fiber.NewError(fiber.StatusBadRequest, "Grantee address in permission record doesn't match requester")
 	}
 
-	valid, err := validSignature(record.Data, record.Signature, common.HexToAddress(data.Grantor.Address))
+	valid, err := autheval.ValidSignature(record.Data, record.Signature, common.HexToAddress(data.Grantor.Address))
 	if err != nil {
 		t.logger.Info().Err(err).Msg("failed to validate grant signature")
 		return fiber.NewError(fiber.StatusBadRequest, "failed to validate grant signature")
@@ -263,51 +237,23 @@ func (t *TokenExchangeController) evaluateSacdDoc(c *fiber.Ctx, record *cloudeve
 		return fiber.NewError(fiber.StatusBadRequest, "invalid grant signature")
 	}
 
-	userPermGrants, cloudEvtGrants, err := userGrantMap(&data, tokenReq.NFTContractAddress, tokenReq.TokenID)
+	userPermGrants, cloudEvtGrants, err := autheval.UserGrantMap(&data, tokenReq.NFTContractAddress, tokenReq.TokenID)
 	if err != nil {
 		logger.Err(err).Msg("failed to generate user grant map")
 		return fiber.NewError(fiber.StatusBadRequest, "failed to validate request")
 	}
 
-	if err := evaluateCloudEvents(cloudEvtGrants, tokenReq); err != nil {
+	if err := autheval.EvaluateCloudEvents(cloudEvtGrants, tokenReq.CloudEvents.Events); err != nil {
 		logger.Err(err).Msg("failed to validate cloudevents agreement")
 		return fiber.NewError(fiber.StatusForbidden, err.Error())
 	}
 
-	if err := evaluatePermissions(userPermGrants, tokenReq); err != nil {
+	if err := autheval.EvaluatePermissions(userPermGrants, tokenReq.Privileges, tokenReq.TokenID, tokenReq.NFTContractAddress); err != nil {
 		logger.Err(err).Msg("failed to evaluate permissions agreement")
 		return fiber.NewError(fiber.StatusForbidden, err.Error())
 	}
 	// If we get here, all permission and attestation claims are valid
 	return t.createAndReturnToken(c, tokenReq)
-}
-
-func evaluatePermissions(userPermissions map[string]bool, tokenReq *TokenRequest) error {
-	// Check if all requested privileges are present in the permissions
-	var missingPermissions []int64
-
-	for _, privID := range tokenReq.Privileges {
-		// Look up the permission name for this privilege ID
-		permName, exists := PermissionMap[int(privID)]
-		if !exists {
-			// If we don't have a mapping for this privilege ID, consider it missing
-			missingPermissions = append(missingPermissions, privID)
-			continue
-		}
-
-		// Check if the user has this permission
-		if !userPermissions[permName] {
-			missingPermissions = append(missingPermissions, privID)
-		}
-	}
-
-	// If any permissions are missing, return an error
-	if len(missingPermissions) > 0 {
-		return fmt.Errorf("missing permissions: %v on token id %d for asset %s", missingPermissions, tokenReq.TokenID, tokenReq.NFTContractAddress)
-	}
-
-	// If we get here, all permissions are valid
-	return nil
 }
 
 // evaluatePermissionsBits checks if the user has the requested privileges using the on-chain permission bits system.
@@ -333,7 +279,7 @@ func (t *TokenExchangeController) evaluatePermissionsBits(
 	ethAddr common.Address,
 ) error {
 	// Convert pr.Privileges to 2-bit array format
-	mask, err := intArrayTo2BitArray(tokenReq.Privileges, 128) // Assuming max privilege is 128
+	mask, err := autheval.IntArrayTo2BitArray(tokenReq.Privileges, 128) // Assuming max privilege is 128
 	if err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, fmt.Sprintf("Failed to convert privileges to 2-bit array: %s", err))
 	}
@@ -344,13 +290,7 @@ func (t *TokenExchangeController) evaluatePermissionsBits(
 	}
 
 	// Collecting these because in the future we'd like to list all of them.
-	var lack []int64
-
-	for _, p := range tokenReq.Privileges {
-		if ret.Bit(2*int(p)) != 1 || ret.Bit(2*int(p)+1) != 1 {
-			lack = append(lack, p)
-		}
-	}
+	lack := autheval.EvaluatePermissionsBits(tokenReq.Privileges, ret)
 
 	if len(lack) != 0 {
 		return fiber.NewError(fiber.StatusForbidden, fmt.Sprintf("Address %s lacks permissions %v on token id %d for asset %s.", ethAddr.Hex(), lack, tokenReq.TokenID, nftAddr))

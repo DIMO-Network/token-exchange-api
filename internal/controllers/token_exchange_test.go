@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"crypto/ecdsa"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -16,6 +17,7 @@ import (
 
 	"github.com/DIMO-Network/cloudevent"
 	"github.com/DIMO-Network/shared/pkg/privileges"
+	"github.com/DIMO-Network/token-exchange-api/internal/autheval"
 	"github.com/DIMO-Network/token-exchange-api/internal/config"
 	"github.com/DIMO-Network/token-exchange-api/internal/contracts/sacd"
 	"github.com/DIMO-Network/token-exchange-api/internal/middleware"
@@ -24,6 +26,7 @@ import (
 	"github.com/DIMO-Network/token-exchange-api/internal/services"
 	"github.com/DIMO-Network/token-exchange-api/pkg/tokenclaims"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v5"
@@ -306,7 +309,7 @@ func TestTokenExchangeController_ExchangeToken(t *testing.T) {
 			permissionTokenRequest: &TokenRequest{
 				TokenID: 123,
 				CloudEvents: CloudEvents{
-					Events: []EventFilter{
+					Events: []autheval.EventFilter{
 						{
 							EventType: cloudevent.TypeAttestation,
 							Source:    common.BigToAddress(big.NewInt(1)).Hex(),
@@ -349,7 +352,7 @@ func TestTokenExchangeController_ExchangeToken(t *testing.T) {
 			permissionTokenRequest: &TokenRequest{
 				TokenID: 123,
 				CloudEvents: CloudEvents{
-					Events: []EventFilter{
+					Events: []autheval.EventFilter{
 						{},
 					},
 				},
@@ -572,4 +575,47 @@ func authInjectorTestHandler(jwtClaims jwt.MapClaims) fiber.Handler {
 		c.Locals("user", token)
 		return c.Next()
 	}
+}
+
+func signSACDHelper(grantData *models.SACDData) (*cloudevent.RawEvent, error) {
+	privateKey, err := crypto.GenerateKey()
+	if err != nil {
+		return nil, err
+	}
+
+	publicKey := privateKey.Public()
+	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
+	if !ok {
+		return nil, errors.New("failed to derive public key")
+	}
+
+	address := crypto.PubkeyToAddress(*publicKeyECDSA)
+
+	grantData.Grantor = models.Address{
+		Address: address.Hex(),
+	}
+
+	msgBytes, err := json.Marshal(grantData)
+	if err != nil {
+		return nil, err
+	}
+
+	prefixed := fmt.Sprintf("\x19Ethereum Signed Message:\n%d%s", len(msgBytes), msgBytes)
+
+	hash := crypto.Keccak256Hash([]byte(prefixed))
+	signature, err := crypto.Sign(hash.Bytes(), privateKey)
+	if err != nil {
+		return nil, err
+	}
+
+	signature[64] += 27
+
+	var final cloudevent.RawEvent
+	final.Extras = map[string]any{
+		"signature": "0x" + common.Bytes2Hex(signature),
+	}
+
+	final.Data = msgBytes
+	final.Type = "dimo.sacd"
+	return &final, nil
 }

@@ -1,4 +1,4 @@
-package controllers
+package autheval
 
 import (
 	"encoding/json"
@@ -17,19 +17,81 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 )
 
-func evaluateCloudEvents(sacdAgreements map[string]map[string]*set.StringSet, tokenReq *TokenRequest) error {
+// privilege prefix to denote the 1:1 mapping to bit values and to make them easier to deprecate if desired in the future
+var PermissionMap = map[int]string{
+	1: "privilege:GetNonLocationHistory",  // All-time non-location data
+	2: "privilege:ExecuteCommands",        // Commands
+	3: "privilege:GetCurrentLocation",     // Current location
+	4: "privilege:GetLocationHistory",     // All-time location
+	5: "privilege:GetVINCredential",       // View VIN credential
+	6: "privilege:GetLiveData",            // Subscribe live data
+	7: "privilege:GetRawData",             // Raw data
+	8: "privilege:GetApproximateLocation", // Approximate location
+}
+
+type EventFilter struct {
+	EventType string   `json:"eventType"`
+	Source    string   `json:"source"`
+	IDs       []string `json:"ids"`
+}
+
+// EvaluatePermissions checks if all requested privileges are present in the user permissions
+func EvaluatePermissions(userPermissions map[string]bool, requestedPrivileges []int64, tokenID int64, nftContractAddress string) error {
+	// Check if all requested privileges are present in the permissions
+	var missingPermissions []int64
+
+	for _, privID := range requestedPrivileges {
+		// Look up the permission name for this privilege ID
+		permName, exists := PermissionMap[int(privID)]
+		if !exists {
+			// If we don't have a mapping for this privilege ID, consider it missing
+			missingPermissions = append(missingPermissions, privID)
+			continue
+		}
+
+		// Check if the user has this permission
+		if !userPermissions[permName] {
+			missingPermissions = append(missingPermissions, privID)
+		}
+	}
+
+	// If any permissions are missing, return an error
+	if len(missingPermissions) > 0 {
+		return fmt.Errorf("missing permissions: %v on token id %d for asset %s", missingPermissions, tokenID, nftContractAddress)
+	}
+
+	// If we get here, all permissions are valid
+	return nil
+}
+
+// EvaluatePermissionsBits checks if user has privileges using 2-bit permission system
+// Returns slice of missing privileges if any are missing, or empty slice if all are valid
+func EvaluatePermissionsBits(privileges []int64, permissionBits *big.Int) []int64 {
+	var lack []int64
+
+	for _, p := range privileges {
+		if permissionBits.Bit(2*int(p)) != 1 || permissionBits.Bit(2*int(p)+1) != 1 {
+			lack = append(lack, p)
+		}
+	}
+
+	return lack
+}
+
+// EvaluateCloudEvents validates all CloudEvent access requests against SACD agreements
+func EvaluateCloudEvents(sacdAgreements map[string]map[string]*set.StringSet, cloudEvents []EventFilter) error {
 	var err error
-	for _, req := range tokenReq.CloudEvents.Events {
-		ceErr := evaluateCloudEvent(sacdAgreements, req)
+	for _, req := range cloudEvents {
+		ceErr := EvaluateCloudEvent(sacdAgreements, req)
 		err = errors.Join(err, ceErr)
 	}
 
 	return err
 }
 
-// evaluateCloudEvent returns an error if CloudEvent access request is
+// EvaluateCloudEvent returns an error if CloudEvent access request is
 // disallowed under the grants in the agreement map.
-func evaluateCloudEvent(sacdAgreement map[string]map[string]*set.StringSet, req EventFilter) error {
+func EvaluateCloudEvent(sacdAgreement map[string]map[string]*set.StringSet, req EventFilter) error {
 	if !common.IsHexAddress(req.Source) && req.Source != tokenclaims.GlobalIdentifier {
 		return fmt.Errorf("requested source %q invalid: must be %s or valid hex address", req.Source, tokenclaims.GlobalIdentifier)
 	}
@@ -38,7 +100,7 @@ func evaluateCloudEvent(sacdAgreement map[string]map[string]*set.StringSet, req 
 		return fmt.Errorf("must request at least one cloudevent id or global access request (%s)", tokenclaims.GlobalIdentifier)
 	}
 
-	grantedAggs := getValidAgreements(sacdAgreement, req.EventType)
+	grantedAggs := GetValidAgreements(sacdAgreement, req.EventType)
 	if len(grantedAggs) == 0 {
 		return fmt.Errorf("lacking grant for requested event type: %s", req.EventType)
 	}
@@ -53,17 +115,17 @@ func evaluateCloudEvent(sacdAgreement map[string]map[string]*set.StringSet, req 
 		return fmt.Errorf("no %s grants for source: %s", req.EventType, req.Source)
 	}
 
-	if missingIDs := evaluateIDsByGrantSource(globalGrantIDs, sourceGrantIDs, req.IDs); len(missingIDs) > 0 {
+	if missingIDs := EvaluateIDsByGrantSource(globalGrantIDs, sourceGrantIDs, req.IDs); len(missingIDs) > 0 {
 		return fmt.Errorf("lacking %s grant for source %s with ids: %s", req.EventType, req.Source, strings.Join(missingIDs, ","))
 	}
 
 	return nil
 }
 
-// getValidAgreements returns a map of sources to sets of valid IDs for a given CloudEvent type (`ceType`).
+// GetValidAgreements returns a map of sources to sets of valid IDs for a given CloudEvent type (`ceType`).
 // global grants (applied to all events) and event-specific grants are merged
 // input 'sacdAgreements' is a nested map: eventType -> source -> set of IDs.
-func getValidAgreements(sacdAgreements map[string]map[string]*set.StringSet, ceType string) map[string]*set.StringSet {
+func GetValidAgreements(sacdAgreements map[string]map[string]*set.StringSet, ceType string) map[string]*set.StringSet {
 	agreementsBySource := make(map[string]*set.StringSet)
 	eventGrants := sacdAgreements[ceType]
 	globlaGrants := sacdAgreements[tokenclaims.GlobalIdentifier]
@@ -90,7 +152,8 @@ func getValidAgreements(sacdAgreements map[string]map[string]*set.StringSet, ceT
 	return agreementsBySource
 }
 
-func evaluateIDsByGrantSource(globalGrants *set.StringSet, sourceGrants *set.StringSet, requestedIDs []string) []string {
+// EvaluateIDsByGrantSource checks if requested IDs are covered by grants
+func EvaluateIDsByGrantSource(globalGrants *set.StringSet, sourceGrants *set.StringSet, requestedIDs []string) []string {
 	// Note that when the request is for the source "*" then these are the same set.
 	grantsUnion := NewNilSafeUnion(globalGrants, sourceGrants)
 
@@ -107,7 +170,8 @@ func evaluateIDsByGrantSource(globalGrants *set.StringSet, sourceGrants *set.Str
 	return missingIDs
 }
 
-func userGrantMap(data *models.SACDData, nftContractAddr string, tokenID int64) (map[string]bool, map[string]map[string]*set.StringSet, error) {
+// UserGrantMap extracts permission and CloudEvent grants from SACD data
+func UserGrantMap(data *models.SACDData, nftContractAddr string, tokenID int64) (map[string]bool, map[string]map[string]*set.StringSet, error) {
 	userPermGrants := make(map[string]bool)
 	// type -> source -> ids
 	cloudEvtGrants := make(map[string]map[string]*set.StringSet)
@@ -123,7 +187,7 @@ func userGrantMap(data *models.SACDData, nftContractAddr string, tokenID int64) 
 			continue
 		}
 
-		if err := validAssetDID(agreement.Asset, nftContractAddr, tokenID); err != nil {
+		if err := ValidAssetDID(agreement.Asset, nftContractAddr, tokenID); err != nil {
 			return nil, nil, fmt.Errorf("failed to validate agreement asset did %s: %w", agreement.Asset, err)
 		}
 
@@ -151,18 +215,9 @@ func userGrantMap(data *models.SACDData, nftContractAddr string, tokenID int64) 
 	return userPermGrants, cloudEvtGrants, nil
 }
 
-// validAssetDID verifies that the provided DID matches the NFT contract address
+// ValidAssetDID verifies that the provided DID matches the NFT contract address
 // and token ID specified in the permission token request.
-//
-// Parameters:
-//   - did: The decentralized identifier string to validate, typically in the format "did:nft:..."
-//   - nftContractAddr: NFT contract address from token request and token ID to match against
-//   - tokenID: Token ID from token request
-//
-// Returns:
-//   - bool: true if the DID is valid and matches the request parameters, false otherwise
-//   - error: An error describing why validation failed, or nil if validation succeeded
-func validAssetDID(did string, nftContractAddr string, tokenID int64) error {
+func ValidAssetDID(did string, nftContractAddr string, tokenID int64) error {
 	decodedDID, err := cloudevent.DecodeERC721DID(did)
 	if err != nil {
 		return fmt.Errorf("failed to decode DID: %w", err)
@@ -181,7 +236,8 @@ func validAssetDID(did string, nftContractAddr string, tokenID int64) error {
 	return nil
 }
 
-func intArrayTo2BitArray(indices []int64, length int) (*big.Int, error) {
+// IntArrayTo2BitArray converts array of indices to 2-bit array representation
+func IntArrayTo2BitArray(indices []int64, length int) (*big.Int, error) {
 	mask := big.NewInt(0)
 
 	for _, index := range indices {
@@ -195,19 +251,23 @@ func intArrayTo2BitArray(indices []int64, length int) (*big.Int, error) {
 	return mask, nil
 }
 
+// NilSafeUnion represents a union of two string sets that handles nil values safely
 type NilSafeUnion struct {
 	s1, s2 *set.StringSet
 }
 
+// NewNilSafeUnion creates a new NilSafeUnion from two string sets
 func NewNilSafeUnion(s1, s2 *set.StringSet) NilSafeUnion {
 	return NilSafeUnion{s1: s1, s2: s2}
 }
 
+// Contains checks if the union contains the given string
 func (s *NilSafeUnion) Contains(x string) bool {
 	return s.s1 != nil && s.s1.Contains(x) || s.s2 != nil && s.s2.Contains(x)
 }
 
-func validSignature(payload json.RawMessage, signature string, ethAddr common.Address) (bool, error) {
+// ValidSignature validates signature for SACD documents
+func ValidSignature(payload json.RawMessage, signature string, ethAddr common.Address) (bool, error) {
 	if signature == "" {
 		return false, errors.New("empty signature")
 	}
