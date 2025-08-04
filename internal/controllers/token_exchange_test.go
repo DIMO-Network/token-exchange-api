@@ -17,14 +17,11 @@ import (
 	"github.com/DIMO-Network/cloudevent"
 	"github.com/DIMO-Network/shared/pkg/privileges"
 	"github.com/DIMO-Network/token-exchange-api/internal/config"
-	mock_contracts "github.com/DIMO-Network/token-exchange-api/internal/contracts/mocks"
 	"github.com/DIMO-Network/token-exchange-api/internal/contracts/sacd"
 	"github.com/DIMO-Network/token-exchange-api/internal/middleware"
 	"github.com/DIMO-Network/token-exchange-api/internal/middleware/dex"
-	mock_middleware "github.com/DIMO-Network/token-exchange-api/internal/middleware/mocks"
 	"github.com/DIMO-Network/token-exchange-api/internal/models"
 	"github.com/DIMO-Network/token-exchange-api/internal/services"
-	mock_services "github.com/DIMO-Network/token-exchange-api/internal/services/mocks"
 	"github.com/DIMO-Network/token-exchange-api/pkg/tokenclaims"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -38,8 +35,10 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-//go:generate mockgen -source ./token_exchange.go -destination ./token_exchange_mock_test.go -package controllers
-
+//go:generate go tool mockgen -source ./token_exchange.go -destination ./token_exchange_mock_test.go -package controllers
+//go:generate go tool mockgen -source ../contracts/contracts.go -destination ./contracts_manager_mock_test.go -package controllers
+//go:generate go tool mockgen -source ../services/dex_service.go -destination ./dex_service_mock_test.go -package controllers
+//go:generate go tool mockgen -source ../middleware/valid_dev_license.go -destination ./identity_service_mock_test.go -package controllers
 func TestTokenExchangeController_ExchangeToken(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
@@ -49,12 +48,12 @@ func TestTokenExchangeController_ExchangeToken(t *testing.T) {
 		Str("app", "token-exchange-api").
 		Logger()
 
-	dexService := mock_services.NewMockDexService(mockCtrl)
-	contractsMgr := mock_contracts.NewMockManager(mockCtrl)
-	mockMultiPriv := mock_contracts.NewMockMultiPriv(mockCtrl)
-	mockSacd := mock_contracts.NewMockSacd(mockCtrl)
+	dexService := NewMockDexService(mockCtrl)
+	contractsMgr := NewMockManager(mockCtrl)
+	mockMultiPriv := NewMockMultiPriv(mockCtrl)
+	mockSacd := NewMockSacd(mockCtrl)
 	mockipfs := NewMockIPFSService(mockCtrl)
-	mockIdent := mock_middleware.NewMockIdentityService(mockCtrl)
+	mockIdent := NewMockIdentityService(mockCtrl)
 
 	// This never gets called.
 	client := ethclient.Client{}
@@ -416,7 +415,7 @@ func TestDevLicenseMiddleware(t *testing.T) {
 		Str("app", "token-exchange-api").
 		Logger()
 
-	idSvc := mock_middleware.NewMockIdentityService(mockCtrl)
+	idSvc := NewMockIdentityService(mockCtrl)
 
 	tests := []struct {
 		name             string

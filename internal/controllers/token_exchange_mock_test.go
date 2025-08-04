@@ -13,6 +13,7 @@ import (
 	context "context"
 	reflect "reflect"
 
+	services "github.com/DIMO-Network/token-exchange-api/internal/services"
 	gomock "go.uber.org/mock/gomock"
 )
 
@@ -20,6 +21,7 @@ import (
 type MockIPFSService struct {
 	ctrl     *gomock.Controller
 	recorder *MockIPFSServiceMockRecorder
+	isgomock struct{}
 }
 
 // MockIPFSServiceMockRecorder is the mock recorder for MockIPFSService.
@@ -52,4 +54,43 @@ func (m *MockIPFSService) Fetch(ctx context.Context, cid string) ([]byte, error)
 func (mr *MockIPFSServiceMockRecorder) Fetch(ctx, cid any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Fetch", reflect.TypeOf((*MockIPFSService)(nil).Fetch), ctx, cid)
+}
+
+// MockDexService is a mock of DexService interface.
+type MockDexService struct {
+	ctrl     *gomock.Controller
+	recorder *MockDexServiceMockRecorder
+	isgomock struct{}
+}
+
+// MockDexServiceMockRecorder is the mock recorder for MockDexService.
+type MockDexServiceMockRecorder struct {
+	mock *MockDexService
+}
+
+// NewMockDexService creates a new mock instance.
+func NewMockDexService(ctrl *gomock.Controller) *MockDexService {
+	mock := &MockDexService{ctrl: ctrl}
+	mock.recorder = &MockDexServiceMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockDexService) EXPECT() *MockDexServiceMockRecorder {
+	return m.recorder
+}
+
+// SignPrivilegePayload mocks base method.
+func (m *MockDexService) SignPrivilegePayload(ctx context.Context, req services.PrivilegeTokenDTO) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SignPrivilegePayload", ctx, req)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// SignPrivilegePayload indicates an expected call of SignPrivilegePayload.
+func (mr *MockDexServiceMockRecorder) SignPrivilegePayload(ctx, req any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SignPrivilegePayload", reflect.TypeOf((*MockDexService)(nil).SignPrivilegePayload), ctx, req)
 }

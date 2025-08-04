@@ -24,6 +24,9 @@ import (
 type IPFSService interface {
 	Fetch(ctx context.Context, cid string) ([]byte, error)
 }
+type DexService interface {
+	SignPrivilegePayload(ctx context.Context, req services.PrivilegeTokenDTO) (string, error)
+}
 
 var defaultAudience = []string{"dimo.zone"}
 
@@ -42,7 +45,7 @@ var PermissionMap = map[int]string{
 type TokenExchangeController struct {
 	logger      *zerolog.Logger
 	settings    *config.Settings
-	dexService  services.DexService
+	dexService  DexService
 	ctmr        contracts.Manager
 	ethClient   bind.ContractBackend
 	ipfsService IPFSService
@@ -85,7 +88,7 @@ type TokenResponse struct {
 	Token string `json:"token"`
 }
 
-func NewTokenExchangeController(logger *zerolog.Logger, settings *config.Settings, dexService services.DexService, ipfsService IPFSService,
+func NewTokenExchangeController(logger *zerolog.Logger, settings *config.Settings, dexService DexService, ipfsService IPFSService,
 	contractsMgr contracts.Manager, ethClient bind.ContractBackend) (*TokenExchangeController, error) {
 	return &TokenExchangeController{
 		logger:      logger,
