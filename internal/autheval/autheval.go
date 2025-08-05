@@ -1,7 +1,6 @@
 package autheval
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
@@ -12,9 +11,7 @@ import (
 	"github.com/DIMO-Network/shared/pkg/set"
 	"github.com/DIMO-Network/token-exchange-api/internal/models"
 	"github.com/DIMO-Network/token-exchange-api/pkg/tokenclaims"
-	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
 )
 
 type EventFilter struct {
@@ -218,25 +215,4 @@ func NewNilSafeUnion(s1, s2 *set.StringSet) NilSafeUnion {
 // Contains checks if the union contains the given string
 func (s *NilSafeUnion) Contains(x string) bool {
 	return s.s1 != nil && s.s1.Contains(x) || s.s2 != nil && s.s2.Contains(x)
-}
-
-// ValidSignature validates signature for SACD documents
-func ValidSignature(payload json.RawMessage, signature string, ethAddr common.Address) (bool, error) {
-	if signature == "" {
-		return false, errors.New("empty signature")
-	}
-
-	sig := common.FromHex(signature)
-	if len(sig) != 65 {
-		return false, fmt.Errorf("invalid signature length: %d", len(sig))
-	}
-
-	sig[64] -= 27
-	hashWithPrfx := accounts.TextHash(payload)
-	recoveredPubKey, err := crypto.SigToPub(hashWithPrfx, sig)
-	if err != nil {
-		return false, fmt.Errorf("failed to determine public key from signature: %w", err)
-	}
-	recoveredAddr := crypto.PubkeyToAddress(*recoveredPubKey)
-	return recoveredAddr == ethAddr, nil
 }

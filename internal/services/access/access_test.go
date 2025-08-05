@@ -1,4 +1,4 @@
-package access_test
+package access
 
 import (
 	"crypto/ecdsa"
@@ -14,7 +14,6 @@ import (
 	"github.com/DIMO-Network/token-exchange-api/internal/autheval"
 	"github.com/DIMO-Network/token-exchange-api/internal/contracts/sacd"
 	"github.com/DIMO-Network/token-exchange-api/internal/models"
-	"github.com/DIMO-Network/token-exchange-api/internal/services/access"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/gofiber/fiber/v2"
@@ -22,16 +21,20 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
-//go:generate go tool mockgen -source ./access.go -destination ./access_mock_test.go -package access_test
+//go:generate go tool mockgen -source ./access.go -destination ./access_mock_test.go -package access
 func TestAccessService_ValidateAccess(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
 	mockSacd := NewMockSACDInterface(mockCtrl)
 	mockipfs := NewMockIPFSClient(mockCtrl)
+	mockErc1271 := NewMockErc1271Interface(mockCtrl)
+	mockErc1271Factory := NewMockerc1271Mgr(mockCtrl)
+	mockErc1271Factory.EXPECT().NewErc1271(gomock.Any(), gomock.Any()).Return(mockErc1271, nil).AnyTimes()
 
-	accessService, err := access.NewAccessService(mockipfs, mockSacd)
+	accessService, err := NewAccessService(mockipfs, mockSacd, nil)
 	require.NoError(t, err)
+	accessService.erc1271Mgr = mockErc1271Factory
 
 	userEthAddr := common.HexToAddress("0x20Ca3bE69a8B95D3093383375F0473A8c6341727")
 
@@ -63,7 +66,8 @@ func TestAccessService_ValidateAccess(t *testing.T) {
 	ipfsRecord, err := signSACDHelper(&permData)
 	require.NoError(t, err)
 
-	ipfsBytes, _ := json.Marshal(ipfsRecord)
+	ipfsBytes, err := json.Marshal(ipfsRecord)
+	require.NoError(t, err)
 
 	// Create a mock empty permission record to return
 	emptyPermRecord := sacd.ISacdPermissionRecord{
@@ -75,22 +79,22 @@ func TestAccessService_ValidateAccess(t *testing.T) {
 	tests := []struct {
 		name            string
 		ethAddr         common.Address
-		accessRequest   *access.NFTAccessRequest
-		mockSetup       func()
+		accessRequest   *NFTAccessRequest
+		mockSetup       func(t *testing.T)
 		expectedErrCode int
 	}{
 		{
 			name:    "valid request with single privilege and no SACD document or event filters",
 			ethAddr: devLicenseAddr,
-			accessRequest: &access.NFTAccessRequest{
+			accessRequest: &NFTAccessRequest{
 				Asset: cloudevent.ERC721DID{
 					ContractAddress: common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"),
 					TokenID:         big.NewInt(123),
 					ChainID:         1,
 				},
-				Permissions: []string{access.PrivilegeIDToName[4]},
+				Permissions: []string{PrivilegeIDToName[4]},
 			},
-			mockSetup: func() {
+			mockSetup: func(*testing.T) {
 				mockSacd.EXPECT().CurrentPermissionRecord(gomock.Any(), common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), devLicenseAddr).Return(emptyPermRecord, nil)
 				mockipfs.EXPECT().Fetch(gomock.Any(), gomock.Any()).Return(nil, errors.New("no valid doc"))
 				mockSacd.EXPECT().GetPermissions(gomock.Any(), common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), devLicenseAddr, big.NewInt(0b1100000000)).Return(big.NewInt(0b1100000000), nil)
@@ -98,15 +102,15 @@ func TestAccessService_ValidateAccess(t *testing.T) {
 		{
 			name:    "valid request with multiple privileges and no SACD document or event filters",
 			ethAddr: userEthAddr,
-			accessRequest: &access.NFTAccessRequest{
+			accessRequest: &NFTAccessRequest{
 				Asset: cloudevent.ERC721DID{
 					ContractAddress: common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"),
 					TokenID:         big.NewInt(123),
 					ChainID:         1,
 				},
-				Permissions: []string{access.PrivilegeIDToName[1], access.PrivilegeIDToName[2], access.PrivilegeIDToName[4], access.PrivilegeIDToName[5]},
+				Permissions: []string{PrivilegeIDToName[1], PrivilegeIDToName[2], PrivilegeIDToName[4], PrivilegeIDToName[5]},
 			},
-			mockSetup: func() {
+			mockSetup: func(*testing.T) {
 				mockipfs.EXPECT().Fetch(gomock.Any(), gomock.Any()).Return(nil, errors.New("no valid doc"))
 				mockSacd.EXPECT().CurrentPermissionRecord(gomock.Any(), common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr).Return(emptyPermRecord, nil)
 				mockSacd.EXPECT().GetPermissions(gomock.Any(), common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr, big.NewInt(0b111100111100)).Return(big.NewInt(0b111100111100), nil)
@@ -114,15 +118,15 @@ func TestAccessService_ValidateAccess(t *testing.T) {
 		{
 			name:    "missing privilege request with multiple privileges and no SACD document or event filters",
 			ethAddr: userEthAddr,
-			accessRequest: &access.NFTAccessRequest{
+			accessRequest: &NFTAccessRequest{
 				Asset: cloudevent.ERC721DID{
 					ContractAddress: common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"),
 					TokenID:         big.NewInt(123),
 					ChainID:         1,
 				},
-				Permissions: []string{access.PrivilegeIDToName[1], access.PrivilegeIDToName[2], access.PrivilegeIDToName[4], access.PrivilegeIDToName[5]},
+				Permissions: []string{PrivilegeIDToName[1], PrivilegeIDToName[2], PrivilegeIDToName[4], PrivilegeIDToName[5]},
 			},
-			mockSetup: func() {
+			mockSetup: func(*testing.T) {
 				mockipfs.EXPECT().Fetch(gomock.Any(), gomock.Any()).Return(nil, errors.New("no valid doc"))
 				mockSacd.EXPECT().CurrentPermissionRecord(gomock.Any(), common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr).Return(emptyPermRecord, nil)
 				mockSacd.EXPECT().GetPermissions(gomock.Any(), common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr, big.NewInt(0b111100111100)).Return(big.NewInt(0b111100001100), nil)
@@ -133,7 +137,7 @@ func TestAccessService_ValidateAccess(t *testing.T) {
 		{
 			name:    "valid sacd",
 			ethAddr: userEthAddr,
-			accessRequest: &access.NFTAccessRequest{
+			accessRequest: &NFTAccessRequest{
 				Asset: cloudevent.ERC721DID{
 					ContractAddress: common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"),
 					TokenID:         big.NewInt(123),
@@ -148,7 +152,7 @@ func TestAccessService_ValidateAccess(t *testing.T) {
 				},
 			},
 
-			mockSetup: func() {
+			mockSetup: func(*testing.T) {
 				permRecord := sacd.ISacdPermissionRecord{
 					Permissions: big.NewInt(0),
 					Expiration:  big.NewInt(0),
@@ -159,9 +163,76 @@ func TestAccessService_ValidateAccess(t *testing.T) {
 			},
 		},
 		{
+			name:    "invalid sacd signature",
+			ethAddr: userEthAddr,
+			accessRequest: &NFTAccessRequest{
+				Asset: cloudevent.ERC721DID{
+					ContractAddress: common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"),
+					TokenID:         big.NewInt(123),
+					ChainID:         1,
+				},
+				EventFilters: []autheval.EventFilter{
+					{
+						EventType: cloudevent.TypeAttestation,
+						Source:    common.BigToAddress(big.NewInt(1)).Hex(),
+						IDs:       []string{"1"},
+					},
+				},
+			},
+
+			mockSetup: func(*testing.T) {
+				permRecord := sacd.ISacdPermissionRecord{
+					Permissions: big.NewInt(0),
+					Expiration:  big.NewInt(0),
+					Source:      "test-source",
+				}
+				record := *ipfsRecord
+				record.Signature = "0xbad-signature"
+				ipfsByte, err := json.Marshal(record)
+				require.NoError(t, err)
+				mockSacd.EXPECT().CurrentPermissionRecord(gomock.Any(), common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr).Return(permRecord, nil)
+				mockipfs.EXPECT().Fetch(gomock.Any(), permRecord.Source).Return(ipfsByte, nil)
+				mockErc1271.EXPECT().IsValidSignature(gomock.Any(), gomock.Any(), gomock.Any()).Return([4]byte{0, 0, 0, 0}, nil)
+			},
+			expectedErrCode: fiber.StatusForbidden,
+		},
+		{
+			name:    "invalid recover signature valid erc1271",
+			ethAddr: userEthAddr,
+			accessRequest: &NFTAccessRequest{
+				Asset: cloudevent.ERC721DID{
+					ContractAddress: common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"),
+					TokenID:         big.NewInt(123),
+					ChainID:         1,
+				},
+				EventFilters: []autheval.EventFilter{
+					{
+						EventType: cloudevent.TypeAttestation,
+						Source:    common.BigToAddress(big.NewInt(1)).Hex(),
+						IDs:       []string{"1"},
+					},
+				},
+			},
+
+			mockSetup: func(*testing.T) {
+				permRecord := sacd.ISacdPermissionRecord{
+					Permissions: big.NewInt(0),
+					Expiration:  big.NewInt(0),
+					Source:      "test-source",
+				}
+				record := *ipfsRecord
+				record.Signature = "0xbad-signature"
+				ipfsBytes, err := json.Marshal(record)
+				require.NoError(t, err)
+				mockSacd.EXPECT().CurrentPermissionRecord(gomock.Any(), common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr).Return(permRecord, nil)
+				mockipfs.EXPECT().Fetch(gomock.Any(), permRecord.Source).Return(ipfsBytes, nil)
+				mockErc1271.EXPECT().IsValidSignature(gomock.Any(), gomock.Any(), gomock.Any()).Return(erc1271magicValue, nil)
+			},
+		},
+		{
 			name:    "Fail: must pass privilege or cloud event request",
 			ethAddr: userEthAddr,
-			accessRequest: &access.NFTAccessRequest{
+			accessRequest: &NFTAccessRequest{
 				Asset: cloudevent.ERC721DID{
 					ContractAddress: common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"),
 					TokenID:         big.NewInt(123),
@@ -171,7 +242,7 @@ func TestAccessService_ValidateAccess(t *testing.T) {
 					{},
 				},
 			},
-			mockSetup: func() {
+			mockSetup: func(*testing.T) {
 				mockSacd.EXPECT().CurrentPermissionRecord(gomock.Any(), common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr).Return(emptyPermRecord, nil)
 				mockipfs.EXPECT().Fetch(gomock.Any(), gomock.Any()).Return(ipfsBytes, nil)
 			},
@@ -180,12 +251,13 @@ func TestAccessService_ValidateAccess(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			tc.mockSetup()
+			tc.mockSetup(t)
 			err := accessService.ValidateAccess(t.Context(), tc.accessRequest, tc.ethAddr)
 			if tc.expectedErrCode == 0 {
 				require.NoError(t, err)
 				return
 			}
+			require.Error(t, err)
 			var richErr richerrors.Error
 			require.ErrorAs(t, err, &richErr)
 			require.Equal(t, tc.expectedErrCode, richErr.Code)
@@ -227,9 +299,7 @@ func signSACDHelper(grantData *models.SACDData) (*cloudevent.RawEvent, error) {
 	signature[64] += 27
 
 	var final cloudevent.RawEvent
-	final.Extras = map[string]any{
-		"signature": "0x" + common.Bytes2Hex(signature),
-	}
+	final.Signature = "0x" + common.Bytes2Hex(signature)
 
 	final.Data = msgBytes
 	final.Type = "dimo.sacd"

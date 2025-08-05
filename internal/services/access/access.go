@@ -3,6 +3,7 @@ package access
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math/big"
 	"net/http"
@@ -10,16 +11,55 @@ import (
 	"github.com/DIMO-Network/cloudevent"
 	"github.com/DIMO-Network/server-garage/pkg/richerrors"
 	"github.com/DIMO-Network/token-exchange-api/internal/autheval"
+	"github.com/DIMO-Network/token-exchange-api/internal/contracts/erc1271"
 	"github.com/DIMO-Network/token-exchange-api/internal/contracts/sacd"
 	"github.com/DIMO-Network/token-exchange-api/internal/models"
+	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/rs/zerolog"
 )
+
+var erc1271magicValue = [4]byte{0x16, 0x26, 0xba, 0x7e}
+
+// privilege prefix to denote the 1:1 mapping to bit values and to make them easier to deprecate if desired in the future
+var PrivilegeIDToName = map[int64]string{
+	1: "privilege:GetNonLocationHistory",  // All-time non-location data
+	2: "privilege:ExecuteCommands",        // Commands
+	3: "privilege:GetCurrentLocation",     // Current location
+	4: "privilege:GetLocationHistory",     // All-time location
+	5: "privilege:GetVINCredential",       // View VIN credential
+	6: "privilege:GetLiveData",            // Subscribe live data
+	7: "privilege:GetRawData",             // Raw data
+	8: "privilege:GetApproximateLocation", // Approximate location
+}
+
+var PrivilegeNameToID = func() map[string]int64 {
+	privMap := make(map[string]int64, len(PrivilegeIDToName))
+	for id, name := range PrivilegeIDToName {
+		privMap[name] = id
+	}
+	return privMap
+}()
 
 type SACDInterface interface {
 	CurrentPermissionRecord(opts *bind.CallOpts, asset common.Address, tokenID *big.Int, grantee common.Address) (sacd.ISacdPermissionRecord, error)
 	GetPermissions(opts *bind.CallOpts, asset common.Address, tokenID *big.Int, grantee common.Address, permissions *big.Int) (*big.Int, error)
+}
+
+type erc1271Mgr interface {
+	NewErc1271(address common.Address, backend bind.ContractBackend) (Erc1271Interface, error)
+}
+type Erc1271Interface interface {
+	IsValidSignature(opts *bind.CallOpts, hash [32]byte, signature []byte) ([4]byte, error)
+}
+
+type defaultErc1271Factory struct{}
+
+func (f *defaultErc1271Factory) NewErc1271(address common.Address, backend bind.ContractBackend) (Erc1271Interface, error) {
+	return erc1271.NewErc1271(address, backend)
 }
 
 type IPFSClient interface {
@@ -38,13 +78,19 @@ type NFTAccessRequest struct {
 type Service struct {
 	sacdContract SACDInterface
 	ipfsClient   IPFSClient
+	ethClient    *ethclient.Client
+	// I don't like this, but it's the only way to get the mock to work.
+	erc1271Mgr erc1271Mgr
 }
 
 func NewAccessService(ipfsService IPFSClient,
-	sacd SACDInterface) (*Service, error) {
+	sacd SACDInterface,
+	ethClient *ethclient.Client) (*Service, error) {
 	return &Service{
 		sacdContract: sacd,
 		ipfsClient:   ipfsService,
+		ethClient:    ethClient,
+		erc1271Mgr:   &defaultErc1271Factory{},
 	}, nil
 }
 
@@ -122,7 +168,7 @@ func (s *Service) getValidSacdDoc(ctx context.Context, source string) (*cloudeve
 	return &record, nil
 }
 
-func (s *Service) evaluateSacdDoc(_ context.Context, record *cloudevent.RawEvent, accessReq *NFTAccessRequest, grantee common.Address) error {
+func (s *Service) evaluateSacdDoc(ctx context.Context, record *cloudevent.RawEvent, accessReq *NFTAccessRequest, grantee common.Address) error {
 	var data models.SACDData
 	if err := json.Unmarshal(record.Data, &data); err != nil {
 		return richerrors.Error{
@@ -139,7 +185,7 @@ func (s *Service) evaluateSacdDoc(_ context.Context, record *cloudevent.RawEvent
 		}
 	}
 
-	valid, err := autheval.ValidSignature(record.Data, record.Signature, common.HexToAddress(data.Grantor.Address))
+	valid, err := s.validateSignature(ctx, record.Data, record.Signature, common.HexToAddress(data.Grantor.Address))
 	if err != nil {
 		return richerrors.Error{
 			Code:        http.StatusUnauthorized,
@@ -247,25 +293,60 @@ func (s *Service) evaluatePermissionsBits(
 	return nil
 }
 
-// privilege prefix to denote the 1:1 mapping to bit values and to make them easier to deprecate if desired in the future
-var PrivilegeIDToName = map[int64]string{
-	1: "privilege:GetNonLocationHistory",  // All-time non-location data
-	2: "privilege:ExecuteCommands",        // Commands
-	3: "privilege:GetCurrentLocation",     // Current location
-	4: "privilege:GetLocationHistory",     // All-time location
-	5: "privilege:GetVINCredential",       // View VIN credential
-	6: "privilege:GetLiveData",            // Subscribe live data
-	7: "privilege:GetRawData",             // Raw data
-	8: "privilege:GetApproximateLocation", // Approximate location
+func (s *Service) validateSignature(ctx context.Context, payload json.RawMessage, signature string, ethAddr common.Address) (bool, error) {
+	if signature == "" {
+		return false, errors.New("empty signature")
+	}
+	hexSignature := common.FromHex(signature)
+
+	hashWithPrfx := accounts.TextHash(payload)
+	err := validEOASignature(hashWithPrfx, hexSignature, ethAddr)
+	if err == nil {
+		return true, nil
+	}
+	errs := fmt.Errorf("failed to recover signer: %w", err)
+
+	opts := &bind.CallOpts{
+		Context: ctx,
+	}
+	contract, err := s.erc1271Mgr.NewErc1271(ethAddr, s.ethClient)
+	if err != nil {
+		return false, fmt.Errorf("failed to connect to address: %s: %w", ethAddr.Hex(), err)
+	}
+
+	result, err := contract.IsValidSignature(opts, common.BytesToHash(hashWithPrfx), hexSignature)
+	if err != nil {
+		errs = errors.Join(errs, fmt.Errorf("erc1271 call failed: %w", err))
+		return false, errs
+	}
+	return result == erc1271magicValue, nil
 }
 
-var PrivilegeNameToID = func() map[string]int64 {
-	privMap := make(map[string]int64, len(PrivilegeIDToName))
-	for id, name := range PrivilegeIDToName {
-		privMap[name] = id
+// validEOASignature validates a signature using the ECDSA recovery method.
+func validEOASignature(hashWithPrfx []byte, signature []byte, ethAddr common.Address) error {
+	if len(signature) != 65 {
+		return fmt.Errorf("invalid signature length: %d", len(signature))
 	}
-	return privMap
-}()
+
+	sigCopy := make([]byte, len(signature))
+	copy(sigCopy, signature)
+
+	sigCopy[64] -= 27
+	if sigCopy[64] != 0 && sigCopy[64] != 1 {
+		return fmt.Errorf("invalid v byte: %d; accepted values 27 or 28", signature[64])
+	}
+	recoveredPubKey, err := crypto.SigToPub(hashWithPrfx, sigCopy)
+	if err != nil {
+		return fmt.Errorf("failed to determine public key from signature: %w", err)
+	}
+	recoveredAddr := crypto.PubkeyToAddress(*recoveredPubKey)
+	fmt.Println("recoveredAddr", recoveredAddr.Hex())
+	fmt.Println("ethAddr", ethAddr.Hex())
+	if recoveredAddr != ethAddr {
+		return fmt.Errorf("invalid signature: %s", recoveredAddr.Hex())
+	}
+	return nil
+}
 
 func missingPermissionsError[T any](ethAddr common.Address, asset cloudevent.ERC721DID, lack []T) richerrors.Error {
 	return richerrors.Error{
