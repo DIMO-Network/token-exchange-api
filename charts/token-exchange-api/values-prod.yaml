@@ -8,6 +8,7 @@ cronJob:
   schedule: 0 0 * * 0
 env:
   ENVIRONMENT: prod
+  ENABLE_PPROF: false
   JWT_KEY_SET_URL: https://auth.dimo.zone/keys
   DEX_GRPC_ADDRESS: dex-roles-rights-prod:5557
   USERS_API_GRPC_ADDRESS: users-api-prod:8086

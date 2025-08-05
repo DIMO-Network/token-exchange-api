@@ -5,8 +5,10 @@ import "github.com/ethereum/go-ethereum/common"
 // Settings contains the application config
 type Settings struct {
 	Environment              string         `yaml:"ENVIRONMENT"`
-	Port                     string         `yaml:"PORT"`
-	MonPort                  string         `yaml:"MON_PORT"`
+	Port                     int            `yaml:"PORT"`
+	MonPort                  int            `yaml:"MON_PORT"`
+	GRPCPort                 int            `yaml:"GRPC_PORT"`
+	EnablePprof              bool           `yaml:"ENABLE_PPROF"`
 	LogLevel                 string         `yaml:"LOG_LEVEL"`
 	ServiceName              string         `yaml:"SERVICE_NAME"`
 	JWKKeySetURL             string         `yaml:"JWT_KEY_SET_URL"`

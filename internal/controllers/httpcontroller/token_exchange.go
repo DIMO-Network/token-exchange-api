@@ -1,4 +1,4 @@
-package controllers
+package httpcontroller
 
 import (
 	"context"
@@ -18,7 +18,6 @@ import (
 	"github.com/DIMO-Network/token-exchange-api/pkg/tokenclaims"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/gofiber/fiber/v2"
-	"github.com/rs/zerolog"
 )
 
 type DexService interface {
@@ -58,7 +57,7 @@ type TokenResponse struct {
 	Token string `json:"token"`
 }
 
-func NewTokenExchangeController(logger *zerolog.Logger, settings *config.Settings, dexService DexService, accessService AccessService) (*TokenExchangeController, error) {
+func NewTokenExchangeController(settings *config.Settings, dexService DexService, accessService AccessService) (*TokenExchangeController, error) {
 	return &TokenExchangeController{
 		chainID:       settings.DIMORegistryChainID,
 		dexService:    dexService,
@@ -71,9 +70,9 @@ func NewTokenExchangeController(logger *zerolog.Logger, settings *config.Setting
 // @Summary     The authenticated user must have a confirmed Ethereum address with those
 // @Summary     privileges on the correct token.
 // @Accept      json
-// @Param       tokenRequest body controllers.TokenRequest true "Requested privileges: must include address, token id, and privilege ids"
+// @Param       tokenRequest body httpcontroller.TokenRequest true "Requested privileges: must include address, token id, and privilege ids"
 // @Produce     json
-// @Success     200 {object} controllers.TokenResponse
+// @Success     200 {object} httpcontroller.TokenResponse
 // @Security    BearerAuth
 // @Router      /tokens/exchange [post]
 func (t *TokenExchangeController) ExchangeToken(c *fiber.Ctx) error {

@@ -20,32 +20,32 @@ import (
 	gomock "go.uber.org/mock/gomock"
 )
 
-// MockSacd is a mock of Sacd interface.
-type MockSacd struct {
+// MockSACDInterface is a mock of SACDInterface interface.
+type MockSACDInterface struct {
 	ctrl     *gomock.Controller
-	recorder *MockSacdMockRecorder
+	recorder *MockSACDInterfaceMockRecorder
 	isgomock struct{}
 }
 
-// MockSacdMockRecorder is the mock recorder for MockSacd.
-type MockSacdMockRecorder struct {
-	mock *MockSacd
+// MockSACDInterfaceMockRecorder is the mock recorder for MockSACDInterface.
+type MockSACDInterfaceMockRecorder struct {
+	mock *MockSACDInterface
 }
 
-// NewMockSacd creates a new mock instance.
-func NewMockSacd(ctrl *gomock.Controller) *MockSacd {
-	mock := &MockSacd{ctrl: ctrl}
-	mock.recorder = &MockSacdMockRecorder{mock}
+// NewMockSACDInterface creates a new mock instance.
+func NewMockSACDInterface(ctrl *gomock.Controller) *MockSACDInterface {
+	mock := &MockSACDInterface{ctrl: ctrl}
+	mock.recorder = &MockSACDInterfaceMockRecorder{mock}
 	return mock
 }
 
 // EXPECT returns an object that allows the caller to indicate expected use.
-func (m *MockSacd) EXPECT() *MockSacdMockRecorder {
+func (m *MockSACDInterface) EXPECT() *MockSACDInterfaceMockRecorder {
 	return m.recorder
 }
 
 // CurrentPermissionRecord mocks base method.
-func (m *MockSacd) CurrentPermissionRecord(opts *bind.CallOpts, asset common.Address, tokenID *big.Int, grantee common.Address) (sacd.ISacdPermissionRecord, error) {
+func (m *MockSACDInterface) CurrentPermissionRecord(opts *bind.CallOpts, asset common.Address, tokenID *big.Int, grantee common.Address) (sacd.ISacdPermissionRecord, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CurrentPermissionRecord", opts, asset, tokenID, grantee)
 	ret0, _ := ret[0].(sacd.ISacdPermissionRecord)
@@ -54,13 +54,13 @@ func (m *MockSacd) CurrentPermissionRecord(opts *bind.CallOpts, asset common.Add
 }
 
 // CurrentPermissionRecord indicates an expected call of CurrentPermissionRecord.
-func (mr *MockSacdMockRecorder) CurrentPermissionRecord(opts, asset, tokenID, grantee any) *gomock.Call {
+func (mr *MockSACDInterfaceMockRecorder) CurrentPermissionRecord(opts, asset, tokenID, grantee any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CurrentPermissionRecord", reflect.TypeOf((*MockSacd)(nil).CurrentPermissionRecord), opts, asset, tokenID, grantee)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CurrentPermissionRecord", reflect.TypeOf((*MockSACDInterface)(nil).CurrentPermissionRecord), opts, asset, tokenID, grantee)
 }
 
 // GetPermissions mocks base method.
-func (m *MockSacd) GetPermissions(opts *bind.CallOpts, asset common.Address, tokenID *big.Int, grantee common.Address, permissions *big.Int) (*big.Int, error) {
+func (m *MockSACDInterface) GetPermissions(opts *bind.CallOpts, asset common.Address, tokenID *big.Int, grantee common.Address, permissions *big.Int) (*big.Int, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetPermissions", opts, asset, tokenID, grantee, permissions)
 	ret0, _ := ret[0].(*big.Int)
@@ -69,9 +69,9 @@ func (m *MockSacd) GetPermissions(opts *bind.CallOpts, asset common.Address, tok
 }
 
 // GetPermissions indicates an expected call of GetPermissions.
-func (mr *MockSacdMockRecorder) GetPermissions(opts, asset, tokenID, grantee, permissions any) *gomock.Call {
+func (mr *MockSACDInterfaceMockRecorder) GetPermissions(opts, asset, tokenID, grantee, permissions any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPermissions", reflect.TypeOf((*MockSacd)(nil).GetPermissions), opts, asset, tokenID, grantee, permissions)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPermissions", reflect.TypeOf((*MockSACDInterface)(nil).GetPermissions), opts, asset, tokenID, grantee, permissions)
 }
 
 // MockIPFSClient is a mock of IPFSClient interface.

@@ -1,7 +1,6 @@
-package controllers
+package httpcontroller_test
 
 import (
-	"crypto/ecdsa"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -20,14 +19,13 @@ import (
 	"github.com/DIMO-Network/shared/pkg/privileges"
 	"github.com/DIMO-Network/token-exchange-api/internal/autheval"
 	"github.com/DIMO-Network/token-exchange-api/internal/config"
+	"github.com/DIMO-Network/token-exchange-api/internal/controllers/httpcontroller"
 	"github.com/DIMO-Network/token-exchange-api/internal/middleware"
 	"github.com/DIMO-Network/token-exchange-api/internal/middleware/dex"
-	"github.com/DIMO-Network/token-exchange-api/internal/models"
 	"github.com/DIMO-Network/token-exchange-api/internal/services"
 	"github.com/DIMO-Network/token-exchange-api/internal/services/access"
 	"github.com/DIMO-Network/token-exchange-api/pkg/tokenclaims"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/rs/zerolog"
@@ -38,23 +36,20 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-//go:generate go tool mockgen -source ./token_exchange.go -destination ./token_exchange_mock_test.go -package controllers
-//go:generate go tool mockgen -source ../middleware/valid_dev_license.go -destination ./identity_service_mock_test.go -package controllers
+var defaultAudience = []string{"dimo.zone"}
+
+//go:generate go tool mockgen -source ./token_exchange.go -destination ./token_exchange_mock_test.go -package httpcontroller_test
+//go:generate go tool mockgen -source ../../middleware/valid_dev_license.go -destination ./identity_service_mock_test.go -package httpcontroller_test
 func TestTokenExchangeController_ExchangeToken(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
-
-	logger := zerolog.New(os.Stdout).With().
-		Timestamp().
-		Str("app", "token-exchange-api").
-		Logger()
 
 	dexService := NewMockDexService(mockCtrl)
 	mockIdent := NewMockIdentityService(mockCtrl)
 	mockAccess := NewMockAccessService(mockCtrl)
 
 	// setup app and route req
-	c, err := NewTokenExchangeController(&logger, &config.Settings{
+	c, err := httpcontroller.NewTokenExchangeController(&config.Settings{
 		DIMORegistryChainID: 1,
 	}, dexService, mockAccess)
 	require.NoError(t, err, "Failed to initialize token exchange controller")
@@ -77,7 +72,7 @@ func TestTokenExchangeController_ExchangeToken(t *testing.T) {
 		name                   string
 		tokenClaims            jwt.MapClaims
 		userEthAddr            *common.Address
-		permissionTokenRequest *TokenRequest
+		permissionTokenRequest *httpcontroller.TokenRequest
 		mockSetup              func()
 		expectedCode           int
 	}{
@@ -89,7 +84,7 @@ func TestTokenExchangeController_ExchangeToken(t *testing.T) {
 				"aud":              "dimo-driver",
 			},
 			userEthAddr: &userEthAddr,
-			permissionTokenRequest: &TokenRequest{
+			permissionTokenRequest: &httpcontroller.TokenRequest{
 				TokenID:            123,
 				Privileges:         []int64{4},
 				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
@@ -122,7 +117,7 @@ func TestTokenExchangeController_ExchangeToken(t *testing.T) {
 				"sub":              devLicenseSub,
 			},
 			userEthAddr: &userEthAddr,
-			permissionTokenRequest: &TokenRequest{
+			permissionTokenRequest: &httpcontroller.TokenRequest{
 				TokenID:            123,
 				Privileges:         []int64{4},
 				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
@@ -155,7 +150,7 @@ func TestTokenExchangeController_ExchangeToken(t *testing.T) {
 				"aud":              "dimo-driver",
 			},
 			userEthAddr: &userEthAddr,
-			permissionTokenRequest: &TokenRequest{
+			permissionTokenRequest: &httpcontroller.TokenRequest{
 				TokenID:            123,
 				Privileges:         []int64{1, 2, 4, 5},
 				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
@@ -187,7 +182,7 @@ func TestTokenExchangeController_ExchangeToken(t *testing.T) {
 				"aud": "dimo-driver",
 			},
 			userEthAddr: &userEthAddr,
-			permissionTokenRequest: &TokenRequest{
+			permissionTokenRequest: &httpcontroller.TokenRequest{
 				TokenID:            123,
 				Privileges:         []int64{4},
 				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
@@ -203,7 +198,7 @@ func TestTokenExchangeController_ExchangeToken(t *testing.T) {
 				"aud":              "dimo-driver",
 			},
 			userEthAddr: &userEthAddr,
-			permissionTokenRequest: &TokenRequest{
+			permissionTokenRequest: &httpcontroller.TokenRequest{
 				TokenID:            123,
 				Privileges:         []int64{4},
 				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
@@ -236,9 +231,9 @@ func TestTokenExchangeController_ExchangeToken(t *testing.T) {
 				"aud":              "dimo-driver",
 			},
 			userEthAddr: &userEthAddr,
-			permissionTokenRequest: &TokenRequest{
+			permissionTokenRequest: &httpcontroller.TokenRequest{
 				TokenID: 123,
-				CloudEvents: CloudEvents{
+				CloudEvents: httpcontroller.CloudEvents{
 					Events: []autheval.EventFilter{},
 				},
 				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
@@ -458,49 +453,6 @@ func authInjectorTestHandler(jwtClaims jwt.MapClaims) fiber.Handler {
 		c.Locals("user", token)
 		return c.Next()
 	}
-}
-
-func signSACDHelper(grantData *models.SACDData) (*cloudevent.RawEvent, error) {
-	privateKey, err := crypto.GenerateKey()
-	if err != nil {
-		return nil, err
-	}
-
-	publicKey := privateKey.Public()
-	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
-	if !ok {
-		return nil, errors.New("failed to derive public key")
-	}
-
-	address := crypto.PubkeyToAddress(*publicKeyECDSA)
-
-	grantData.Grantor = models.Address{
-		Address: address.Hex(),
-	}
-
-	msgBytes, err := json.Marshal(grantData)
-	if err != nil {
-		return nil, err
-	}
-
-	prefixed := fmt.Sprintf("\x19Ethereum Signed Message:\n%d%s", len(msgBytes), msgBytes)
-
-	hash := crypto.Keccak256Hash([]byte(prefixed))
-	signature, err := crypto.Sign(hash.Bytes(), privateKey)
-	if err != nil {
-		return nil, err
-	}
-
-	signature[64] += 27
-
-	var final cloudevent.RawEvent
-	final.Extras = map[string]any{
-		"signature": "0x" + common.Bytes2Hex(signature),
-	}
-
-	final.Data = msgBytes
-	final.Type = "dimo.sacd"
-	return &final, nil
 }
 
 type codeResp struct {

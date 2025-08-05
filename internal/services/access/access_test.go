@@ -27,7 +27,7 @@ func TestAccessService_ValidateAccess(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
-	mockSacd := NewMockSacd(mockCtrl)
+	mockSacd := NewMockSACDInterface(mockCtrl)
 	mockipfs := NewMockIPFSClient(mockCtrl)
 
 	accessService, err := access.NewAccessService(mockipfs, mockSacd)

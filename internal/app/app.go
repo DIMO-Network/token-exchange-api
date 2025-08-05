@@ -1,82 +1,79 @@
-package main
+package app
 
 import (
-	"context"
 	"errors"
 	"fmt"
-	"os"
-	"os/signal"
 	"strings"
-	"syscall"
 
 	"github.com/DIMO-Network/server-garage/pkg/richerrors"
+	"github.com/DIMO-Network/shared/pkg/middleware/metrics"
 	"github.com/DIMO-Network/token-exchange-api/internal/config"
 	"github.com/DIMO-Network/token-exchange-api/internal/contracts/sacd"
-	vtx "github.com/DIMO-Network/token-exchange-api/internal/controllers"
+	"github.com/DIMO-Network/token-exchange-api/internal/controllers/httpcontroller"
+	"github.com/DIMO-Network/token-exchange-api/internal/controllers/rpc"
 	"github.com/DIMO-Network/token-exchange-api/internal/middleware"
 	"github.com/DIMO-Network/token-exchange-api/internal/services"
 	"github.com/DIMO-Network/token-exchange-api/internal/services/access"
+	txgrpc "github.com/DIMO-Network/token-exchange-api/pkg/grpc"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 	jwtware "github.com/gofiber/contrib/jwt"
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/adaptor"
 	fiberrecover "github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/gofiber/swagger"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
+	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
+	grpc_ctxtags "github.com/grpc-ecosystem/go-grpc-middleware/tags"
+	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/recovery"
+	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	"github.com/rs/zerolog"
+	"google.golang.org/grpc"
 )
 
-func getContractWhitelistedAddresses(wAddrs string) ([]string, error) {
-	if wAddrs == "" {
-		return nil, errors.New("empty whitelist")
-	}
-
-	w := strings.Split(wAddrs, ",")
-
-	for _, v := range w {
-		if !common.IsHexAddress(v) {
-			return nil, fmt.Errorf("invalid contract address %q", v)
-		}
-	}
-
-	return w, nil
-}
-
-func startWebAPI(ctx context.Context, logger zerolog.Logger, settings *config.Settings) {
+// CreateServers creates the servers for the application
+func CreateServers(logger zerolog.Logger, settings *config.Settings) (*fiber.App, *grpc.Server, error) {
 	dexSvc, err := services.NewDexClient(&logger, settings.DexGRPCAdddress)
 	if err != nil {
-		logger.Fatal().Err(err).Msg("failed to create dex grpc client")
+		return nil, nil, fmt.Errorf("failed to create dex grpc client: %w", err)
 	}
 
 	ethClient, err := ethclient.Dial(settings.BlockchainNodeURL)
 	if err != nil {
-		logger.Fatal().Err(err).Msg("Failed to dial Ethereum RPC.")
+		return nil, nil, fmt.Errorf("failed to dial Ethereum RPC: %w", err)
 	}
 
 	ipfsService, err := services.NewIPFSClient(&logger, settings.IPFSBaseURL, settings.IPFSTimeout)
 	if err != nil {
-		logger.Fatal().Err(err).Msg("failed to create IPFS client")
+		return nil, nil, fmt.Errorf("failed to create IPFS client: %w", err)
 	}
 
 	sacdContract, err := sacd.NewSacd(settings.ContractAddressSacd, ethClient)
 	if err != nil {
-		logger.Fatal().Err(err).Msg("failed to connect to blockchain node")
+		return nil, nil, fmt.Errorf("failed to connect to blockchain node: %w", err)
 	}
 
 	accessService, err := access.NewAccessService(ipfsService, sacdContract)
 	if err != nil {
-		logger.Fatal().Err(err).Msg("failed to create access service")
+		return nil, nil, fmt.Errorf("failed to create access service: %w", err)
 	}
 
-	vtxController, err := vtx.NewTokenExchangeController(&logger, settings, dexSvc, accessService)
+	app, err := createHTTPServer(logger, settings, dexSvc, accessService)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to create http server: %w", err)
+	}
+
+	grpcServer := createGRPCServer(rpc.NewTokenExchangeServer(accessService))
+
+	return app, grpcServer, nil
+}
+
+func createHTTPServer(logger zerolog.Logger, settings *config.Settings, dexSvc *services.DexClient, accessService *access.Service) (*fiber.App, error) {
+	httpCtrl, err := httpcontroller.NewTokenExchangeController(settings, dexSvc, accessService)
 	if err != nil {
 		logger.Fatal().Err(err).Msg("Failed to initialize token exchange controller")
 	}
 	idSvc := services.NewIdentityController(&logger, settings)
 
 	devLicenseMiddleware := middleware.NewDevLicenseValidator(idSvc, logger)
-
 	ctrAddressesWhitelist, err := getContractWhitelistedAddresses(settings.ContractAddressWhitelist)
 	if err != nil {
 		logger.Fatal().
@@ -115,41 +112,24 @@ func startWebAPI(ctx context.Context, logger zerolog.Logger, settings *config.Se
 	tokenRoutes := v1Route.Group("/tokens", handlers...)
 	ctrWhitelistWare := middleware.NewContractWhiteList(settings, logger, ctrAddressesWhitelist)
 
-	tokenRoutes.Post("/exchange", ctrWhitelistWare, vtxController.ExchangeToken)
+	tokenRoutes.Post("/exchange", ctrWhitelistWare, httpCtrl.ExchangeToken)
 
-	go serveMonitoring(settings.MonPort, &logger) //nolint
-
-	logger.Info().Msg(settings.ServiceName + " - Server started on port " + settings.Port)
-	// Start Server from a different go routine
-	go func() {
-		if err := app.Listen(":" + settings.Port); err != nil {
-			logger.Fatal().Err(err).Send()
-		}
-	}()
-
-	c := make(chan os.Signal, 1)                    // Create channel to signify a signal being sent with length of 1
-	signal.Notify(c, os.Interrupt, syscall.SIGTERM) // When an interrupt or termination signal is sent, notify the channel
-	<-c                                             // This blocks the main thread until an interrupt is received
-	logger.Info().Msg("Gracefully shutting down and running cleanup tasks...")
-	_ = ctx.Done()
-	_ = app.Shutdown()
+	return app, nil
 }
 
-func serveMonitoring(port string, logger *zerolog.Logger) (*fiber.App, error) {
-	logger.Info().Str("port", port).Msg("Starting monitoring web server.")
-
-	monApp := fiber.New(fiber.Config{DisableStartupMessage: true})
-
-	monApp.Get("/", func(*fiber.Ctx) error { return nil })
-	monApp.Get("/metrics", adaptor.HTTPHandler(promhttp.Handler()))
-
-	go func() {
-		if err := monApp.Listen(":" + port); err != nil {
-			logger.Fatal().Err(err).Str("port", port).Msg("Failed to start monitoring web server.")
-		}
-	}()
-
-	return monApp, nil
+func createGRPCServer(rpcCtrl *rpc.TokenExchangeServer) *grpc.Server {
+	grpcPanic := metrics.GRPCPanicker{}
+	server := grpc.NewServer(
+		grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(
+			// metrics.GRPCMetricsAndLogMiddleware(logger),
+			grpc_ctxtags.UnaryServerInterceptor(),
+			grpc_prometheus.UnaryServerInterceptor,
+			recovery.UnaryServerInterceptor(recovery.WithRecoveryHandler(grpcPanic.GRPCPanicRecoveryHandler)),
+		)),
+		grpc.StreamInterceptor(grpc_prometheus.StreamServerInterceptor),
+	)
+	txgrpc.RegisterTokenExchangeServiceServer(server, rpcCtrl)
+	return server
 }
 
 func healthCheck(c *fiber.Ctx) error {
@@ -196,4 +176,20 @@ func ErrorHandler(ctx *fiber.Ctx, err error) error {
 	}
 
 	return ctx.Status(code).JSON(codeResp{Code: code, Message: message})
+}
+
+func getContractWhitelistedAddresses(wAddrs string) ([]string, error) {
+	if wAddrs == "" {
+		return nil, errors.New("empty whitelist")
+	}
+
+	w := strings.Split(wAddrs, ",")
+
+	for _, v := range w {
+		if !common.IsHexAddress(v) {
+			return nil, fmt.Errorf("invalid contract address %q", v)
+		}
+	}
+
+	return w, nil
 }

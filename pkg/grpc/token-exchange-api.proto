@@ -10,13 +10,23 @@ service TokenExchangeService {
 }
 
 message AccessCheckRequest {
+  // The grantee address.
+  string grantee = 1;
   // The token Id of the VC to check.
-  string asset = 1;
+  string asset = 2;
   // The permissions to check.
-  repeated string privileges = 2;
+  repeated string privileges = 3;
+  // The events to check.
+  repeated EventFilter events = 4;
+}
 
+message EventFilter {
+  string event_type = 1;
+  string source = 2;
+  repeated string ids = 3;
 }
 
 message AccessCheckResponse { 
   bool has_access = 1;
+  string reason = 2;
 }
