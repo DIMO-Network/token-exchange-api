@@ -37,7 +37,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_controllers.TokenRequest"
+                            "$ref": "#/definitions/internal_controllers_httpcontroller.TokenRequest"
                         }
                     }
                 ],
@@ -45,7 +45,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/internal_controllers.TokenResponse"
+                            "$ref": "#/definitions/internal_controllers_httpcontroller.TokenResponse"
                         }
                     }
                 }
@@ -53,44 +53,35 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "internal_controllers.CloudEvents": {
+        "github_com_DIMO-Network_token-exchange-api_internal_autheval.EventFilter": {
             "type": "object",
-            "properties": {
-                "events": {
-                    "description": "Events is a list of CloudEvent access requests.",
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/internal_controllers.EventFilter"
-                    }
-                }
-            }
-        },
-        "internal_controllers.EventFilter": {
-            "type": "object",
-            "required": [
-                "eventType",
-                "ids",
-                "source"
-            ],
             "properties": {
                 "eventType": {
-                    "description": "EventType specifies the CloudEvent type field of the documents the client wants to access.\nIt must be specified.",
                     "type": "string"
                 },
                 "ids": {
-                    "description": "IDs is a list of ids for the CloudEvents that the client wants to access. This list must\ncontain at least one element. If the list contains the special value \"*\" then the request\nhas no restrictions on id.",
                     "type": "array",
                     "items": {
                         "type": "string"
                     }
                 },
                 "source": {
-                    "description": "Source specifies the CloudEvent source field for the documents the client wants to access.\nOne may also use the special value \"*\" for this field to select all sources.",
                     "type": "string"
                 }
             }
         },
-        "internal_controllers.TokenRequest": {
+        "internal_controllers_httpcontroller.CloudEvents": {
+            "type": "object",
+            "properties": {
+                "events": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_DIMO-Network_token-exchange-api_internal_autheval.EventFilter"
+                    }
+                }
+            }
+        },
+        "internal_controllers_httpcontroller.TokenRequest": {
             "type": "object",
             "required": [
                 "nftContractAddress",
@@ -109,7 +100,7 @@ const docTemplate = `{
                     "description": "CloudEvents contains requests for access to CloudEvents attached to the specified NFT.",
                     "allOf": [
                         {
-                            "$ref": "#/definitions/internal_controllers.CloudEvents"
+                            "$ref": "#/definitions/internal_controllers_httpcontroller.CloudEvents"
                         }
                     ]
                 },
@@ -138,7 +129,7 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_controllers.TokenResponse": {
+        "internal_controllers_httpcontroller.TokenResponse": {
             "type": "object",
             "properties": {
                 "token": {

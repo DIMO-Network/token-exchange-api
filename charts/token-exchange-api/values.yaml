@@ -25,8 +25,10 @@ env:
   ENVIRONMENT: dev
   LOG_LEVEL: info
   JWT_KEY_SET_URL: https://auth.dev.dimo.zone/keys
-  PORT: '8080'
-  MON_PORT: '8888'
+  PORT: 8080
+  MON_PORT: 8888
+  GRPC_PORT: 8081
+  ENABLE_PPROF: false
   DEX_GRPC_ADDRESS: dex-roles-rights:5557
   USERS_API_GRPC_ADDRESS: users-api-dev:8086
   CONTRACT_ADDRESS_WHITELIST: 0x45fbcd3ef7361d156e8b16f5538ae36dedf61da8,0xA4ad0F9c722588910791A9BAC63ADbB365614Bc7
@@ -34,6 +36,7 @@ env:
   IDENTITY_URL: http://identity-api-dev:8080/query
   IPFS_BASE_URL: https://assets.dimo.xyz/ipfs
   IPFS_TIMEOUT: 30s
+  DIMO_REGISTRY_CHAIN_ID: 80002
 service:
   type: ClusterIP
   ports:
@@ -45,12 +48,19 @@ service:
       port: 8888
       targetPort: mon-http
       protocol: TCP
+    grpc:
+      port: 8086
+      targetPort: grpc
+      protocol: TCP
 ports:
   - name: http
     containerPort: 8080
     protocol: TCP
   - name: mon-http
     containerPort: 8888
+    protocol: TCP
+  - name: grpc
+    containerPort: 8086
     protocol: TCP
 ingress:
   enabled: true

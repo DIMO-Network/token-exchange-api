@@ -2,12 +2,21 @@ package main
 
 import (
 	"context"
+	"errors"
 	"os"
+	"os/signal"
+	"runtime/debug"
+	"strconv"
+	"syscall"
 
+	"github.com/DIMO-Network/server-garage/pkg/monserver"
+	"github.com/DIMO-Network/server-garage/pkg/runner"
 	"github.com/DIMO-Network/shared/pkg/settings"
 	_ "github.com/DIMO-Network/token-exchange-api/docs"
+	"github.com/DIMO-Network/token-exchange-api/internal/app"
 	"github.com/DIMO-Network/token-exchange-api/internal/config"
 	"github.com/rs/zerolog"
+	"golang.org/x/sync/errgroup"
 )
 
 // @title                      DIMO Token Exchange API
@@ -17,14 +26,24 @@ import (
 // @in                         header
 // @name                       Authorization
 func main() {
-	gitSha1 := os.Getenv("GIT_SHA1")
-	ctx := context.Background()
-	logger := zerolog.New(os.Stdout).With().
-		Timestamp().
-		Str("app", "token-exchange-api").
-		Str("git-sha1", gitSha1).
-		Logger()
+	logger := zerolog.New(os.Stdout).With().Timestamp().Str("app", "token-exchange-api").Logger()
+	if info, ok := debug.ReadBuildInfo(); ok {
+		for _, s := range info.Settings {
+			if s.Key == "vcs.revision" && len(s.Value) == 40 {
+				logger = logger.With().Str("commit", s.Value[:7]).Logger()
+				break
+			}
+		}
+	}
+	zerolog.DefaultContextLogger = &logger
 
+	mainCtx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-mainCtx.Done()
+		logger.Info().Msg("Received signal, shutting down...")
+		cancel()
+	}()
+	runnerGroup, runnerCtx := errgroup.WithContext(mainCtx)
 	settings, err := settings.LoadConfig[config.Settings]("settings.yaml")
 	if err != nil {
 		logger.Fatal().Err(err).Msg("could not load settings")
@@ -35,19 +54,25 @@ func main() {
 	}
 	zerolog.SetGlobalLevel(level)
 
-	deps := newDependencyContainer(&settings, logger)
-	startWebAPI(ctx, *deps.logger, &settings)
-}
+	monApp := monserver.NewMonitoringServer(&logger, settings.EnablePprof)
+	logger.Info().Str("port", strconv.Itoa(settings.MonPort)).Msgf("Starting monitoring server")
+	runner.RunHandler(runnerCtx, runnerGroup, monApp, ":"+strconv.Itoa(settings.MonPort))
 
-// dependencyContainer way to hold different dependencies we need for our app. We could put all our deps and follow this pattern for everything.
-type dependencyContainer struct {
-	settings *config.Settings
-	logger   *zerolog.Logger
-}
-
-func newDependencyContainer(settings *config.Settings, logger zerolog.Logger) dependencyContainer {
-	return dependencyContainer{
-		settings: settings,
-		logger:   &logger,
+	webServer, rpcServer, err := app.CreateServers(logger, &settings)
+	if err != nil {
+		logger.Fatal().Err(err).Msg("Failed to create servers.")
 	}
+
+	logger.Info().Str("port", strconv.Itoa(settings.Port)).Msgf("Starting web server")
+	runner.RunFiber(runnerCtx, runnerGroup, webServer, ":"+strconv.Itoa(settings.Port))
+
+	logger.Info().Str("port", strconv.Itoa(settings.GRPCPort)).Msgf("Starting gRPC server")
+	runner.RunGRPC(runnerCtx, runnerGroup, rpcServer, ":"+strconv.Itoa(settings.GRPCPort))
+
+	err = runnerGroup.Wait()
+	if err != nil && !errors.Is(err, context.Canceled) {
+		logger.Fatal().Err(err).Msg("Server shut down due to an error.")
+	}
+	logger.Info().Msg("Server shut down.")
+
 }
