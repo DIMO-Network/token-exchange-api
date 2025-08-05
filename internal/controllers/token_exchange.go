@@ -21,11 +21,11 @@ import (
 	"github.com/rs/zerolog"
 )
 
-type IPFSService interface {
-	Fetch(ctx context.Context, cid string) ([]byte, error)
-}
 type DexService interface {
 	SignPrivilegePayload(ctx context.Context, req services.PrivilegeTokenDTO) (string, error)
+}
+type AccessService interface {
+	ValidateAccess(ctx context.Context, req *access.NFTAccessRequest, ethAddr common.Address) error
 }
 
 var defaultAudience = []string{"dimo.zone"}
@@ -33,7 +33,7 @@ var defaultAudience = []string{"dimo.zone"}
 type TokenExchangeController struct {
 	chainID       uint64
 	dexService    DexService
-	accessService *access.Service
+	accessService AccessService
 }
 
 type TokenRequest struct {
@@ -58,7 +58,7 @@ type TokenResponse struct {
 	Token string `json:"token"`
 }
 
-func NewTokenExchangeController(logger *zerolog.Logger, settings *config.Settings, dexService DexService, accessService *access.Service) (*TokenExchangeController, error) {
+func NewTokenExchangeController(logger *zerolog.Logger, settings *config.Settings, dexService DexService, accessService AccessService) (*TokenExchangeController, error) {
 	return &TokenExchangeController{
 		chainID:       settings.DIMORegistryChainID,
 		dexService:    dexService,
@@ -153,7 +153,7 @@ func tokenReqToAccessReq(tokenReq *TokenRequest, chainID uint64) (*access.NFTAcc
 	permNames := make([]string, len(tokenReq.Privileges))
 	unknownPrivs := make([]int64, 0)
 	for i, privID := range tokenReq.Privileges {
-		permName, exists := access.PrivilageIDToName[privID]
+		permName, exists := access.PrivilegeIDToName[privID]
 		if !exists {
 			// If we don't have a mapping for this privilege ID, consider it missing
 			unknownPrivs = append(unknownPrivs, privID)

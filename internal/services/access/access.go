@@ -10,26 +10,20 @@ import (
 	"github.com/DIMO-Network/cloudevent"
 	"github.com/DIMO-Network/server-garage/pkg/richerrors"
 	"github.com/DIMO-Network/token-exchange-api/internal/autheval"
-	"github.com/DIMO-Network/token-exchange-api/internal/contracts"
 	"github.com/DIMO-Network/token-exchange-api/internal/contracts/sacd"
 	"github.com/DIMO-Network/token-exchange-api/internal/models"
-	"github.com/DIMO-Network/token-exchange-api/internal/services"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/rs/zerolog"
 )
 
-type Sacd interface {
+type SACDInterface interface {
 	CurrentPermissionRecord(opts *bind.CallOpts, asset common.Address, tokenID *big.Int, grantee common.Address) (sacd.ISacdPermissionRecord, error)
 	GetPermissions(opts *bind.CallOpts, asset common.Address, tokenID *big.Int, grantee common.Address, permissions *big.Int) (*big.Int, error)
 }
 
 type IPFSClient interface {
 	Fetch(ctx context.Context, cid string) ([]byte, error)
-}
-
-type DexClient interface {
-	SignPrivilegePayload(ctx context.Context, req services.PrivilegeTokenDTO) (string, error)
 }
 
 // NFTAccessRequest is a request to check access to an NFT.
@@ -42,12 +36,12 @@ type NFTAccessRequest struct {
 	EventFilters []autheval.EventFilter `json:"eventFilters"`
 }
 type Service struct {
-	sacdContract contracts.Sacd
+	sacdContract SACDInterface
 	ipfsClient   IPFSClient
 }
 
 func NewAccessService(ipfsService IPFSClient,
-	sacd Sacd) (*Service, error) {
+	sacd SACDInterface) (*Service, error) {
 	return &Service{
 		sacdContract: sacd,
 		ipfsClient:   ipfsService,
@@ -254,7 +248,7 @@ func (s *Service) evaluatePermissionsBits(
 }
 
 // privilege prefix to denote the 1:1 mapping to bit values and to make them easier to deprecate if desired in the future
-var PrivilageIDToName = map[int64]string{
+var PrivilegeIDToName = map[int64]string{
 	1: "privilege:GetNonLocationHistory",  // All-time non-location data
 	2: "privilege:ExecuteCommands",        // Commands
 	3: "privilege:GetCurrentLocation",     // Current location
@@ -266,8 +260,8 @@ var PrivilageIDToName = map[int64]string{
 }
 
 var PrivilegeNameToID = func() map[string]int64 {
-	privMap := make(map[string]int64, len(PrivilageIDToName))
-	for id, name := range PrivilageIDToName {
+	privMap := make(map[string]int64, len(PrivilegeIDToName))
+	for id, name := range PrivilegeIDToName {
 		privMap[name] = id
 	}
 	return privMap

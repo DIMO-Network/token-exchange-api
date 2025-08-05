@@ -14,47 +14,10 @@ import (
 	reflect "reflect"
 
 	services "github.com/DIMO-Network/token-exchange-api/internal/services"
+	access "github.com/DIMO-Network/token-exchange-api/internal/services/access"
+	common "github.com/ethereum/go-ethereum/common"
 	gomock "go.uber.org/mock/gomock"
 )
-
-// MockIPFSService is a mock of IPFSService interface.
-type MockIPFSService struct {
-	ctrl     *gomock.Controller
-	recorder *MockIPFSServiceMockRecorder
-	isgomock struct{}
-}
-
-// MockIPFSServiceMockRecorder is the mock recorder for MockIPFSService.
-type MockIPFSServiceMockRecorder struct {
-	mock *MockIPFSService
-}
-
-// NewMockIPFSService creates a new mock instance.
-func NewMockIPFSService(ctrl *gomock.Controller) *MockIPFSService {
-	mock := &MockIPFSService{ctrl: ctrl}
-	mock.recorder = &MockIPFSServiceMockRecorder{mock}
-	return mock
-}
-
-// EXPECT returns an object that allows the caller to indicate expected use.
-func (m *MockIPFSService) EXPECT() *MockIPFSServiceMockRecorder {
-	return m.recorder
-}
-
-// Fetch mocks base method.
-func (m *MockIPFSService) Fetch(ctx context.Context, cid string) ([]byte, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Fetch", ctx, cid)
-	ret0, _ := ret[0].([]byte)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// Fetch indicates an expected call of Fetch.
-func (mr *MockIPFSServiceMockRecorder) Fetch(ctx, cid any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Fetch", reflect.TypeOf((*MockIPFSService)(nil).Fetch), ctx, cid)
-}
 
 // MockDexService is a mock of DexService interface.
 type MockDexService struct {
@@ -93,4 +56,42 @@ func (m *MockDexService) SignPrivilegePayload(ctx context.Context, req services.
 func (mr *MockDexServiceMockRecorder) SignPrivilegePayload(ctx, req any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SignPrivilegePayload", reflect.TypeOf((*MockDexService)(nil).SignPrivilegePayload), ctx, req)
+}
+
+// MockAccessService is a mock of AccessService interface.
+type MockAccessService struct {
+	ctrl     *gomock.Controller
+	recorder *MockAccessServiceMockRecorder
+	isgomock struct{}
+}
+
+// MockAccessServiceMockRecorder is the mock recorder for MockAccessService.
+type MockAccessServiceMockRecorder struct {
+	mock *MockAccessService
+}
+
+// NewMockAccessService creates a new mock instance.
+func NewMockAccessService(ctrl *gomock.Controller) *MockAccessService {
+	mock := &MockAccessService{ctrl: ctrl}
+	mock.recorder = &MockAccessServiceMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockAccessService) EXPECT() *MockAccessServiceMockRecorder {
+	return m.recorder
+}
+
+// ValidateAccess mocks base method.
+func (m *MockAccessService) ValidateAccess(ctx context.Context, req *access.NFTAccessRequest, ethAddr common.Address) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ValidateAccess", ctx, req, ethAddr)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// ValidateAccess indicates an expected call of ValidateAccess.
+func (mr *MockAccessServiceMockRecorder) ValidateAccess(ctx, req, ethAddr any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateAccess", reflect.TypeOf((*MockAccessService)(nil).ValidateAccess), ctx, req, ethAddr)
 }
