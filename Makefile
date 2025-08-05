@@ -97,4 +97,4 @@ generate-grpc: ## generate grpc files
 
 generate-contracts: ## generate contracts
 	go tool abigen --abi internal/contracts/erc1271/IERC1271.json --pkg erc1271 --type Erc1271 --out internal/contracts/erc1271/erc1271.go
-	go tool abigen --abi internal/contracts/sacd/Sacd.json --pkg sacd --type Sacd --out internal/contracts/sacd/sacd.go
+	go tool abigen --abi internal/contracts/sacd/sacd.json --pkg sacd --type Sacd --out internal/contracts/sacd/sacd.go
