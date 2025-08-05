@@ -80,7 +80,7 @@ endif
 	rm $(PATHINSTBIN)/protoc.zip
 
 
-generate: generate-swagger generate-go generate-grpc ## run all file generation for the project
+generate: generate-swagger generate-go generate-grpc generate-contracts ## run all file generation for the project
 
 generate-swagger: ## generate swagger documentation
 	@go tool swag -version
@@ -94,3 +94,7 @@ generate-grpc: ## generate grpc files
 	@PATH=$$PATH protoc --go_out=. --go_opt=paths=source_relative \
     --go-grpc_out=. --go-grpc_opt=paths=source_relative \
     pkg/grpc/*.proto
+
+generate-contracts: ## generate contracts
+	go tool abigen --abi internal/contracts/erc1271/IERC1271.json --pkg erc1271 --type Erc1271 --out internal/contracts/erc1271/erc1271.go
+	go tool abigen --abi internal/contracts/sacd/Sacd.json --pkg sacd --type Sacd --out internal/contracts/sacd/sacd.go
