@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/DIMO-Network/cloudevent"
+	"github.com/DIMO-Network/server-garage/pkg/richerrors"
 	"github.com/DIMO-Network/shared/pkg/privileges"
 	"github.com/DIMO-Network/token-exchange-api/internal/autheval"
 	"github.com/DIMO-Network/token-exchange-api/internal/config"
@@ -24,10 +25,10 @@ import (
 	"github.com/DIMO-Network/token-exchange-api/internal/middleware/dex"
 	"github.com/DIMO-Network/token-exchange-api/internal/models"
 	"github.com/DIMO-Network/token-exchange-api/internal/services"
+	"github.com/DIMO-Network/token-exchange-api/internal/services/access"
 	"github.com/DIMO-Network/token-exchange-api/pkg/tokenclaims"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/rs/zerolog"
@@ -52,20 +53,17 @@ func TestTokenExchangeController_ExchangeToken(t *testing.T) {
 		Logger()
 
 	dexService := NewMockDexService(mockCtrl)
-	contractsMgr := NewMockManager(mockCtrl)
 	mockSacd := NewMockSacd(mockCtrl)
 	mockipfs := NewMockIPFSService(mockCtrl)
 	mockIdent := NewMockIdentityService(mockCtrl)
 
-	// This never gets called.
-	client := ethclient.Client{}
+	accessService, err := access.NewAccessService(mockipfs, mockSacd)
+	require.NoError(t, err)
 
 	// setup app and route req
 	c, err := NewTokenExchangeController(&logger, &config.Settings{
-		BlockchainNodeURL:        "http://testurl.com/mock",
-		ContractAddressWhitelist: "",
-		ContractAddressSacd:      "0xa6",
-	}, dexService, mockipfs, contractsMgr, &client)
+		DIMORegistryChainID: 1,
+	}, dexService, accessService)
 	require.NoError(t, err, "Failed to initialize token exchange controller")
 
 	userEthAddr := common.HexToAddress("0x20Ca3bE69a8B95D3093383375F0473A8c6341727")
@@ -139,7 +137,6 @@ func TestTokenExchangeController_ExchangeToken(t *testing.T) {
 				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
 			},
 			mockSetup: func() {
-				contractsMgr.EXPECT().GetSacd(c.settings.ContractAddressSacd, &client).Return(mockSacd, nil)
 				mockipfs.EXPECT().Fetch(gomock.Any(), gomock.Any()).Return(nil, errors.New("no valid doc"))
 				dexService.EXPECT().SignPrivilegePayload(gomock.Any(), services.PrivilegeTokenDTO{
 					TokenID:            strconv.FormatInt(123, 10),
@@ -148,8 +145,8 @@ func TestTokenExchangeController_ExchangeToken(t *testing.T) {
 					Audience:           defaultAudience,
 					ResponseSubject:    "dimo-driver",
 				}).Return("jwt", nil)
-				mockSacd.EXPECT().CurrentPermissionRecord(nil, common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr).Return(emptyPermRecord, nil)
-				mockSacd.EXPECT().GetPermissions(nil, common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr, big.NewInt(0b1100000000)).Return(big.NewInt(0b1100000000), nil)
+				mockSacd.EXPECT().CurrentPermissionRecord(gomock.Any(), common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr).Return(emptyPermRecord, nil)
+				mockSacd.EXPECT().GetPermissions(gomock.Any(), common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr, big.NewInt(0b1100000000)).Return(big.NewInt(0b1100000000), nil)
 			},
 			expectedCode: fiber.StatusOK,
 		},
@@ -168,7 +165,6 @@ func TestTokenExchangeController_ExchangeToken(t *testing.T) {
 				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
 			},
 			mockSetup: func() {
-				contractsMgr.EXPECT().GetSacd(c.settings.ContractAddressSacd, &client).Return(mockSacd, nil)
 				mockipfs.EXPECT().Fetch(gomock.Any(), gomock.Any()).Return(nil, errors.New("no valid doc"))
 				mockIdent.EXPECT().IsDevLicense(gomock.Any(), devLicenseAddr).Return(true, nil)
 				dexService.EXPECT().SignPrivilegePayload(gomock.Any(), services.PrivilegeTokenDTO{
@@ -178,8 +174,8 @@ func TestTokenExchangeController_ExchangeToken(t *testing.T) {
 					Audience:           defaultAudience,
 					ResponseSubject:    devLicenseAddr.Hex(),
 				}).Return("jwt", nil)
-				mockSacd.EXPECT().CurrentPermissionRecord(nil, common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), devLicenseAddr).Return(emptyPermRecord, nil)
-				mockSacd.EXPECT().GetPermissions(nil, common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), devLicenseAddr, big.NewInt(0b1100000000)).Return(big.NewInt(0b1100000000), nil)
+				mockSacd.EXPECT().CurrentPermissionRecord(gomock.Any(), common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), devLicenseAddr).Return(emptyPermRecord, nil)
+				mockSacd.EXPECT().GetPermissions(gomock.Any(), common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), devLicenseAddr, big.NewInt(0b1100000000)).Return(big.NewInt(0b1100000000), nil)
 			},
 			expectedCode: fiber.StatusOK,
 		},
@@ -197,7 +193,6 @@ func TestTokenExchangeController_ExchangeToken(t *testing.T) {
 				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
 			},
 			mockSetup: func() {
-				contractsMgr.EXPECT().GetSacd(c.settings.ContractAddressSacd, &client).Return(mockSacd, nil)
 				mockipfs.EXPECT().Fetch(gomock.Any(), gomock.Any()).Return(nil, errors.New("no valid doc"))
 				dexService.EXPECT().SignPrivilegePayload(gomock.Any(), services.PrivilegeTokenDTO{
 					TokenID:            strconv.FormatInt(123, 10),
@@ -206,8 +201,8 @@ func TestTokenExchangeController_ExchangeToken(t *testing.T) {
 					Audience:           defaultAudience,
 					ResponseSubject:    "dimo-driver",
 				}).Return("jwt", nil)
-				mockSacd.EXPECT().CurrentPermissionRecord(nil, common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr).Return(emptyPermRecord, nil)
-				mockSacd.EXPECT().GetPermissions(nil, common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr, big.NewInt(0b111100111100)).Return(big.NewInt(0b111100111100), nil)
+				mockSacd.EXPECT().CurrentPermissionRecord(gomock.Any(), common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr).Return(emptyPermRecord, nil)
+				mockSacd.EXPECT().GetPermissions(gomock.Any(), common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr, big.NewInt(0b111100111100)).Return(big.NewInt(0b111100111100), nil)
 			},
 			expectedCode: fiber.StatusOK,
 		},
@@ -225,15 +220,15 @@ func TestTokenExchangeController_ExchangeToken(t *testing.T) {
 				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
 			},
 			mockSetup: func() {
-				contractsMgr.EXPECT().GetSacd(c.settings.ContractAddressSacd, &client).Return(mockSacd, nil)
 				mockipfs.EXPECT().Fetch(gomock.Any(), gomock.Any()).Return(nil, errors.New("no valid doc"))
-				mockSacd.EXPECT().CurrentPermissionRecord(nil, common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr).Return(emptyPermRecord, nil)
-				mockSacd.EXPECT().GetPermissions(nil, common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr, big.NewInt(0b111100111100)).Return(big.NewInt(0b111100001100), nil)
+				mockSacd.EXPECT().CurrentPermissionRecord(gomock.Any(), common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr).Return(emptyPermRecord, nil)
+				mockSacd.EXPECT().GetPermissions(gomock.Any(), common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr, big.NewInt(0b111100111100)).Return(big.NewInt(0b111100001100), nil)
+
 			},
 			expectedCode: fiber.StatusForbidden,
 		},
 		{
-			name: "eth token, multiple perms requested, fail on SACD, succeed on privs",
+			name: "eth token, multiple perms requested, fail on SACD, no legacy priv check",
 			tokenClaims: jwt.MapClaims{
 				"ethereum_address": userEthAddr.Hex(),
 				"nbf":              time.Now().Unix(),
@@ -246,10 +241,9 @@ func TestTokenExchangeController_ExchangeToken(t *testing.T) {
 				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
 			},
 			mockSetup: func() {
-				contractsMgr.EXPECT().GetSacd(c.settings.ContractAddressSacd, &client).Return(mockSacd, nil)
 				mockipfs.EXPECT().Fetch(gomock.Any(), gomock.Any()).Return(nil, errors.New("no valid doc"))
-				mockSacd.EXPECT().CurrentPermissionRecord(nil, common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr).Return(emptyPermRecord, nil)
-				mockSacd.EXPECT().GetPermissions(nil, common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr, big.NewInt(0b111100111100)).Return(big.NewInt(0b111100001100), nil)
+				mockSacd.EXPECT().CurrentPermissionRecord(gomock.Any(), common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr).Return(emptyPermRecord, nil)
+				mockSacd.EXPECT().GetPermissions(gomock.Any(), common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr, big.NewInt(0b111100111100)).Return(big.NewInt(0b111100001100), nil)
 			},
 			expectedCode: fiber.StatusForbidden,
 		},
@@ -284,7 +278,6 @@ func TestTokenExchangeController_ExchangeToken(t *testing.T) {
 				Audience:           []string{"my-app", "foo"},
 			},
 			mockSetup: func() {
-				contractsMgr.EXPECT().GetSacd(c.settings.ContractAddressSacd, &client).Return(mockSacd, nil)
 				mockipfs.EXPECT().Fetch(gomock.Any(), gomock.Any()).Return(nil, errors.New("no valid doc"))
 				dexService.EXPECT().SignPrivilegePayload(gomock.Any(), services.PrivilegeTokenDTO{
 					TokenID:            strconv.FormatInt(123, 10),
@@ -293,8 +286,8 @@ func TestTokenExchangeController_ExchangeToken(t *testing.T) {
 					Audience:           []string{"my-app", "foo"},
 					ResponseSubject:    "dimo-driver",
 				}).Return("jwt", nil)
-				mockSacd.EXPECT().CurrentPermissionRecord(nil, common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr).Return(emptyPermRecord, nil)
-				mockSacd.EXPECT().GetPermissions(nil, common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr, big.NewInt(0b1100000000)).Return(big.NewInt(0b1100000000), nil)
+				mockSacd.EXPECT().CurrentPermissionRecord(gomock.Any(), common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr).Return(emptyPermRecord, nil)
+				mockSacd.EXPECT().GetPermissions(gomock.Any(), common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr, big.NewInt(0b1100000000)).Return(big.NewInt(0b1100000000), nil)
 			},
 			expectedCode: fiber.StatusOK,
 		},
@@ -320,7 +313,6 @@ func TestTokenExchangeController_ExchangeToken(t *testing.T) {
 				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
 			},
 			mockSetup: func() {
-				contractsMgr.EXPECT().GetSacd(c.settings.ContractAddressSacd, &client).Return(mockSacd, nil)
 				mockipfs.EXPECT().Fetch(gomock.Any(), gomock.Any()).Return(ipfsBytes, nil)
 				dexService.EXPECT().SignPrivilegePayload(gomock.Any(), services.PrivilegeTokenDTO{
 					TokenID: strconv.FormatInt(123, 10),
@@ -337,7 +329,7 @@ func TestTokenExchangeController_ExchangeToken(t *testing.T) {
 					Audience:           defaultAudience,
 					ResponseSubject:    "dimo-driver",
 				}).Return("jwt", nil)
-				mockSacd.EXPECT().CurrentPermissionRecord(nil, common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr).Return(emptyPermRecord, nil)
+				mockSacd.EXPECT().CurrentPermissionRecord(gomock.Any(), common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr).Return(emptyPermRecord, nil)
 			},
 			expectedCode: fiber.StatusOK,
 		},
@@ -359,9 +351,8 @@ func TestTokenExchangeController_ExchangeToken(t *testing.T) {
 				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
 			},
 			mockSetup: func() {
-				contractsMgr.EXPECT().GetSacd(c.settings.ContractAddressSacd, &client).Return(mockSacd, nil)
 				mockipfs.EXPECT().Fetch(gomock.Any(), gomock.Any()).Return(ipfsBytes, nil)
-				mockSacd.EXPECT().CurrentPermissionRecord(nil, common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr).Return(emptyPermRecord, nil)
+				mockSacd.EXPECT().CurrentPermissionRecord(gomock.Any(), common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr).Return(emptyPermRecord, nil)
 			},
 			expectedCode: fiber.StatusForbidden,
 		},
@@ -369,21 +360,23 @@ func TestTokenExchangeController_ExchangeToken(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			jsonBytes, _ := json.Marshal(tc.permissionTokenRequest)
-			app := fiber.New()
+			app := fiber.New(fiber.Config{
+				ErrorHandler: errorHandlerCopy,
+			})
 			app.Post("/tokens/exchange", authInjectorTestHandler(tc.tokenClaims), middleware.NewDevLicenseValidator(mockIdent, zerolog.Nop()), c.ExchangeToken)
 
 			// setup mock expectations
 			tc.mockSetup()
 
 			request := buildRequest("POST", "/tokens/exchange", string(jsonBytes))
-			response, err := app.Test(request)
+			response, err := app.Test(request, -1)
 			require.NoError(t, err)
 
 			body, _ := io.ReadAll(response.Body)
 
-			assert.Equal(t, tc.expectedCode, response.StatusCode, "expected success")
+			require.Equal(t, tc.expectedCode, response.StatusCode, "expected success")
 			if tc.expectedCode == fiber.StatusOK {
-				assert.Equal(t, "jwt", gjson.GetBytes(body, "token").Str)
+				require.Equal(t, "jwt", gjson.GetBytes(body, "token").Str)
 			}
 		})
 	}
@@ -618,4 +611,38 @@ func signSACDHelper(grantData *models.SACDData) (*cloudevent.RawEvent, error) {
 	final.Data = msgBytes
 	final.Type = "dimo.sacd"
 	return &final, nil
+}
+
+type codeResp struct {
+	Code    int    `json:"code"`
+	Message string `json:"message"`
+}
+
+// errorHandlerCopy is a copy of the error handler from the app package because we don't want cyclic imports
+func errorHandlerCopy(ctx *fiber.Ctx, err error) error {
+	code := fiber.StatusInternalServerError // Default 500 statuscode
+	message := "Internal error."
+
+	var fiberErr *fiber.Error
+	var richErr richerrors.Error
+	if errors.As(err, &fiberErr) {
+		code = fiberErr.Code
+		message = fiberErr.Message
+	} else if errors.As(err, &richErr) {
+		message = richErr.ExternalMsg
+		if richErr.Code != 0 {
+			code = richErr.Code
+		}
+	}
+
+	// log all errors except 404
+	if code != fiber.StatusNotFound {
+		logger := zerolog.Ctx(ctx.UserContext())
+		logger.Err(err).Int("httpStatusCode", code).
+			Str("httpPath", strings.TrimPrefix(ctx.Path(), "/")).
+			Str("httpMethod", ctx.Method()).
+			Msg("caught an error from http request")
+	}
+
+	return ctx.Status(code).JSON(codeResp{Code: code, Message: message})
 }

@@ -17,18 +17,6 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 )
 
-// privilege prefix to denote the 1:1 mapping to bit values and to make them easier to deprecate if desired in the future
-var PermissionMap = map[int]string{
-	1: "privilege:GetNonLocationHistory",  // All-time non-location data
-	2: "privilege:ExecuteCommands",        // Commands
-	3: "privilege:GetCurrentLocation",     // Current location
-	4: "privilege:GetLocationHistory",     // All-time location
-	5: "privilege:GetVINCredential",       // View VIN credential
-	6: "privilege:GetLiveData",            // Subscribe live data
-	7: "privilege:GetRawData",             // Raw data
-	8: "privilege:GetApproximateLocation", // Approximate location
-}
-
 type EventFilter struct {
 	EventType string   `json:"eventType"`
 	Source    string   `json:"source"`
@@ -36,32 +24,19 @@ type EventFilter struct {
 }
 
 // EvaluatePermissions checks if all requested privileges are present in the user permissions
-func EvaluatePermissions(userPermissions map[string]bool, requestedPrivileges []int64, tokenID int64, nftContractAddress string) error {
+// Returns slice of missing privileges if any are missing, or empty slice if all are valid
+func EvaluatePermissions(userPermissions map[string]bool, requestedPrivileges []string) []string {
 	// Check if all requested privileges are present in the permissions
-	var missingPermissions []int64
+	var missingPermissions []string
 
-	for _, privID := range requestedPrivileges {
-		// Look up the permission name for this privilege ID
-		permName, exists := PermissionMap[int(privID)]
-		if !exists {
-			// If we don't have a mapping for this privilege ID, consider it missing
-			missingPermissions = append(missingPermissions, privID)
-			continue
-		}
+	for _, permName := range requestedPrivileges {
 
 		// Check if the user has this permission
 		if !userPermissions[permName] {
-			missingPermissions = append(missingPermissions, privID)
+			missingPermissions = append(missingPermissions, permName)
 		}
 	}
-
-	// If any permissions are missing, return an error
-	if len(missingPermissions) > 0 {
-		return fmt.Errorf("missing permissions: %v on token id %d for asset %s", missingPermissions, tokenID, nftContractAddress)
-	}
-
-	// If we get here, all permissions are valid
-	return nil
+	return missingPermissions
 }
 
 // EvaluatePermissionsBits checks if user has privileges using 2-bit permission system
@@ -171,7 +146,7 @@ func EvaluateIDsByGrantSource(globalGrants *set.StringSet, sourceGrants *set.Str
 }
 
 // UserGrantMap extracts permission and CloudEvent grants from SACD data
-func UserGrantMap(data *models.SACDData, nftContractAddr string, tokenID int64) (map[string]bool, map[string]map[string]*set.StringSet, error) {
+func UserGrantMap(data *models.SACDData, assetDID cloudevent.ERC721DID) (map[string]bool, map[string]map[string]*set.StringSet, error) {
 	userPermGrants := make(map[string]bool)
 	// type -> source -> ids
 	cloudEvtGrants := make(map[string]map[string]*set.StringSet)
@@ -187,8 +162,8 @@ func UserGrantMap(data *models.SACDData, nftContractAddr string, tokenID int64) 
 			continue
 		}
 
-		if err := ValidAssetDID(agreement.Asset, nftContractAddr, tokenID); err != nil {
-			return nil, nil, fmt.Errorf("failed to validate agreement asset did %s: %w", agreement.Asset, err)
+		if agreement.Asset != assetDID.String() {
+			return nil, nil, fmt.Errorf("asset DID %s does not match request DID %s", agreement.Asset, assetDID.String())
 		}
 
 		switch agreement.Type {
@@ -213,27 +188,6 @@ func UserGrantMap(data *models.SACDData, nftContractAddr string, tokenID int64) 
 	}
 
 	return userPermGrants, cloudEvtGrants, nil
-}
-
-// ValidAssetDID verifies that the provided DID matches the NFT contract address
-// and token ID specified in the permission token request.
-func ValidAssetDID(did string, nftContractAddr string, tokenID int64) error {
-	decodedDID, err := cloudevent.DecodeERC721DID(did)
-	if err != nil {
-		return fmt.Errorf("failed to decode DID: %w", err)
-	}
-
-	if decodedDID.ContractAddress != common.HexToAddress(nftContractAddr) {
-		return fmt.Errorf("DID contract address %s does not match request contract address %s",
-			decodedDID.ContractAddress.Hex(), nftContractAddr)
-	}
-
-	if decodedDID.TokenID.Cmp(big.NewInt(tokenID)) != 0 {
-		return fmt.Errorf("DID token id %d does not match request token id %d",
-			decodedDID.TokenID, tokenID)
-	}
-
-	return nil
 }
 
 // IntArrayTo2BitArray converts array of indices to 2-bit array representation

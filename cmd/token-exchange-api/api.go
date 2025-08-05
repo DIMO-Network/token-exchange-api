@@ -9,12 +9,13 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/DIMO-Network/token-exchange-api/internal/api"
+	"github.com/DIMO-Network/server-garage/pkg/richerrors"
 	"github.com/DIMO-Network/token-exchange-api/internal/config"
-	"github.com/DIMO-Network/token-exchange-api/internal/contracts"
+	"github.com/DIMO-Network/token-exchange-api/internal/contracts/sacd"
 	vtx "github.com/DIMO-Network/token-exchange-api/internal/controllers"
 	"github.com/DIMO-Network/token-exchange-api/internal/middleware"
 	"github.com/DIMO-Network/token-exchange-api/internal/services"
+	"github.com/DIMO-Network/token-exchange-api/internal/services/access"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 	jwtware "github.com/gofiber/contrib/jwt"
@@ -47,7 +48,6 @@ func startWebAPI(ctx context.Context, logger zerolog.Logger, settings *config.Se
 	if err != nil {
 		logger.Fatal().Err(err).Msg("failed to create dex grpc client")
 	}
-	contractsMgr := contracts.NewContractsManager()
 
 	ethClient, err := ethclient.Dial(settings.BlockchainNodeURL)
 	if err != nil {
@@ -59,7 +59,17 @@ func startWebAPI(ctx context.Context, logger zerolog.Logger, settings *config.Se
 		logger.Fatal().Err(err).Msg("failed to create IPFS client")
 	}
 
-	vtxController, err := vtx.NewTokenExchangeController(&logger, settings, dexSvc, ipfsService, contractsMgr, ethClient)
+	sacdContract, err := sacd.NewSacd(settings.ContractAddressSacd, ethClient)
+	if err != nil {
+		logger.Fatal().Err(err).Msg("failed to connect to blockchain node")
+	}
+
+	accessService, err := access.NewAccessService(ipfsService, sacdContract)
+	if err != nil {
+		logger.Fatal().Err(err).Msg("failed to create access service")
+	}
+
+	vtxController, err := vtx.NewTokenExchangeController(&logger, settings, dexSvc, accessService)
 	if err != nil {
 		logger.Fatal().Err(err).Msg("Failed to initialize token exchange controller")
 	}
@@ -76,10 +86,7 @@ func startWebAPI(ctx context.Context, logger zerolog.Logger, settings *config.Se
 	}
 
 	app := fiber.New(fiber.Config{
-		ErrorHandler: func(c *fiber.Ctx, err error) error {
-			logger.Printf("Errror occurred %s", err)
-			return api.ErrorHandler(c, err, logger, settings.Environment)
-		},
+		ErrorHandler:          ErrorHandler,
 		DisableStartupMessage: true,
 		ReadBufferSize:        16000,
 		BodyLimit:             10 * 1024 * 1024,
@@ -155,4 +162,38 @@ func healthCheck(c *fiber.Ctx) error {
 	}
 
 	return nil
+}
+
+type codeResp struct {
+	Code    int    `json:"code"`
+	Message string `json:"message"`
+}
+
+// ErrorHandler custom handler to log recovered errors using our logger and return json instead of string
+func ErrorHandler(ctx *fiber.Ctx, err error) error {
+	code := fiber.StatusInternalServerError // Default 500 statuscode
+	message := "Internal error."
+
+	var fiberErr *fiber.Error
+	var richErr richerrors.Error
+	if errors.As(err, &fiberErr) {
+		code = fiberErr.Code
+		message = fiberErr.Message
+	} else if errors.As(err, &richErr) {
+		message = richErr.ExternalMsg
+		if richErr.Code != 0 {
+			code = richErr.Code
+		}
+	}
+
+	// log all errors except 404
+	if code != fiber.StatusNotFound {
+		logger := zerolog.Ctx(ctx.UserContext())
+		logger.Err(err).Int("httpStatusCode", code).
+			Str("httpPath", strings.TrimPrefix(ctx.Path(), "/")).
+			Str("httpMethod", ctx.Method()).
+			Msg("caught an error from http request")
+	}
+
+	return ctx.Status(code).JSON(codeResp{Code: code, Message: message})
 }

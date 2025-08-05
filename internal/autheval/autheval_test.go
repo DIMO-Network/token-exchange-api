@@ -383,7 +383,11 @@ func TestEvaluateCloudEvents_Attestations(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			permData.Agreements = tc.agreement
 			expectedCEGrants := tc.expectedCEGrants()
-			_, ceGrants, err := UserGrantMap(&permData, nftCtrAddr, 123)
+			_, ceGrants, err := UserGrantMap(&permData, cloudevent.ERC721DID{
+				ContractAddress: common.HexToAddress(nftCtrAddr),
+				TokenID:         big.NewInt(123),
+				ChainID:         1,
+			})
 			require.Nil(t, err)
 			for eventType, evtMap := range expectedCEGrants {
 				_, ok := ceGrants[eventType]
@@ -413,10 +417,10 @@ func TestEvaluatePermissions(t *testing.T) {
 	tests := []struct {
 		name                string
 		userPermissions     map[string]bool
-		requestedPrivileges []int64
+		requestedPrivileges []string
 		tokenID             int64
 		nftContractAddress  string
-		expectError         bool
+		missingPermissions  []string
 	}{
 		{
 			name: "valid permissions - all granted",
@@ -425,10 +429,10 @@ func TestEvaluatePermissions(t *testing.T) {
 				"privilege:ExecuteCommands":       true,
 				"privilege:GetCurrentLocation":    true,
 			},
-			requestedPrivileges: []int64{1, 2, 3},
+			requestedPrivileges: []string{"privilege:GetNonLocationHistory", "privilege:ExecuteCommands", "privilege:GetCurrentLocation"},
 			tokenID:             123,
 			nftContractAddress:  "0x123",
-			expectError:         false,
+			missingPermissions:  nil,
 		},
 		{
 			name: "missing permission",
@@ -436,37 +440,33 @@ func TestEvaluatePermissions(t *testing.T) {
 				"privilege:GetNonLocationHistory": true,
 				"privilege:ExecuteCommands":       true,
 			},
-			requestedPrivileges: []int64{1, 2, 3}, // 3 is missing
+			requestedPrivileges: []string{"privilege:GetNonLocationHistory", "privilege:ExecuteCommands", "privilege:GetCurrentLocation"}, // 3 is missing
 			tokenID:             123,
 			nftContractAddress:  "0x123",
-			expectError:         true,
+			missingPermissions:  []string{"privilege:GetCurrentLocation"},
 		},
 		{
 			name:                "unknown privilege ID",
 			userPermissions:     map[string]bool{},
-			requestedPrivileges: []int64{999}, // doesn't exist in PermissionMap
+			requestedPrivileges: []string{"new-privilege"}, // 3 is missing
 			tokenID:             123,
 			nftContractAddress:  "0x123",
-			expectError:         true,
+			missingPermissions:  []string{"new-privilege"},
 		},
 		{
 			name:                "empty privileges",
 			userPermissions:     map[string]bool{},
-			requestedPrivileges: []int64{},
+			requestedPrivileges: []string{},
 			tokenID:             123,
 			nftContractAddress:  "0x123",
-			expectError:         false,
+			missingPermissions:  nil,
 		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			err := EvaluatePermissions(tc.userPermissions, tc.requestedPrivileges, tc.tokenID, tc.nftContractAddress)
-			if tc.expectError {
-				require.Error(t, err)
-			} else {
-				require.NoError(t, err)
-			}
+			lacks := EvaluatePermissions(tc.userPermissions, tc.requestedPrivileges)
+			require.Equal(t, tc.missingPermissions, lacks)
 		})
 	}
 }
@@ -555,49 +555,6 @@ func TestIntArrayTo2BitArray(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 				require.NotNil(t, result)
-			}
-		})
-	}
-}
-
-func TestValidAssetDID(t *testing.T) {
-	tests := []struct {
-		name            string
-		did             string
-		nftContractAddr string
-		tokenID         int64
-		expectError     bool
-	}{
-		{
-			name:            "valid DID",
-			did:             "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
-			nftContractAddr: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
-			tokenID:         123,
-			expectError:     false,
-		},
-		{
-			name:            "mismatched contract address",
-			did:             "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
-			nftContractAddr: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A999",
-			tokenID:         123,
-			expectError:     true,
-		},
-		{
-			name:            "mismatched token ID",
-			did:             "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
-			nftContractAddr: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
-			tokenID:         456,
-			expectError:     true,
-		},
-	}
-
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			err := ValidAssetDID(tc.did, tc.nftContractAddr, tc.tokenID)
-			if tc.expectError {
-				require.Error(t, err)
-			} else {
-				require.NoError(t, err)
 			}
 		})
 	}
