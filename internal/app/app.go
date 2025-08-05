@@ -51,7 +51,7 @@ func CreateServers(logger zerolog.Logger, settings *config.Settings) (*fiber.App
 		return nil, nil, fmt.Errorf("failed to connect to blockchain node: %w", err)
 	}
 
-	accessService, err := access.NewAccessService(ipfsService, sacdContract)
+	accessService, err := access.NewAccessService(ipfsService, sacdContract, ethClient)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to create access service: %w", err)
 	}

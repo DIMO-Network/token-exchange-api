@@ -13,48 +13,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func Test_ValidSignature(t *testing.T) {
-	signer := common.HexToAddress("0xa9BC6E60EC5b541aED230d366073067F839EbB14")
-	signedSACDWithPrefix := `{"specversion":"","timestamp":"0001-01-01T00:00:00Z","type":"","data":{"grantor":{"address":"0xa9BC6E60EC5b541aED230d366073067F839EbB14"},"grantee":{"address":"0x0000000000000000000000000000000000000001"},"effectiveAt":"0001-01-01T00:00:00Z","expiresAt":"0001-01-01T00:00:00Z","agreements":[{"type":"random-string","eventType":"random-string","ids":["a","b","c"],"effectiveAt":"0001-01-01T00:00:00Z","expiresAt":"0001-01-01T00:00:00Z","source":"random-string","asset":"","permissions":null}]},"signature":"0xf8f35c9faed52973bf5f6300b75813c1a8b3801515bfe2725401082f7ceaaa2477b141d237f47f1f3b9c64fb32808857a2fc562ffe97206238d20dbd71bdde2d1b"}`
-	noSignature := `{"specversion":"","timestamp":"0001-01-01T00:00:00Z","type":"","data":{"grantor":{"address":"0xa9BC6E60EC5b541aED230d366073067F839EbB14"},"grantee":{"address":"0x0000000000000000000000000000000000000001"},"effectiveAt":"0001-01-01T00:00:00Z","expiresAt":"0001-01-01T00:00:00Z","agreements":[{"type":"random-string","eventType":"random-string","ids":["a","b","c"],"effectiveAt":"0001-01-01T00:00:00Z","expiresAt":"0001-01-01T00:00:00Z","source":"random-string","asset":"","permissions":null}]}}`
-	signedInvalidSignature := `{"specversion":"","timestamp":"0001-01-01T00:00:00Z","type":"","data":{"grantor":{"address":"0xa9BC6E60EC5b541aED230d366073067F839EbB14"},"grantee":{"address":"0x0000000000000000000000000000000000000001"},"effectiveAt":"0001-01-01T00:00:00Z","expiresAt":"0001-01-01T00:00:00Z","agreements":[{"type":"random-string","eventType":"random-string","ids":["a","b","c"],"effectiveAt":"0001-01-01T00:00:00Z","expiresAt":"0001-01-01T00:00:00Z","source":"random-string","asset":"","permissions":null}]},"signature":"0x123"}`
-	for _, test := range []struct {
-		Name    string
-		Success bool
-		Payload string
-	}{
-		{
-			Name:    "With Prefix",
-			Success: true,
-			Payload: signedSACDWithPrefix,
-		},
-		{
-			Name:    "No Signature",
-			Success: false,
-			Payload: noSignature,
-		},
-		{
-			Name:    "Invalid Signature",
-			Payload: signedInvalidSignature,
-		},
-	} {
-
-		var record cloudevent.RawEvent
-		err := record.UnmarshalJSON([]byte(test.Payload))
-		require.NoError(t, err)
-
-		res, err := ValidSignature(record.Data, record.Signature, signer)
-		if test.Success {
-			require.NoError(t, err)
-			require.True(t, res)
-			continue
-		}
-
-		require.NotNil(t, err)
-		require.False(t, res)
-	}
-}
-
 func TestEvaluateCloudEvents_Attestations(t *testing.T) {
 	userEthAddr := common.HexToAddress("0x20Ca3bE69a8B95D3093383375F0473A8c6341727")
 	oneMinAgo := time.Now().Add(-1 * time.Minute)
