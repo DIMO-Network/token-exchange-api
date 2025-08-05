@@ -270,6 +270,6 @@ var PrivilegeNameToID = func() map[string]int64 {
 func missingPermissionsError[T any](ethAddr common.Address, asset cloudevent.ERC721DID, lack []T) richerrors.Error {
 	return richerrors.Error{
 		Code:        http.StatusForbidden,
-		ExternalMsg: fmt.Sprintf("Address %s lacks permissions %v on for asset %s.", ethAddr.Hex(), lack, asset.String()),
+		ExternalMsg: fmt.Sprintf("Address %s lacks permissions %v for asset %s.", ethAddr.Hex(), lack, asset.String()),
 	}
 }
