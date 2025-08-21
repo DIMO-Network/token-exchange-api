@@ -137,7 +137,7 @@ func (s *Service) ValidateAccessViaSourceDoc(ctx context.Context, accessReq *NFT
 //   - source: The IPFS content identifier (CID) for the SACD document, typically with an "ipfs://" prefix
 //
 // Returns:
-//   - *PermissionRecord: A pointer to the parsed permission record if valid, or nil if the document
+//   - *cloudevent.RawEvent: A pointer to the parsed raw cloud event if valid, or nil if the document
 //     could not be fetched, parsed, or doesn't have the correct type
 func (s *Service) getValidSacdDoc(ctx context.Context, source string) (*cloudevent.RawEvent, error) {
 	sacdDoc, err := s.ipfsClient.Fetch(ctx, source)
@@ -158,10 +158,10 @@ func (s *Service) getValidSacdDoc(ctx context.Context, source string) (*cloudeve
 		}
 	}
 
-	if record.Type != "dimo.sacd" {
+	if record.Type != "dimo.sacd" && record.Type != "dimo.sacd.template" {
 		return nil, richerrors.Error{
 			Code:        http.StatusUnauthorized,
-			ExternalMsg: fmt.Sprintf("invalid type: expected 'dimo.sacd', got '%s'", record.Type),
+			ExternalMsg: fmt.Sprintf("invalid type: expected 'dimo.sacd' or 'dimo.sacd.template', got '%s'", record.Type),
 		}
 	}
 
@@ -201,6 +201,19 @@ func (s *Service) evaluateSacdDoc(ctx context.Context, record *cloudevent.RawEve
 		}
 	}
 
+	if data.PermissionTemplateId != "" || data.PermissionTemplateId != "0" {
+		templateData, err := s.getPermissionTemplate(ctx, data.PermissionTemplateId)
+		if err != nil {
+			return richerrors.Error{
+				Code:        http.StatusUnauthorized,
+				Err:         fmt.Errorf("failed to get permission template: %w", err),
+				ExternalMsg: "failed to get permission template",
+			}
+		}
+
+		// TODO(lorran) get perms like in autheval.UserGrantMap(&data, accessReq.Asset)
+	}
+
 	userPermGrants, cloudEvtGrants, err := autheval.UserGrantMap(&data, accessReq.Asset)
 	if err != nil {
 		return richerrors.Error{
@@ -209,6 +222,8 @@ func (s *Service) evaluateSacdDoc(ctx context.Context, record *cloudevent.RawEve
 			ExternalMsg: "failed to generate user grant map",
 		}
 	}
+
+	// TODO(lorran) merge template perms and userPermGrants
 
 	if err := autheval.EvaluateCloudEvents(cloudEvtGrants, accessReq.EventFilters); err != nil {
 		err = fmt.Errorf("failed to evaluate cloudevents: %w", err)
@@ -223,6 +238,13 @@ func (s *Service) evaluateSacdDoc(ctx context.Context, record *cloudevent.RawEve
 		return missingPermissionsError(grantee, accessReq.Asset, lacks)
 	}
 	return nil
+}
+
+func (s *Service) getPermissionTemplate(ctx context.Context, permissionTemplateId string) (*models.TemplateData, error) {
+	// TODO(lorran) check if permissionTemplateId is active with contract call (templates(permissionTemplateId))
+	// TODO(lorran) check if Template JSON is in memory, if not, fetch from IPFS
+
+	return nil, nil
 }
 
 func (s *Service) ValidateAccessViaRecord(ctx context.Context, accessReq *NFTAccessRequest, ethAddr common.Address) error {
