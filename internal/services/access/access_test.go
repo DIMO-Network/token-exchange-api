@@ -32,7 +32,8 @@ func TestAccessService_ValidateAccess(t *testing.T) {
 	mockErc1271Factory := NewMockerc1271Mgr(mockCtrl)
 	mockErc1271Factory.EXPECT().NewErc1271(gomock.Any(), gomock.Any()).Return(mockErc1271, nil).AnyTimes()
 
-	accessService, err := NewAccessService(mockipfs, mockSacd, nil)
+	// TODO(lorran) mock template
+	accessService, err := NewAccessService(mockipfs, mockSacd, nil, nil)
 	require.NoError(t, err)
 	accessService.erc1271Mgr = mockErc1271Factory
 

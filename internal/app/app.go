@@ -9,6 +9,7 @@ import (
 	"github.com/DIMO-Network/shared/pkg/middleware/metrics"
 	"github.com/DIMO-Network/token-exchange-api/internal/config"
 	"github.com/DIMO-Network/token-exchange-api/internal/contracts/sacd"
+	"github.com/DIMO-Network/token-exchange-api/internal/contracts/template"
 	"github.com/DIMO-Network/token-exchange-api/internal/controllers/httpcontroller"
 	"github.com/DIMO-Network/token-exchange-api/internal/controllers/rpc"
 	"github.com/DIMO-Network/token-exchange-api/internal/middleware"
@@ -51,7 +52,12 @@ func CreateServers(logger zerolog.Logger, settings *config.Settings) (*fiber.App
 		return nil, nil, fmt.Errorf("failed to connect to blockchain node: %w", err)
 	}
 
-	accessService, err := access.NewAccessService(ipfsService, sacdContract, ethClient)
+	templateContract, err := template.NewTemplate(settings.ContractAddressTemplate, ethClient)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to connect to blockchain node: %w", err)
+	}
+
+	accessService, err := access.NewAccessService(ipfsService, sacdContract, templateContract, ethClient)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to create access service: %w", err)
 	}

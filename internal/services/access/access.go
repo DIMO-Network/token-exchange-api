@@ -13,6 +13,7 @@ import (
 	"github.com/DIMO-Network/token-exchange-api/internal/autheval"
 	"github.com/DIMO-Network/token-exchange-api/internal/contracts/erc1271"
 	"github.com/DIMO-Network/token-exchange-api/internal/contracts/sacd"
+	"github.com/DIMO-Network/token-exchange-api/internal/contracts/template"
 	"github.com/DIMO-Network/token-exchange-api/internal/models"
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -49,6 +50,10 @@ type SACDInterface interface {
 	GetPermissions(opts *bind.CallOpts, asset common.Address, tokenID *big.Int, grantee common.Address, permissions *big.Int) (*big.Int, error)
 }
 
+type TemplateInterface interface {
+	Templates(opts *bind.CallOpts, templateId *big.Int) (template.ITemplateTemplateData, error)
+}
+
 type erc1271Mgr interface {
 	NewErc1271(address common.Address, backend bind.ContractBackend) (Erc1271Interface, error)
 }
@@ -76,15 +81,17 @@ type NFTAccessRequest struct {
 	EventFilters []autheval.EventFilter `json:"eventFilters"`
 }
 type Service struct {
-	sacdContract SACDInterface
-	ipfsClient   IPFSClient
-	ethClient    *ethclient.Client
+	sacdContract     SACDInterface
+	templateContract TemplateInterface
+	ipfsClient       IPFSClient
+	ethClient        *ethclient.Client
 	// I don't like this, but it's the only way to get the mock to work.
 	erc1271Mgr erc1271Mgr
 }
 
 func NewAccessService(ipfsService IPFSClient,
 	sacd SACDInterface,
+	template TemplateInterface,
 	ethClient *ethclient.Client) (*Service, error) {
 	return &Service{
 		sacdContract: sacd,
@@ -202,7 +209,7 @@ func (s *Service) evaluateSacdDoc(ctx context.Context, record *cloudevent.RawEve
 	}
 
 	if data.PermissionTemplateId != "" || data.PermissionTemplateId != "0" {
-		templateData, err := s.getPermissionTemplate(ctx, data.PermissionTemplateId)
+		templatePermissions, err := s.getTemplatePermissions(ctx, data.PermissionTemplateId)
 		if err != nil {
 			return richerrors.Error{
 				Code:        http.StatusUnauthorized,
@@ -210,8 +217,6 @@ func (s *Service) evaluateSacdDoc(ctx context.Context, record *cloudevent.RawEve
 				ExternalMsg: "failed to get permission template",
 			}
 		}
-
-		// TODO(lorran) get perms like in autheval.UserGrantMap(&data, accessReq.Asset)
 	}
 
 	userPermGrants, cloudEvtGrants, err := autheval.UserGrantMap(&data, accessReq.Asset)
@@ -240,8 +245,24 @@ func (s *Service) evaluateSacdDoc(ctx context.Context, record *cloudevent.RawEve
 	return nil
 }
 
-func (s *Service) getPermissionTemplate(ctx context.Context, permissionTemplateId string) (*models.TemplateData, error) {
-	// TODO(lorran) check if permissionTemplateId is active with contract call (templates(permissionTemplateId))
+// TODO(lorran) move this to another package
+func (s *Service) getTemplatePermissions(ctx context.Context, permissionTemplateId string) (*models.TemplateData, error) {
+	templateId, ok := big.NewInt(0).SetString(permissionTemplateId, 10)
+	if !ok {
+		return nil, fmt.Errorf("could not convert tempalte ID string to big.Int")
+	}
+
+	opts := &bind.CallOpts{
+		Context: ctx,
+	}
+	templateData, err := s.templateContract.Templates(opts, templateId)
+	if err != nil {
+		return nil, richerrors.Error{
+			Code:        http.StatusInternalServerError,
+			Err:         fmt.Errorf("failed to get template data: %w", err),
+			ExternalMsg: "Failed to get template data",
+		}
+	}
 	// TODO(lorran) check if Template JSON is in memory, if not, fetch from IPFS
 
 	return nil, nil
