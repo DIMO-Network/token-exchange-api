@@ -208,17 +208,6 @@ func (s *Service) evaluateSacdDoc(ctx context.Context, record *cloudevent.RawEve
 		}
 	}
 
-	if data.PermissionTemplateId != "" || data.PermissionTemplateId != "0" {
-		templatePermissions, err := s.getTemplatePermissions(ctx, data.PermissionTemplateId)
-		if err != nil {
-			return richerrors.Error{
-				Code:        http.StatusUnauthorized,
-				Err:         fmt.Errorf("failed to get permission template: %w", err),
-				ExternalMsg: "failed to get permission template",
-			}
-		}
-	}
-
 	userPermGrants, cloudEvtGrants, err := autheval.UserGrantMap(&data, accessReq.Asset)
 	if err != nil {
 		return richerrors.Error{
@@ -227,8 +216,6 @@ func (s *Service) evaluateSacdDoc(ctx context.Context, record *cloudevent.RawEve
 			ExternalMsg: "failed to generate user grant map",
 		}
 	}
-
-	// TODO(lorran) merge template perms and userPermGrants
 
 	if err := autheval.EvaluateCloudEvents(cloudEvtGrants, accessReq.EventFilters); err != nil {
 		err = fmt.Errorf("failed to evaluate cloudevents: %w", err)
@@ -243,29 +230,6 @@ func (s *Service) evaluateSacdDoc(ctx context.Context, record *cloudevent.RawEve
 		return missingPermissionsError(grantee, accessReq.Asset, lacks)
 	}
 	return nil
-}
-
-// TODO(lorran) move this to another package
-func (s *Service) getTemplatePermissions(ctx context.Context, permissionTemplateId string) (*models.TemplateData, error) {
-	templateId, ok := big.NewInt(0).SetString(permissionTemplateId, 10)
-	if !ok {
-		return nil, fmt.Errorf("could not convert tempalte ID string to big.Int")
-	}
-
-	opts := &bind.CallOpts{
-		Context: ctx,
-	}
-	templateData, err := s.templateContract.Templates(opts, templateId)
-	if err != nil {
-		return nil, richerrors.Error{
-			Code:        http.StatusInternalServerError,
-			Err:         fmt.Errorf("failed to get template data: %w", err),
-			ExternalMsg: "Failed to get template data",
-		}
-	}
-	// TODO(lorran) check if Template JSON is in memory, if not, fetch from IPFS
-
-	return nil, nil
 }
 
 func (s *Service) ValidateAccessViaRecord(ctx context.Context, accessReq *NFTAccessRequest, ethAddr common.Address) error {
