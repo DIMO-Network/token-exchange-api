@@ -3,7 +3,6 @@ package access
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"math/big"
 	"net/http"
@@ -11,15 +10,13 @@ import (
 	"github.com/DIMO-Network/cloudevent"
 	"github.com/DIMO-Network/server-garage/pkg/richerrors"
 	"github.com/DIMO-Network/token-exchange-api/internal/autheval"
-	"github.com/DIMO-Network/token-exchange-api/internal/contracts/erc1271"
 	"github.com/DIMO-Network/token-exchange-api/internal/contracts/sacd"
 	"github.com/DIMO-Network/token-exchange-api/internal/contracts/template"
 	"github.com/DIMO-Network/token-exchange-api/internal/ipfsdoc"
 	"github.com/DIMO-Network/token-exchange-api/internal/models"
-	"github.com/ethereum/go-ethereum/accounts"
+	"github.com/DIMO-Network/token-exchange-api/internal/signature"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/rs/zerolog"
 )
@@ -55,21 +52,16 @@ type TemplateInterface interface {
 	Templates(opts *bind.CallOpts, templateID *big.Int) (template.ITemplateTemplateData, error)
 }
 
-type erc1271Mgr interface {
-	NewErc1271(address common.Address, backend bind.ContractBackend) (Erc1271Interface, error)
-}
 type Erc1271Interface interface {
 	IsValidSignature(opts *bind.CallOpts, hash [32]byte, signature []byte) ([4]byte, error)
 }
 
-type defaultErc1271Factory struct{}
-
-func (f *defaultErc1271Factory) NewErc1271(address common.Address, backend bind.ContractBackend) (Erc1271Interface, error) {
-	return erc1271.NewErc1271(address, backend)
-}
-
 type IPFSClient interface {
 	Fetch(ctx context.Context, cid string) ([]byte, error)
+}
+
+type SignatureValidator interface {
+	ValidateSignature(ctx context.Context, payload json.RawMessage, signature string, ethAddr common.Address) (bool, error)
 }
 
 // NFTAccessRequest is a request to check access to an NFT.
@@ -84,9 +76,8 @@ type NFTAccessRequest struct {
 type Service struct {
 	sacdContract SACDInterface
 	ipfsClient   IPFSClient
+	sigValidator SignatureValidator
 	ethClient    *ethclient.Client
-	// I don't like this, but it's the only way to get the mock to work.
-	erc1271Mgr erc1271Mgr
 }
 
 func NewAccessService(ipfsService IPFSClient,
@@ -95,8 +86,8 @@ func NewAccessService(ipfsService IPFSClient,
 	return &Service{
 		sacdContract: sacd,
 		ipfsClient:   ipfsService,
+		sigValidator: signature.NewValidator(ethClient),
 		ethClient:    ethClient,
-		erc1271Mgr:   &defaultErc1271Factory{},
 	}, nil
 }
 
@@ -151,7 +142,7 @@ func (s *Service) evaluateSacdDoc(ctx context.Context, record *cloudevent.RawEve
 		}
 	}
 
-	valid, err := s.validateSignature(ctx, record.Data, record.Signature, common.HexToAddress(data.Grantor.Address))
+	valid, err := s.sigValidator.ValidateSignature(ctx, record.Data, record.Signature, common.HexToAddress(data.Grantor.Address))
 	if err != nil {
 		return richerrors.Error{
 			Code:        http.StatusUnauthorized,
@@ -256,61 +247,6 @@ func (s *Service) evaluatePermissionsBits(
 		return missingPermissionsError(ethAddr, asset, lack)
 	}
 
-	return nil
-}
-
-func (s *Service) validateSignature(ctx context.Context, payload json.RawMessage, signature string, ethAddr common.Address) (bool, error) {
-	if signature == "" {
-		return false, errors.New("empty signature")
-	}
-	hexSignature := common.FromHex(signature)
-
-	hashWithPrfx := accounts.TextHash(payload)
-	err := validEOASignature(hashWithPrfx, hexSignature, ethAddr)
-	if err == nil {
-		return true, nil
-	}
-	errs := fmt.Errorf("failed to recover signer: %w", err)
-
-	opts := &bind.CallOpts{
-		Context: ctx,
-	}
-	contract, err := s.erc1271Mgr.NewErc1271(ethAddr, s.ethClient)
-	if err != nil {
-		return false, fmt.Errorf("failed to connect to address: %s: %w", ethAddr.Hex(), err)
-	}
-
-	result, err := contract.IsValidSignature(opts, common.BytesToHash(hashWithPrfx), hexSignature)
-	if err != nil {
-		errs = errors.Join(errs, fmt.Errorf("erc1271 call failed: %w", err))
-		return false, errs
-	}
-	return result == erc1271magicValue, nil
-}
-
-// validEOASignature validates a signature using the ECDSA recovery method.
-func validEOASignature(hashWithPrfx []byte, signature []byte, ethAddr common.Address) error {
-	if len(signature) != 65 {
-		return fmt.Errorf("invalid signature length: %d", len(signature))
-	}
-
-	sigCopy := make([]byte, len(signature))
-	copy(sigCopy, signature)
-
-	sigCopy[64] -= 27
-	if sigCopy[64] != 0 && sigCopy[64] != 1 {
-		return fmt.Errorf("invalid v byte: %d; accepted values 27 or 28", signature[64])
-	}
-	recoveredPubKey, err := crypto.SigToPub(hashWithPrfx, sigCopy)
-	if err != nil {
-		return fmt.Errorf("failed to determine public key from signature: %w", err)
-	}
-	recoveredAddr := crypto.PubkeyToAddress(*recoveredPubKey)
-	fmt.Println("recoveredAddr", recoveredAddr.Hex())
-	fmt.Println("ethAddr", ethAddr.Hex())
-	if recoveredAddr != ethAddr {
-		return fmt.Errorf("invalid signature: %s", recoveredAddr.Hex())
-	}
 	return nil
 }
 
