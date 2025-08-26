@@ -176,11 +176,11 @@ func UserGrantMap(ctx context.Context, data *models.SACDData, assetDID cloudeven
 			}
 
 			// Merge template permissions into userPermGrants
-			// for perm, granted := range templatePerms {
-			// 	if granted {
-			// 		userPermGrants[perm] = true
-			// 	}
-			// }
+			for perm, granted := range templatePerms {
+				if granted {
+					userPermGrants[perm] = true
+				}
+			}
 		}
 
 		switch agreement.Type {
