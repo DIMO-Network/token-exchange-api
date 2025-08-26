@@ -17,6 +17,7 @@ type Settings struct {
 	UsersAPIGRPCAddress      string         `yaml:"USERS_API_GRPC_ADDRESS"`
 	ContractAddressWhitelist string         `yaml:"CONTRACT_ADDRESS_WHITELIST"`
 	ContractAddressSacd      common.Address `yaml:"CONTRACT_ADDRESS_SACD"`
+	ContractAddressTemplate  common.Address `yaml:"CONTRACT_ADDRESS_TEMPLATE"`
 	IdentityURL              string         `yaml:"IDENTITY_URL"`
 	IPFSBaseURL              string         `yaml:"IPFS_BASE_URL"`
 	IPFSTimeout              string         `yaml:"IPFS_TIMEOUT"`

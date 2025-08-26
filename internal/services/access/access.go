@@ -13,6 +13,7 @@ import (
 	"github.com/DIMO-Network/token-exchange-api/internal/autheval"
 	"github.com/DIMO-Network/token-exchange-api/internal/contracts/erc1271"
 	"github.com/DIMO-Network/token-exchange-api/internal/contracts/sacd"
+	"github.com/DIMO-Network/token-exchange-api/internal/contracts/template"
 	"github.com/DIMO-Network/token-exchange-api/internal/models"
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -47,6 +48,10 @@ var PrivilegeNameToID = func() map[string]int64 {
 type SACDInterface interface {
 	CurrentPermissionRecord(opts *bind.CallOpts, asset common.Address, tokenID *big.Int, grantee common.Address) (sacd.ISacdPermissionRecord, error)
 	GetPermissions(opts *bind.CallOpts, asset common.Address, tokenID *big.Int, grantee common.Address, permissions *big.Int) (*big.Int, error)
+}
+
+type TemplateInterface interface {
+	Templates(opts *bind.CallOpts, templateID *big.Int) (template.ITemplateTemplateData, error)
 }
 
 type erc1271Mgr interface {
@@ -137,7 +142,7 @@ func (s *Service) ValidateAccessViaSourceDoc(ctx context.Context, accessReq *NFT
 //   - source: The IPFS content identifier (CID) for the SACD document, typically with an "ipfs://" prefix
 //
 // Returns:
-//   - *PermissionRecord: A pointer to the parsed permission record if valid, or nil if the document
+//   - *cloudevent.RawEvent: A pointer to the parsed raw cloud event if valid, or nil if the document
 //     could not be fetched, parsed, or doesn't have the correct type
 func (s *Service) getValidSacdDoc(ctx context.Context, source string) (*cloudevent.RawEvent, error) {
 	sacdDoc, err := s.ipfsClient.Fetch(ctx, source)
@@ -158,10 +163,10 @@ func (s *Service) getValidSacdDoc(ctx context.Context, source string) (*cloudeve
 		}
 	}
 
-	if record.Type != "dimo.sacd" {
+	if record.Type != "dimo.sacd" && record.Type != "dimo.sacd.template" {
 		return nil, richerrors.Error{
 			Code:        http.StatusUnauthorized,
-			ExternalMsg: fmt.Sprintf("invalid type: expected 'dimo.sacd', got '%s'", record.Type),
+			ExternalMsg: fmt.Sprintf("invalid type: expected 'dimo.sacd' or 'dimo.sacd.template', got '%s'", record.Type),
 		}
 	}
 
