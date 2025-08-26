@@ -21,43 +21,43 @@ import (
 	gomock "go.uber.org/mock/gomock"
 )
 
-// MockTemplateInterface is a mock of TemplateInterface interface.
-type MockTemplateInterface struct {
+// MockTemplate is a mock of Template interface.
+type MockTemplate struct {
 	ctrl     *gomock.Controller
-	recorder *MockTemplateInterfaceMockRecorder
+	recorder *MockTemplateMockRecorder
 	isgomock struct{}
 }
 
-// MockTemplateInterfaceMockRecorder is the mock recorder for MockTemplateInterface.
-type MockTemplateInterfaceMockRecorder struct {
-	mock *MockTemplateInterface
+// MockTemplateMockRecorder is the mock recorder for MockTemplate.
+type MockTemplateMockRecorder struct {
+	mock *MockTemplate
 }
 
-// NewMockTemplateInterface creates a new mock instance.
-func NewMockTemplateInterface(ctrl *gomock.Controller) *MockTemplateInterface {
-	mock := &MockTemplateInterface{ctrl: ctrl}
-	mock.recorder = &MockTemplateInterfaceMockRecorder{mock}
+// NewMockTemplate creates a new mock instance.
+func NewMockTemplate(ctrl *gomock.Controller) *MockTemplate {
+	mock := &MockTemplate{ctrl: ctrl}
+	mock.recorder = &MockTemplateMockRecorder{mock}
 	return mock
 }
 
 // EXPECT returns an object that allows the caller to indicate expected use.
-func (m *MockTemplateInterface) EXPECT() *MockTemplateInterfaceMockRecorder {
+func (m *MockTemplate) EXPECT() *MockTemplateMockRecorder {
 	return m.recorder
 }
 
 // Templates mocks base method.
-func (m *MockTemplateInterface) Templates(opts *bind.CallOpts, templateId *big.Int) (template.ITemplateTemplateData, error) {
+func (m *MockTemplate) Templates(opts *bind.CallOpts, templateID *big.Int) (template.ITemplateTemplateData, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Templates", opts, templateId)
+	ret := m.ctrl.Call(m, "Templates", opts, templateID)
 	ret0, _ := ret[0].(template.ITemplateTemplateData)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Templates indicates an expected call of Templates.
-func (mr *MockTemplateInterfaceMockRecorder) Templates(opts, templateId any) *gomock.Call {
+func (mr *MockTemplateMockRecorder) Templates(opts, templateID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Templates", reflect.TypeOf((*MockTemplateInterface)(nil).Templates), opts, templateId)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Templates", reflect.TypeOf((*MockTemplate)(nil).Templates), opts, templateID)
 }
 
 // MockIPFSClient is a mock of IPFSClient interface.

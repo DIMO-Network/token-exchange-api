@@ -20,7 +20,7 @@ func TestTemplateService_CacheEffectiveness(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockTemplateContract := NewMockTemplateInterface(ctrl)
+	mockTemplateContract := NewMockTemplate(ctrl)
 	mockIPFS := NewMockIPFSClient(ctrl)
 	mockSigValidator := NewMockSignatureValidator(ctrl)
 

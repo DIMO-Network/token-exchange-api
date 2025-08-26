@@ -59,7 +59,7 @@ type IPFSClient interface {
 }
 
 type TemplateService interface {
-	GetTemplatePermissions(ctx context.Context, permissionTemplateId string, assetDID cloudevent.ERC721DID) (map[string]bool, error)
+	GetTemplatePermissions(ctx context.Context, permissionTemplateID string, assetDID cloudevent.ERC721DID) (map[string]bool, error)
 }
 
 type SignatureValidator interface {

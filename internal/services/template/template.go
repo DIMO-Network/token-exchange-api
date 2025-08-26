@@ -19,8 +19,8 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 )
 
-type TemplateInterface interface {
-	Templates(opts *bind.CallOpts, templateId *big.Int) (template.ITemplateTemplateData, error)
+type Template interface {
+	Templates(opts *bind.CallOpts, templateID *big.Int) (template.ITemplateTemplateData, error)
 }
 
 type IPFSClient interface {
@@ -32,7 +32,7 @@ type SignatureValidator interface {
 }
 
 type Service struct {
-	templateContract TemplateInterface
+	templateContract Template
 	ipfsClient       IPFSClient
 	sigValidator     SignatureValidator
 
@@ -42,7 +42,7 @@ type Service struct {
 	cache map[string][]models.TemplateAgreement
 }
 
-func NewTemplateService(templateContract TemplateInterface, ipfsClient IPFSClient, ethClient *ethclient.Client) (*Service, error) {
+func NewTemplateService(templateContract Template, ipfsClient IPFSClient, ethClient *ethclient.Client) (*Service, error) {
 	return &Service{
 		templateContract: templateContract,
 		ipfsClient:       ipfsClient,
@@ -52,16 +52,16 @@ func NewTemplateService(templateContract TemplateInterface, ipfsClient IPFSClien
 }
 
 // GetTemplatePermissions fetches and validates template permissions
-func (s *Service) GetTemplatePermissions(ctx context.Context, permissionTemplateId string, assetDID cloudevent.ERC721DID) (map[string]bool, error) {
+func (s *Service) GetTemplatePermissions(ctx context.Context, permissionTemplateID string, assetDID cloudevent.ERC721DID) (map[string]bool, error) {
 	// Check cache first
 	s.cacheMutex.RLock()
-	if cachedAgreements, exists := s.cache[permissionTemplateId]; exists {
+	if cachedAgreements, exists := s.cache[permissionTemplateID]; exists {
 		s.cacheMutex.RUnlock()
 		return s.extractPermissionsFromAgreements(cachedAgreements, assetDID), nil
 	}
 	s.cacheMutex.RUnlock()
 
-	templateId, ok := big.NewInt(0).SetString(permissionTemplateId, 10)
+	templateID, ok := big.NewInt(0).SetString(permissionTemplateID, 10)
 	if !ok {
 		return nil, fmt.Errorf("could not convert template ID string to big.Int")
 	}
@@ -69,7 +69,7 @@ func (s *Service) GetTemplatePermissions(ctx context.Context, permissionTemplate
 	opts := &bind.CallOpts{
 		Context: ctx,
 	}
-	templateData, err := s.templateContract.Templates(opts, templateId)
+	templateData, err := s.templateContract.Templates(opts, templateID)
 	if err != nil {
 		return nil, richerrors.Error{
 			Code:        http.StatusInternalServerError,
@@ -112,7 +112,7 @@ func (s *Service) GetTemplatePermissions(ctx context.Context, permissionTemplate
 
 	// Cache only the agreements
 	s.cacheMutex.Lock()
-	s.cache[permissionTemplateId] = data.Agreements
+	s.cache[permissionTemplateID] = data.Agreements
 	s.cacheMutex.Unlock()
 
 	templatePermGrants := s.extractPermissionsFromAgreements(data.Agreements, assetDID)

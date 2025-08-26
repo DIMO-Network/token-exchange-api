@@ -219,18 +219,18 @@ func (m *MockTemplateService) EXPECT() *MockTemplateServiceMockRecorder {
 }
 
 // GetTemplatePermissions mocks base method.
-func (m *MockTemplateService) GetTemplatePermissions(ctx context.Context, permissionTemplateId string, assetDID cloudevent.ERC721DID) (map[string]bool, error) {
+func (m *MockTemplateService) GetTemplatePermissions(ctx context.Context, permissionTemplateID string, assetDID cloudevent.ERC721DID) (map[string]bool, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetTemplatePermissions", ctx, permissionTemplateId, assetDID)
+	ret := m.ctrl.Call(m, "GetTemplatePermissions", ctx, permissionTemplateID, assetDID)
 	ret0, _ := ret[0].(map[string]bool)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetTemplatePermissions indicates an expected call of GetTemplatePermissions.
-func (mr *MockTemplateServiceMockRecorder) GetTemplatePermissions(ctx, permissionTemplateId, assetDID any) *gomock.Call {
+func (mr *MockTemplateServiceMockRecorder) GetTemplatePermissions(ctx, permissionTemplateID, assetDID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTemplatePermissions", reflect.TypeOf((*MockTemplateService)(nil).GetTemplatePermissions), ctx, permissionTemplateId, assetDID)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTemplatePermissions", reflect.TypeOf((*MockTemplateService)(nil).GetTemplatePermissions), ctx, permissionTemplateID, assetDID)
 }
 
 // MockSignatureValidator is a mock of SignatureValidator interface.
