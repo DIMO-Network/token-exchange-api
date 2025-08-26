@@ -14,6 +14,7 @@ import (
 	"github.com/DIMO-Network/token-exchange-api/internal/autheval"
 	"github.com/DIMO-Network/token-exchange-api/internal/contracts/sacd"
 	"github.com/DIMO-Network/token-exchange-api/internal/models"
+	"github.com/DIMO-Network/token-exchange-api/internal/services/template"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/gofiber/fiber/v2"
@@ -27,15 +28,16 @@ func TestAccessService_ValidateAccess(t *testing.T) {
 	defer mockCtrl.Finish()
 
 	mockSacd := NewMockSACDInterface(mockCtrl)
+	mockTemplate := NewMockTemplateInterface(mockCtrl)
 	mockipfs := NewMockIPFSClient(mockCtrl)
-	mockErc1271 := NewMockErc1271Interface(mockCtrl)
-	mockErc1271Factory := NewMockerc1271Mgr(mockCtrl)
-	mockErc1271Factory.EXPECT().NewErc1271(gomock.Any(), gomock.Any()).Return(mockErc1271, nil).AnyTimes()
+	mockSigValidator := NewMockSignatureValidator(mockCtrl)
 
-	// TODO(lorran) mock template
-	accessService, err := NewAccessService(mockipfs, mockSacd, nil)
+	templateService, err := template.NewTemplateService(mockTemplate, mockipfs, nil)
 	require.NoError(t, err)
-	accessService.erc1271Mgr = mockErc1271Factory
+
+	accessService, err := NewAccessService(mockipfs, mockSacd, templateService, nil)
+	require.NoError(t, err)
+	accessService.sigValidator = mockSigValidator
 
 	userEthAddr := common.HexToAddress("0x20Ca3bE69a8B95D3093383375F0473A8c6341727")
 
@@ -162,6 +164,7 @@ func TestAccessService_ValidateAccess(t *testing.T) {
 				}
 				mockSacd.EXPECT().CurrentPermissionRecord(gomock.Any(), common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr).Return(permRecord, nil)
 				mockipfs.EXPECT().Fetch(gomock.Any(), permRecord.Source).Return(ipfsBytes, nil)
+				mockSigValidator.EXPECT().ValidateSignature(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil)
 			},
 		},
 		{
@@ -194,7 +197,7 @@ func TestAccessService_ValidateAccess(t *testing.T) {
 				require.NoError(t, err)
 				mockSacd.EXPECT().CurrentPermissionRecord(gomock.Any(), common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr).Return(permRecord, nil)
 				mockipfs.EXPECT().Fetch(gomock.Any(), permRecord.Source).Return(ipfsByte, nil)
-				mockErc1271.EXPECT().IsValidSignature(gomock.Any(), gomock.Any(), gomock.Any()).Return([4]byte{0, 0, 0, 0}, nil)
+				mockSigValidator.EXPECT().ValidateSignature(gomock.Any(), gomock.Any(), "0xbad-signature", gomock.Any()).Return(false, nil)
 			},
 			expectedErrCode: fiber.StatusForbidden,
 		},
@@ -228,7 +231,7 @@ func TestAccessService_ValidateAccess(t *testing.T) {
 				require.NoError(t, err)
 				mockSacd.EXPECT().CurrentPermissionRecord(gomock.Any(), common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr).Return(permRecord, nil)
 				mockipfs.EXPECT().Fetch(gomock.Any(), permRecord.Source).Return(ipfsBytes, nil)
-				mockErc1271.EXPECT().IsValidSignature(gomock.Any(), gomock.Any(), gomock.Any()).Return(erc1271magicValue, nil)
+				mockSigValidator.EXPECT().ValidateSignature(gomock.Any(), gomock.Any(), "0xbad-signature", gomock.Any()).Return(true, nil)
 			},
 		},
 		{
@@ -247,6 +250,7 @@ func TestAccessService_ValidateAccess(t *testing.T) {
 			mockSetup: func(*testing.T) {
 				mockSacd.EXPECT().CurrentPermissionRecord(gomock.Any(), common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr).Return(emptyPermRecord, nil)
 				mockipfs.EXPECT().Fetch(gomock.Any(), gomock.Any()).Return(ipfsBytes, nil)
+				mockSigValidator.EXPECT().ValidateSignature(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil)
 			},
 			expectedErrCode: fiber.StatusForbidden,
 		},

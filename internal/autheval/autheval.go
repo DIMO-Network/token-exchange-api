@@ -1,6 +1,7 @@
 package autheval
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"math/big"
@@ -18,6 +19,10 @@ type EventFilter struct {
 	EventType string   `json:"eventType"`
 	Source    string   `json:"source"`
 	IDs       []string `json:"ids"`
+}
+
+type TemplateService interface {
+	GetTemplatePermissions(ctx context.Context, permissionTemplateID string, assetDID cloudevent.ERC721DID) (map[string]bool, error)
 }
 
 // EvaluatePermissions checks if all requested privileges are present in the user permissions
@@ -143,7 +148,7 @@ func EvaluateIDsByGrantSource(globalGrants *set.StringSet, sourceGrants *set.Str
 }
 
 // UserGrantMap extracts permission and CloudEvent grants from SACD data
-func UserGrantMap(data *models.SACDData, assetDID cloudevent.ERC721DID) (map[string]bool, map[string]map[string]*set.StringSet, error) {
+func UserGrantMap(ctx context.Context, data *models.SACDData, assetDID cloudevent.ERC721DID, templateService TemplateService) (map[string]bool, map[string]map[string]*set.StringSet, error) {
 	userPermGrants := make(map[string]bool)
 	// type -> source -> ids
 	cloudEvtGrants := make(map[string]map[string]*set.StringSet)
@@ -164,7 +169,18 @@ func UserGrantMap(data *models.SACDData, assetDID cloudevent.ERC721DID) (map[str
 		}
 
 		if agreement.PermissionTemplateID != "" && agreement.PermissionTemplateID != "0" {
-			// TODO(lorran) get permissions from template
+			templatePerms, err := templateService.GetTemplatePermissions(ctx, agreement.PermissionTemplateID, assetDID)
+			if err != nil {
+				// TODO(lorran) I don't think we want to return here
+				return nil, nil, fmt.Errorf("failed to get template permissions: %w", err)
+			}
+
+			// Merge template permissions into userPermGrants
+			for perm, granted := range templatePerms {
+				if granted {
+					userPermGrants[perm] = true
+				}
+			}
 		}
 
 		switch agreement.Type {

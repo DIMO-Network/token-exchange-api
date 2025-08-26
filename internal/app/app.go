@@ -9,11 +9,13 @@ import (
 	"github.com/DIMO-Network/shared/pkg/middleware/metrics"
 	"github.com/DIMO-Network/token-exchange-api/internal/config"
 	"github.com/DIMO-Network/token-exchange-api/internal/contracts/sacd"
+	"github.com/DIMO-Network/token-exchange-api/internal/contracts/template"
 	"github.com/DIMO-Network/token-exchange-api/internal/controllers/httpcontroller"
 	"github.com/DIMO-Network/token-exchange-api/internal/controllers/rpc"
 	"github.com/DIMO-Network/token-exchange-api/internal/middleware"
 	"github.com/DIMO-Network/token-exchange-api/internal/services"
 	"github.com/DIMO-Network/token-exchange-api/internal/services/access"
+	template_service "github.com/DIMO-Network/token-exchange-api/internal/services/template"
 	txgrpc "github.com/DIMO-Network/token-exchange-api/pkg/grpc"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -51,7 +53,17 @@ func CreateServers(logger zerolog.Logger, settings *config.Settings) (*fiber.App
 		return nil, nil, fmt.Errorf("failed to connect to blockchain node: %w", err)
 	}
 
-	accessService, err := access.NewAccessService(ipfsService, sacdContract, ethClient)
+	templateContract, err := template.NewTemplate(settings.ContractAddressTemplate, ethClient)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to connect to blockchain node: %w", err)
+	}
+
+	templateService, err := template_service.NewTemplateService(templateContract, ipfsService, ethClient)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to create template service: %w", err)
+	}
+
+	accessService, err := access.NewAccessService(ipfsService, sacdContract, templateService, ethClient)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to create access service: %w", err)
 	}

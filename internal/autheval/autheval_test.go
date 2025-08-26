@@ -1,6 +1,7 @@
 package autheval
 
 import (
+	"context"
 	"math/big"
 	"testing"
 	"time"
@@ -278,7 +279,7 @@ func TestEvaluateCloudEvents_Attestations(t *testing.T) {
 				set3.Add("6")
 				set3.Add("7")
 				return map[string]map[string]*set.StringSet{
-					cloudevent.TypeAttestation: map[string]*set.StringSet{
+					cloudevent.TypeAttestation: {
 						common.BigToAddress(big.NewInt(1)).Hex(): set1,
 						common.BigToAddress(big.NewInt(2)).Hex(): set2,
 						tokenclaims.GlobalIdentifier:             set3,
@@ -328,7 +329,7 @@ func TestEvaluateCloudEvents_Attestations(t *testing.T) {
 				set3.Add("6")
 				set3.Add("7")
 				return map[string]map[string]*set.StringSet{
-					cloudevent.TypeAttestation: map[string]*set.StringSet{
+					cloudevent.TypeAttestation: {
 						common.BigToAddress(big.NewInt(1)).Hex(): set1,
 						common.BigToAddress(big.NewInt(2)).Hex(): set2,
 						tokenclaims.GlobalIdentifier:             set3,
@@ -341,11 +342,11 @@ func TestEvaluateCloudEvents_Attestations(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			permData.Agreements = tc.agreement
 			expectedCEGrants := tc.expectedCEGrants()
-			_, ceGrants, err := UserGrantMap(&permData, cloudevent.ERC721DID{
+			_, ceGrants, err := UserGrantMap(context.Background(), &permData, cloudevent.ERC721DID{
 				ContractAddress: common.HexToAddress(nftCtrAddr),
 				TokenID:         big.NewInt(123),
 				ChainID:         1,
-			})
+			}, nil)
 			require.Nil(t, err)
 			for eventType, evtMap := range expectedCEGrants {
 				_, ok := ceGrants[eventType]

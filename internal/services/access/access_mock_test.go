@@ -11,9 +11,11 @@ package access
 
 import (
 	context "context"
+	json "encoding/json"
 	big "math/big"
 	reflect "reflect"
 
+	cloudevent "github.com/DIMO-Network/cloudevent"
 	sacd "github.com/DIMO-Network/token-exchange-api/internal/contracts/sacd"
 	template "github.com/DIMO-Network/token-exchange-api/internal/contracts/template"
 	bind "github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -114,45 +116,6 @@ func (mr *MockTemplateInterfaceMockRecorder) Templates(opts, templateID any) *go
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Templates", reflect.TypeOf((*MockTemplateInterface)(nil).Templates), opts, templateID)
 }
 
-// Mockerc1271Mgr is a mock of erc1271Mgr interface.
-type Mockerc1271Mgr struct {
-	ctrl     *gomock.Controller
-	recorder *Mockerc1271MgrMockRecorder
-	isgomock struct{}
-}
-
-// Mockerc1271MgrMockRecorder is the mock recorder for Mockerc1271Mgr.
-type Mockerc1271MgrMockRecorder struct {
-	mock *Mockerc1271Mgr
-}
-
-// NewMockerc1271Mgr creates a new mock instance.
-func NewMockerc1271Mgr(ctrl *gomock.Controller) *Mockerc1271Mgr {
-	mock := &Mockerc1271Mgr{ctrl: ctrl}
-	mock.recorder = &Mockerc1271MgrMockRecorder{mock}
-	return mock
-}
-
-// EXPECT returns an object that allows the caller to indicate expected use.
-func (m *Mockerc1271Mgr) EXPECT() *Mockerc1271MgrMockRecorder {
-	return m.recorder
-}
-
-// NewErc1271 mocks base method.
-func (m *Mockerc1271Mgr) NewErc1271(address common.Address, backend bind.ContractBackend) (Erc1271Interface, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "NewErc1271", address, backend)
-	ret0, _ := ret[0].(Erc1271Interface)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// NewErc1271 indicates an expected call of NewErc1271.
-func (mr *Mockerc1271MgrMockRecorder) NewErc1271(address, backend any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewErc1271", reflect.TypeOf((*Mockerc1271Mgr)(nil).NewErc1271), address, backend)
-}
-
 // MockErc1271Interface is a mock of Erc1271Interface interface.
 type MockErc1271Interface struct {
 	ctrl     *gomock.Controller
@@ -229,4 +192,82 @@ func (m *MockIPFSClient) Fetch(ctx context.Context, cid string) ([]byte, error) 
 func (mr *MockIPFSClientMockRecorder) Fetch(ctx, cid any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Fetch", reflect.TypeOf((*MockIPFSClient)(nil).Fetch), ctx, cid)
+}
+
+// MockTemplateService is a mock of TemplateService interface.
+type MockTemplateService struct {
+	ctrl     *gomock.Controller
+	recorder *MockTemplateServiceMockRecorder
+	isgomock struct{}
+}
+
+// MockTemplateServiceMockRecorder is the mock recorder for MockTemplateService.
+type MockTemplateServiceMockRecorder struct {
+	mock *MockTemplateService
+}
+
+// NewMockTemplateService creates a new mock instance.
+func NewMockTemplateService(ctrl *gomock.Controller) *MockTemplateService {
+	mock := &MockTemplateService{ctrl: ctrl}
+	mock.recorder = &MockTemplateServiceMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockTemplateService) EXPECT() *MockTemplateServiceMockRecorder {
+	return m.recorder
+}
+
+// GetTemplatePermissions mocks base method.
+func (m *MockTemplateService) GetTemplatePermissions(ctx context.Context, permissionTemplateID string, assetDID cloudevent.ERC721DID) (map[string]bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetTemplatePermissions", ctx, permissionTemplateID, assetDID)
+	ret0, _ := ret[0].(map[string]bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetTemplatePermissions indicates an expected call of GetTemplatePermissions.
+func (mr *MockTemplateServiceMockRecorder) GetTemplatePermissions(ctx, permissionTemplateID, assetDID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTemplatePermissions", reflect.TypeOf((*MockTemplateService)(nil).GetTemplatePermissions), ctx, permissionTemplateID, assetDID)
+}
+
+// MockSignatureValidator is a mock of SignatureValidator interface.
+type MockSignatureValidator struct {
+	ctrl     *gomock.Controller
+	recorder *MockSignatureValidatorMockRecorder
+	isgomock struct{}
+}
+
+// MockSignatureValidatorMockRecorder is the mock recorder for MockSignatureValidator.
+type MockSignatureValidatorMockRecorder struct {
+	mock *MockSignatureValidator
+}
+
+// NewMockSignatureValidator creates a new mock instance.
+func NewMockSignatureValidator(ctrl *gomock.Controller) *MockSignatureValidator {
+	mock := &MockSignatureValidator{ctrl: ctrl}
+	mock.recorder = &MockSignatureValidatorMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockSignatureValidator) EXPECT() *MockSignatureValidatorMockRecorder {
+	return m.recorder
+}
+
+// ValidateSignature mocks base method.
+func (m *MockSignatureValidator) ValidateSignature(ctx context.Context, payload json.RawMessage, signature string, ethAddr common.Address) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ValidateSignature", ctx, payload, signature, ethAddr)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ValidateSignature indicates an expected call of ValidateSignature.
+func (mr *MockSignatureValidatorMockRecorder) ValidateSignature(ctx, payload, signature, ethAddr any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateSignature", reflect.TypeOf((*MockSignatureValidator)(nil).ValidateSignature), ctx, payload, signature, ethAddr)
 }
