@@ -14,6 +14,7 @@ import (
 	"github.com/DIMO-Network/token-exchange-api/internal/contracts/erc1271"
 	"github.com/DIMO-Network/token-exchange-api/internal/contracts/sacd"
 	"github.com/DIMO-Network/token-exchange-api/internal/contracts/template"
+	"github.com/DIMO-Network/token-exchange-api/internal/ipfsdoc"
 	"github.com/DIMO-Network/token-exchange-api/internal/models"
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -126,51 +127,11 @@ func (s *Service) ValidateAccessViaSourceDoc(ctx context.Context, accessReq *NFT
 		}
 	}
 
-	record, err := s.getValidSacdDoc(ctx, resPermRecord.Source)
+	record, err := ipfsdoc.GetValidSacdDoc(ctx, resPermRecord.Source, s.ipfsClient)
 	if err != nil {
 		return err
 	}
 	return s.evaluateSacdDoc(ctx, record, accessReq, ethAddr)
-}
-
-// getValidSacdDoc fetches and validates a SACD from IPFS.
-// It retrieves the document using the provided source identifier, attempts to parse it as JSON,
-// and verifies that it has the correct type for a DIMO SACD document.
-//
-// Parameters:
-//   - ctx: The context for the IPFS request, which can be used for cancellation and timeouts
-//   - source: The IPFS content identifier (CID) for the SACD document, typically with an "ipfs://" prefix
-//
-// Returns:
-//   - *cloudevent.RawEvent: A pointer to the parsed raw cloud event if valid, or nil if the document
-//     could not be fetched, parsed, or doesn't have the correct type
-func (s *Service) getValidSacdDoc(ctx context.Context, source string) (*cloudevent.RawEvent, error) {
-	sacdDoc, err := s.ipfsClient.Fetch(ctx, source)
-	if err != nil {
-		return nil, richerrors.Error{
-			Code:        http.StatusUnauthorized,
-			Err:         fmt.Errorf("failed to fetch source document from IPFS: %w", err),
-			ExternalMsg: "failed to fetch source document from IPFS",
-		}
-	}
-
-	var record cloudevent.RawEvent
-	if err := json.Unmarshal(sacdDoc, &record); err != nil {
-		return nil, richerrors.Error{
-			Code:        http.StatusUnauthorized,
-			Err:         fmt.Errorf("failed to parse sacd data: %w", err),
-			ExternalMsg: "failed to parse sacd data",
-		}
-	}
-
-	if record.Type != "dimo.sacd" && record.Type != "dimo.sacd.template" {
-		return nil, richerrors.Error{
-			Code:        http.StatusUnauthorized,
-			ExternalMsg: fmt.Sprintf("invalid type: expected 'dimo.sacd' or 'dimo.sacd.template', got '%s'", record.Type),
-		}
-	}
-
-	return &record, nil
 }
 
 func (s *Service) evaluateSacdDoc(ctx context.Context, record *cloudevent.RawEvent, accessReq *NFTAccessRequest, grantee common.Address) error {
