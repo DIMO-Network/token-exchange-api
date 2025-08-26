@@ -15,6 +15,7 @@ import (
 	reflect "reflect"
 
 	sacd "github.com/DIMO-Network/token-exchange-api/internal/contracts/sacd"
+	template "github.com/DIMO-Network/token-exchange-api/internal/contracts/template"
 	bind "github.com/ethereum/go-ethereum/accounts/abi/bind"
 	common "github.com/ethereum/go-ethereum/common"
 	gomock "go.uber.org/mock/gomock"
@@ -72,6 +73,45 @@ func (m *MockSACDInterface) GetPermissions(opts *bind.CallOpts, asset common.Add
 func (mr *MockSACDInterfaceMockRecorder) GetPermissions(opts, asset, tokenID, grantee, permissions any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPermissions", reflect.TypeOf((*MockSACDInterface)(nil).GetPermissions), opts, asset, tokenID, grantee, permissions)
+}
+
+// MockTemplateInterface is a mock of TemplateInterface interface.
+type MockTemplateInterface struct {
+	ctrl     *gomock.Controller
+	recorder *MockTemplateInterfaceMockRecorder
+	isgomock struct{}
+}
+
+// MockTemplateInterfaceMockRecorder is the mock recorder for MockTemplateInterface.
+type MockTemplateInterfaceMockRecorder struct {
+	mock *MockTemplateInterface
+}
+
+// NewMockTemplateInterface creates a new mock instance.
+func NewMockTemplateInterface(ctrl *gomock.Controller) *MockTemplateInterface {
+	mock := &MockTemplateInterface{ctrl: ctrl}
+	mock.recorder = &MockTemplateInterfaceMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockTemplateInterface) EXPECT() *MockTemplateInterfaceMockRecorder {
+	return m.recorder
+}
+
+// Templates mocks base method.
+func (m *MockTemplateInterface) Templates(opts *bind.CallOpts, templateID *big.Int) (template.ITemplateTemplateData, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Templates", opts, templateID)
+	ret0, _ := ret[0].(template.ITemplateTemplateData)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Templates indicates an expected call of Templates.
+func (mr *MockTemplateInterfaceMockRecorder) Templates(opts, templateID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Templates", reflect.TypeOf((*MockTemplateInterface)(nil).Templates), opts, templateID)
 }
 
 // Mockerc1271Mgr is a mock of erc1271Mgr interface.

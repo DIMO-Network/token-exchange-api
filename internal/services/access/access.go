@@ -51,7 +51,7 @@ type SACDInterface interface {
 }
 
 type TemplateInterface interface {
-	Templates(opts *bind.CallOpts, templateId *big.Int) (template.ITemplateTemplateData, error)
+	Templates(opts *bind.CallOpts, templateID *big.Int) (template.ITemplateTemplateData, error)
 }
 
 type erc1271Mgr interface {
@@ -81,17 +81,15 @@ type NFTAccessRequest struct {
 	EventFilters []autheval.EventFilter `json:"eventFilters"`
 }
 type Service struct {
-	sacdContract     SACDInterface
-	templateContract TemplateInterface
-	ipfsClient       IPFSClient
-	ethClient        *ethclient.Client
+	sacdContract SACDInterface
+	ipfsClient   IPFSClient
+	ethClient    *ethclient.Client
 	// I don't like this, but it's the only way to get the mock to work.
 	erc1271Mgr erc1271Mgr
 }
 
 func NewAccessService(ipfsService IPFSClient,
 	sacd SACDInterface,
-	template TemplateInterface,
 	ethClient *ethclient.Client) (*Service, error) {
 	return &Service{
 		sacdContract: sacd,

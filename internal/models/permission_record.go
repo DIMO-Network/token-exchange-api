@@ -34,7 +34,7 @@ type Agreement struct {
 	IDs                  []string     `json:"ids"`
 	EffectiveAt          time.Time    `json:"effectiveAt"`
 	ExpiresAt            time.Time    `json:"expiresAt"`
-	PermissionTemplateId string       `json:"permissionTemplateId"`
+	PermissionTemplateID string       `json:"permissionTemplateID"`
 	Source               string       `json:"source"`
 	Asset                string       `json:"asset"`
 	Permissions          []Permission `json:"permissions"`

@@ -163,7 +163,7 @@ func UserGrantMap(data *models.SACDData, assetDID cloudevent.ERC721DID) (map[str
 			return nil, nil, fmt.Errorf("asset DID %s does not match request DID %s", agreement.Asset, assetDID.String())
 		}
 
-		if agreement.PermissionTemplateId != "" && agreement.PermissionTemplateId != "0" {
+		if agreement.PermissionTemplateID != "" && agreement.PermissionTemplateID != "0" {
 			// TODO(lorran) get permissions from template
 		}
 
