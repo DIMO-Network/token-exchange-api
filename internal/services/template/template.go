@@ -9,12 +9,13 @@ import (
 
 	"github.com/DIMO-Network/cloudevent"
 	"github.com/DIMO-Network/server-garage/pkg/richerrors"
-	"github.com/DIMO-Network/token-exchange-api/internal/autheval"
 	"github.com/DIMO-Network/token-exchange-api/internal/contracts/template"
 	"github.com/DIMO-Network/token-exchange-api/internal/ipfsdoc"
 	"github.com/DIMO-Network/token-exchange-api/internal/models"
+	"github.com/DIMO-Network/token-exchange-api/internal/signature"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient"
 )
 
 // TemplateInterface defines the contract interface for template operations
@@ -34,18 +35,18 @@ type SignatureValidator interface {
 
 // Service handles template-related operations
 type Service struct {
-	templateContract   TemplateInterface
-	ipfsClient         IPFSClient
-	signatureValidator SignatureValidator
+	templateContract TemplateInterface
+	ipfsClient       IPFSClient
+	sigValidator     SignatureValidator
 }
 
 // NewTemplateService creates a new template service
-func NewTemplateService(templateContract TemplateInterface, ipfsClient IPFSClient, signatureValidator SignatureValidator) *Service {
+func NewTemplateService(templateContract TemplateInterface, ipfsClient IPFSClient, ethClient *ethclient.Client) (*Service, error) {
 	return &Service{
-		templateContract:   templateContract,
-		ipfsClient:         ipfsClient,
-		signatureValidator: signatureValidator,
-	}
+		templateContract: templateContract,
+		ipfsClient:       ipfsClient,
+		sigValidator:     signature.NewValidator(ethClient),
+	}, nil
 }
 
 // GetTemplatePermissions fetches and validates template permissions
@@ -83,7 +84,7 @@ func (s *Service) GetTemplatePermissions(ctx context.Context, permissionTemplate
 	}
 
 	// Validate template owner signature
-	valid, err := s.signatureValidator.ValidateSignature(ctx, rawEvent.Data, rawEvent.Signature, common.HexToAddress(data.Owner.Address))
+	valid, err := s.sigValidator.ValidateSignature(ctx, rawEvent.Data, rawEvent.Signature, common.HexToAddress(data.Owner.Address))
 	if err != nil {
 		return nil, richerrors.Error{
 			Code:        http.StatusUnauthorized,
@@ -100,12 +101,20 @@ func (s *Service) GetTemplatePermissions(ctx context.Context, permissionTemplate
 	}
 
 	// Extract permissions from template agreements
-	templatePermGrants, err := autheval.TemplateGrantMap(data.Agreements, assetDID)
-	if err != nil {
-		return nil, richerrors.Error{
-			Code:        http.StatusUnauthorized,
-			Err:         fmt.Errorf("failed to generate template grant map: %w", err),
-			ExternalMsg: "failed to generate template grant map",
+	templatePermGrants := make(map[string]bool)
+	for _, agreement := range data.Agreements {
+		// TODO(lorran) agreement.Asset does not have :id, fix this if needed
+		if agreement.Asset != assetDID.String() {
+			// TODO(lorran) Consider if we want an error here
+			continue
+		}
+
+		switch agreement.Type {
+		case "permission":
+			// Add permissions from this agreement
+			for _, permission := range agreement.Permissions {
+				templatePermGrants[permission.Name] = true
+			}
 		}
 	}
 

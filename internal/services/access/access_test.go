@@ -14,6 +14,7 @@ import (
 	"github.com/DIMO-Network/token-exchange-api/internal/autheval"
 	"github.com/DIMO-Network/token-exchange-api/internal/contracts/sacd"
 	"github.com/DIMO-Network/token-exchange-api/internal/models"
+	"github.com/DIMO-Network/token-exchange-api/internal/services/template"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/gofiber/fiber/v2"
@@ -27,10 +28,14 @@ func TestAccessService_ValidateAccess(t *testing.T) {
 	defer mockCtrl.Finish()
 
 	mockSacd := NewMockSACDInterface(mockCtrl)
+	mockTemplate := NewMockTemplateInterface(mockCtrl)
 	mockipfs := NewMockIPFSClient(mockCtrl)
 	mockSigValidator := NewMockSignatureValidator(mockCtrl)
 
-	accessService, err := NewAccessService(mockipfs, mockSacd, nil)
+	templateService, err := template.NewTemplateService(mockTemplate, mockipfs, nil)
+	require.NoError(t, err)
+
+	accessService, err := NewAccessService(mockipfs, mockSacd, templateService, nil)
 	require.NoError(t, err)
 	accessService.sigValidator = mockSigValidator
 

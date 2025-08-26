@@ -21,8 +21,6 @@ import (
 	"github.com/rs/zerolog"
 )
 
-var erc1271magicValue = [4]byte{0x16, 0x26, 0xba, 0x7e}
-
 // privilege prefix to denote the 1:1 mapping to bit values and to make them easier to deprecate if desired in the future
 var PrivilegeIDToName = map[int64]string{
 	1: "privilege:GetNonLocationHistory",  // All-time non-location data
@@ -60,6 +58,10 @@ type IPFSClient interface {
 	Fetch(ctx context.Context, cid string) ([]byte, error)
 }
 
+type TemplateService interface {
+	GetTemplatePermissions(ctx context.Context, permissionTemplateId string, assetDID cloudevent.ERC721DID) (map[string]bool, error)
+}
+
 type SignatureValidator interface {
 	ValidateSignature(ctx context.Context, payload json.RawMessage, signature string, ethAddr common.Address) (bool, error)
 }
@@ -74,20 +76,21 @@ type NFTAccessRequest struct {
 	EventFilters []autheval.EventFilter `json:"eventFilters"`
 }
 type Service struct {
-	sacdContract SACDInterface
-	ipfsClient   IPFSClient
-	sigValidator SignatureValidator
-	ethClient    *ethclient.Client
+	sacdContract    SACDInterface
+	ipfsClient      IPFSClient
+	templateService TemplateService
+	sigValidator    SignatureValidator
 }
 
 func NewAccessService(ipfsService IPFSClient,
 	sacd SACDInterface,
+	templateService TemplateService,
 	ethClient *ethclient.Client) (*Service, error) {
 	return &Service{
-		sacdContract: sacd,
-		ipfsClient:   ipfsService,
-		sigValidator: signature.NewValidator(ethClient),
-		ethClient:    ethClient,
+		sacdContract:    sacd,
+		ipfsClient:      ipfsService,
+		sigValidator:    signature.NewValidator(ethClient),
+		templateService: templateService,
 	}, nil
 }
 
@@ -158,7 +161,7 @@ func (s *Service) evaluateSacdDoc(ctx context.Context, record *cloudevent.RawEve
 		}
 	}
 
-	userPermGrants, cloudEvtGrants, err := autheval.UserGrantMap(&data, accessReq.Asset)
+	userPermGrants, cloudEvtGrants, err := autheval.UserGrantMap(ctx, &data, accessReq.Asset, s.templateService)
 	if err != nil {
 		return richerrors.Error{
 			Code:        http.StatusUnauthorized,

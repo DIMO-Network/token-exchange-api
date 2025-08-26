@@ -15,6 +15,7 @@ import (
 	big "math/big"
 	reflect "reflect"
 
+	cloudevent "github.com/DIMO-Network/cloudevent"
 	sacd "github.com/DIMO-Network/token-exchange-api/internal/contracts/sacd"
 	template "github.com/DIMO-Network/token-exchange-api/internal/contracts/template"
 	bind "github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -191,6 +192,45 @@ func (m *MockIPFSClient) Fetch(ctx context.Context, cid string) ([]byte, error) 
 func (mr *MockIPFSClientMockRecorder) Fetch(ctx, cid any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Fetch", reflect.TypeOf((*MockIPFSClient)(nil).Fetch), ctx, cid)
+}
+
+// MockTemplateService is a mock of TemplateService interface.
+type MockTemplateService struct {
+	ctrl     *gomock.Controller
+	recorder *MockTemplateServiceMockRecorder
+	isgomock struct{}
+}
+
+// MockTemplateServiceMockRecorder is the mock recorder for MockTemplateService.
+type MockTemplateServiceMockRecorder struct {
+	mock *MockTemplateService
+}
+
+// NewMockTemplateService creates a new mock instance.
+func NewMockTemplateService(ctrl *gomock.Controller) *MockTemplateService {
+	mock := &MockTemplateService{ctrl: ctrl}
+	mock.recorder = &MockTemplateServiceMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockTemplateService) EXPECT() *MockTemplateServiceMockRecorder {
+	return m.recorder
+}
+
+// GetTemplatePermissions mocks base method.
+func (m *MockTemplateService) GetTemplatePermissions(ctx context.Context, permissionTemplateId string, assetDID cloudevent.ERC721DID) (map[string]bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetTemplatePermissions", ctx, permissionTemplateId, assetDID)
+	ret0, _ := ret[0].(map[string]bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetTemplatePermissions indicates an expected call of GetTemplatePermissions.
+func (mr *MockTemplateServiceMockRecorder) GetTemplatePermissions(ctx, permissionTemplateId, assetDID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTemplatePermissions", reflect.TypeOf((*MockTemplateService)(nil).GetTemplatePermissions), ctx, permissionTemplateId, assetDID)
 }
 
 // MockSignatureValidator is a mock of SignatureValidator interface.
