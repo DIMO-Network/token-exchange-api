@@ -192,7 +192,6 @@ func UserGrantMap(ctx context.Context, data *models.SACDData, assetDID cloudeven
 	// Collect direct SACD permissions
 	sacdPermissions := make(map[string]bool)
 	var templateResult *template.TemplatePermissionsResult
-	var hasTemplate bool
 
 	// Single loop to process all agreements
 	for _, agreement := range data.Agreements {
@@ -229,21 +228,19 @@ func UserGrantMap(ctx context.Context, data *models.SACDData, assetDID cloudeven
 			}
 
 			// Handle template if present
-			if agreement.PermissionTemplateID != "" && agreement.PermissionTemplateID != "0" && !hasTemplate {
+			if agreement.PermissionTemplateID != "" && agreement.PermissionTemplateID != "0" {
 				var err error
 				templateResult, err = templateService.GetTemplatePermissions(ctx, agreement.PermissionTemplateID, assetDID)
 				if err != nil {
-					// TODO(lorran) I don't think we want to return here
 					return nil, nil, fmt.Errorf("failed to get template permissions: %w", err)
 				}
-				hasTemplate = true
 			}
 		}
 	}
 
 	var userPermGrants map[string]bool
 	// Combine permissions using the autheval package logic
-	if hasTemplate {
+	if templateResult != nil {
 		userPermGrants = combinePermissions(sacdPermissions, templateResult)
 	} else {
 		// No template involved, use SACD permissions directly

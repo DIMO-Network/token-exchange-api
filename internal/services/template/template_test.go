@@ -3,6 +3,7 @@ package template
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"math/big"
 	"testing"
 
@@ -52,7 +53,7 @@ func TestTemplateService_CacheEffectiveness(t *testing.T) {
 		Agreements: []models.TemplateAgreement{
 			{
 				Type:  "permission",
-				Asset: assetDID.String(),
+				Asset: fmt.Sprintf("did:erc721:%d:%s", assetDID.ChainID, assetDID.ContractAddress.Hex()),
 				Permissions: []models.Permission{
 					{Name: "read:data"},
 					{Name: "write:data"},

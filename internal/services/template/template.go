@@ -128,6 +128,13 @@ func (s *Service) GetTemplatePermissions(ctx context.Context, permissionTemplate
 func (s *Service) getTemplatePermissionsAndStatus(ctx context.Context, permissionTemplateID string, agreements []models.TemplateAgreement, assetDID cloudevent.ERC721DID) (*TemplatePermissionsResult, error) {
 	templatePermissions := s.extractPermissionsFromAgreements(agreements, assetDID)
 
+	if len(templatePermissions) == 0 {
+		return &TemplatePermissionsResult{
+			Permissions: nil,
+			IsActive:    false,
+		}, nil
+	}
+
 	templateID, ok := big.NewInt(0).SetString(permissionTemplateID, 10)
 	if !ok {
 		return nil, fmt.Errorf("could not convert template ID string to big.Int")
@@ -154,10 +161,11 @@ func (s *Service) getTemplatePermissionsAndStatus(ctx context.Context, permissio
 func (s *Service) extractPermissionsFromAgreements(agreements []models.TemplateAgreement, assetDID cloudevent.ERC721DID) map[string]bool {
 	templatePermGrants := make(map[string]bool)
 
+	// Create the base DID without the token ID for comparison
+	baseDID := fmt.Sprintf("did:erc721:%d:%s", assetDID.ChainID, assetDID.ContractAddress.Hex())
+
 	for _, agreement := range agreements {
-		// TODO(lorran) agreement.Asset does not have :id, fix this if needed
-		if agreement.Asset != assetDID.String() {
-			// TODO(lorran) Consider if we want an error here
+		if agreement.Asset != baseDID {
 			continue
 		}
 
