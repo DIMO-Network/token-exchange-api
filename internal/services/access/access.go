@@ -61,7 +61,7 @@ type IPFSClient interface {
 }
 
 type TemplateService interface {
-	GetTemplatePermissions(ctx context.Context, permissionTemplateID string, assetDID cloudevent.ERC721DID) (*template_service.TemplatePermissionsResult, error)
+	GetTemplatePermissions(ctx context.Context, permissionTemplateID string, assetDID cloudevent.ERC721DID) (*template_service.PermissionsResult, error)
 }
 
 type SignatureValidator interface {

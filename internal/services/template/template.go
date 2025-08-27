@@ -32,7 +32,7 @@ type SignatureValidator interface {
 	ValidateSignature(ctx context.Context, payload json.RawMessage, signature string, ethAddr common.Address) (bool, error)
 }
 
-type TemplatePermissionsResult struct {
+type PermissionsResult struct {
 	Permissions map[string]bool
 	IsActive    bool
 }
@@ -58,7 +58,7 @@ func NewTemplateService(templateContract Template, ipfsClient IPFSClient, ethCli
 }
 
 // GetTemplatePermissions fetches template permissions and activation status
-func (s *Service) GetTemplatePermissions(ctx context.Context, permissionTemplateID string, assetDID cloudevent.ERC721DID) (*TemplatePermissionsResult, error) {
+func (s *Service) GetTemplatePermissions(ctx context.Context, permissionTemplateID string, assetDID cloudevent.ERC721DID) (*PermissionsResult, error) {
 	// Check cache first
 	s.cacheMutex.RLock()
 	if cachedAgreements, exists := s.cache[permissionTemplateID]; exists {
@@ -125,11 +125,11 @@ func (s *Service) GetTemplatePermissions(ctx context.Context, permissionTemplate
 }
 
 // getTemplatePermissionsAndStatus gets template permissions and activation status
-func (s *Service) getTemplatePermissionsAndStatus(ctx context.Context, permissionTemplateID string, agreements []models.TemplateAgreement, assetDID cloudevent.ERC721DID) (*TemplatePermissionsResult, error) {
+func (s *Service) getTemplatePermissionsAndStatus(ctx context.Context, permissionTemplateID string, agreements []models.TemplateAgreement, assetDID cloudevent.ERC721DID) (*PermissionsResult, error) {
 	templatePermissions := s.extractPermissionsFromAgreements(agreements, assetDID)
 
 	if len(templatePermissions) == 0 {
-		return &TemplatePermissionsResult{
+		return &PermissionsResult{
 			Permissions: nil,
 			IsActive:    false,
 		}, nil
@@ -152,7 +152,7 @@ func (s *Service) getTemplatePermissionsAndStatus(ctx context.Context, permissio
 		}
 	}
 
-	return &TemplatePermissionsResult{
+	return &PermissionsResult{
 		Permissions: templatePermissions,
 		IsActive:    isTemplateActive,
 	}, nil

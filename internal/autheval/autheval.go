@@ -23,7 +23,7 @@ type EventFilter struct {
 }
 
 type TemplateService interface {
-	GetTemplatePermissions(ctx context.Context, permissionTemplateID string, assetDID cloudevent.ERC721DID) (*template.TemplatePermissionsResult, error)
+	GetTemplatePermissions(ctx context.Context, permissionTemplateID string, assetDID cloudevent.ERC721DID) (*template.PermissionsResult, error)
 }
 
 // EvaluatePermissions checks if all requested privileges are present in the user permissions
@@ -149,7 +149,7 @@ func EvaluateIDsByGrantSource(globalGrants *set.StringSet, sourceGrants *set.Str
 }
 
 // combinePermissions combines SACD and template permissions based on template activation status
-func combinePermissions(sacdPermissions map[string]bool, templateResult *template.TemplatePermissionsResult) map[string]bool {
+func combinePermissions(sacdPermissions map[string]bool, templateResult *template.PermissionsResult) map[string]bool {
 	if templateResult == nil || len(templateResult.Permissions) == 0 {
 		return sacdPermissions
 	}
@@ -191,7 +191,8 @@ func UserGrantMap(ctx context.Context, data *models.SACDData, assetDID cloudeven
 
 	// Collect direct SACD permissions
 	sacdPermissions := make(map[string]bool)
-	var templateResult *template.TemplatePermissionsResult
+	var templateResult *template.PermissionsResult
+	var hasTemplate bool
 
 	// Single loop to process all agreements
 	for _, agreement := range data.Agreements {
@@ -228,19 +229,21 @@ func UserGrantMap(ctx context.Context, data *models.SACDData, assetDID cloudeven
 			}
 
 			// Handle template if present
-			if agreement.PermissionTemplateID != "" && agreement.PermissionTemplateID != "0" {
+			if agreement.PermissionTemplateID != "" && agreement.PermissionTemplateID != "0" && !hasTemplate {
 				var err error
 				templateResult, err = templateService.GetTemplatePermissions(ctx, agreement.PermissionTemplateID, assetDID)
 				if err != nil {
+					// TODO(lorran) I don't think we want to return here
 					return nil, nil, fmt.Errorf("failed to get template permissions: %w", err)
 				}
+				hasTemplate = true
 			}
 		}
 	}
 
 	var userPermGrants map[string]bool
 	// Combine permissions using the autheval package logic
-	if templateResult != nil {
+	if hasTemplate {
 		userPermGrants = combinePermissions(sacdPermissions, templateResult)
 	} else {
 		// No template involved, use SACD permissions directly

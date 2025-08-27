@@ -235,10 +235,10 @@ func (m *MockTemplateService) EXPECT() *MockTemplateServiceMockRecorder {
 }
 
 // GetTemplatePermissions mocks base method.
-func (m *MockTemplateService) GetTemplatePermissions(ctx context.Context, permissionTemplateID string, assetDID cloudevent.ERC721DID) (*template0.TemplatePermissionsResult, error) {
+func (m *MockTemplateService) GetTemplatePermissions(ctx context.Context, permissionTemplateID string, assetDID cloudevent.ERC721DID) (*template0.PermissionsResult, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetTemplatePermissions", ctx, permissionTemplateID, assetDID)
-	ret0, _ := ret[0].(*template0.TemplatePermissionsResult)
+	ret0, _ := ret[0].(*template0.PermissionsResult)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
