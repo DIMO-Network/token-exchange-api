@@ -81,7 +81,7 @@ func TestTemplateService_CacheEffectiveness(t *testing.T) {
 	mockTemplateContract.EXPECT().
 		IsTemplateActive(gomock.Any(), big.NewInt(123)).
 		Return(true, nil).
-		Times(1) // Should only be called once due to caching
+		Times(3) // Called each time to get current activation status
 
 	mockIPFS.EXPECT().
 		Fetch(gomock.Any(), "ipfs://test-hash").
@@ -105,19 +105,22 @@ func TestTemplateService_CacheEffectiveness(t *testing.T) {
 		"read:data":  true,
 		"write:data": true,
 	}
-	assert.Equal(t, expectedPerms, perms1)
+	assert.Equal(t, expectedPerms, perms1.Permissions)
+	assert.True(t, perms1.IsActive)
 
 	// Second call - should use cache (no additional mock expectations needed)
 	perms2, err := service.GetTemplatePermissions(ctx, templateID, assetDID)
 	require.NoError(t, err)
 	assert.Equal(t, 1, service.GetCacheSize())
-	assert.Equal(t, expectedPerms, perms2)
+	assert.Equal(t, expectedPerms, perms2.Permissions)
+	assert.True(t, perms2.IsActive)
 
 	// Third call - should still use cache
 	perms3, err := service.GetTemplatePermissions(ctx, templateID, assetDID)
 	require.NoError(t, err)
 	assert.Equal(t, 1, service.GetCacheSize())
-	assert.Equal(t, expectedPerms, perms3)
+	assert.Equal(t, expectedPerms, perms3.Permissions)
+	assert.True(t, perms3.IsActive)
 
 	// Test cache clearing
 	service.ClearCache()

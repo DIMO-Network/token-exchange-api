@@ -18,6 +18,7 @@ import (
 	cloudevent "github.com/DIMO-Network/cloudevent"
 	sacd "github.com/DIMO-Network/token-exchange-api/internal/contracts/sacd"
 	template "github.com/DIMO-Network/token-exchange-api/internal/contracts/template"
+	template0 "github.com/DIMO-Network/token-exchange-api/internal/services/template"
 	bind "github.com/ethereum/go-ethereum/accounts/abi/bind"
 	common "github.com/ethereum/go-ethereum/common"
 	gomock "go.uber.org/mock/gomock"
@@ -234,10 +235,10 @@ func (m *MockTemplateService) EXPECT() *MockTemplateServiceMockRecorder {
 }
 
 // GetTemplatePermissions mocks base method.
-func (m *MockTemplateService) GetTemplatePermissions(ctx context.Context, permissionTemplateID string, assetDID cloudevent.ERC721DID) (map[string]bool, error) {
+func (m *MockTemplateService) GetTemplatePermissions(ctx context.Context, permissionTemplateID string, assetDID cloudevent.ERC721DID) (*template0.TemplatePermissionsResult, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetTemplatePermissions", ctx, permissionTemplateID, assetDID)
-	ret0, _ := ret[0].(map[string]bool)
+	ret0, _ := ret[0].(*template0.TemplatePermissionsResult)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

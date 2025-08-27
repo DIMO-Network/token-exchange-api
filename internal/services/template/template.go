@@ -32,6 +32,11 @@ type SignatureValidator interface {
 	ValidateSignature(ctx context.Context, payload json.RawMessage, signature string, ethAddr common.Address) (bool, error)
 }
 
+type TemplatePermissionsResult struct {
+	Permissions map[string]bool
+	IsActive    bool
+}
+
 type Service struct {
 	templateContract Template
 	ipfsClient       IPFSClient
@@ -52,13 +57,13 @@ func NewTemplateService(templateContract Template, ipfsClient IPFSClient, ethCli
 	}, nil
 }
 
-// GetTemplatePermissions fetches and validates template permissions
-func (s *Service) GetTemplatePermissions(ctx context.Context, permissionTemplateID string, assetDID cloudevent.ERC721DID) (map[string]bool, error) {
+// GetTemplatePermissions fetches template permissions and activation status
+func (s *Service) GetTemplatePermissions(ctx context.Context, permissionTemplateID string, assetDID cloudevent.ERC721DID) (*TemplatePermissionsResult, error) {
 	// Check cache first
 	s.cacheMutex.RLock()
 	if cachedAgreements, exists := s.cache[permissionTemplateID]; exists {
 		s.cacheMutex.RUnlock()
-		return s.extractPermissionsFromAgreements(cachedAgreements, assetDID), nil
+		return s.getTemplatePermissionsAndStatus(ctx, permissionTemplateID, cachedAgreements, assetDID)
 	}
 	s.cacheMutex.RUnlock()
 
@@ -116,24 +121,34 @@ func (s *Service) GetTemplatePermissions(ctx context.Context, permissionTemplate
 	s.cache[permissionTemplateID] = data.Agreements
 	s.cacheMutex.Unlock()
 
-	templatePermGrants := s.extractPermissionsFromAgreements(data.Agreements, assetDID)
+	return s.getTemplatePermissionsAndStatus(ctx, permissionTemplateID, data.Agreements, assetDID)
+}
 
-	if len(templatePermGrants) != 0 {
-		isTemplateActive, err := s.templateContract.IsTemplateActive(opts, templateID)
-		if err != nil {
-			return nil, richerrors.Error{
-				Code:        http.StatusInternalServerError,
-				Err:         fmt.Errorf("failed to get template status: %w", err),
-				ExternalMsg: "Failed to get template status",
-			}
-		}
+// getTemplatePermissionsAndStatus gets template permissions and activation status
+func (s *Service) getTemplatePermissionsAndStatus(ctx context.Context, permissionTemplateID string, agreements []models.TemplateAgreement, assetDID cloudevent.ERC721DID) (*TemplatePermissionsResult, error) {
+	templatePermissions := s.extractPermissionsFromAgreements(agreements, assetDID)
 
-		if !isTemplateActive {
-			return nil, nil
+	templateID, ok := big.NewInt(0).SetString(permissionTemplateID, 10)
+	if !ok {
+		return nil, fmt.Errorf("could not convert template ID string to big.Int")
+	}
+
+	opts := &bind.CallOpts{
+		Context: ctx,
+	}
+	isTemplateActive, err := s.templateContract.IsTemplateActive(opts, templateID)
+	if err != nil {
+		return nil, richerrors.Error{
+			Code:        http.StatusInternalServerError,
+			Err:         fmt.Errorf("failed to get template status: %w", err),
+			ExternalMsg: "Failed to get template status",
 		}
 	}
 
-	return templatePermGrants, nil
+	return &TemplatePermissionsResult{
+		Permissions: templatePermissions,
+		IsActive:    isTemplateActive,
+	}, nil
 }
 
 func (s *Service) extractPermissionsFromAgreements(agreements []models.TemplateAgreement, assetDID cloudevent.ERC721DID) map[string]bool {
