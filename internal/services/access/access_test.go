@@ -28,7 +28,7 @@ func TestAccessService_ValidateAccess(t *testing.T) {
 	defer mockCtrl.Finish()
 
 	mockSacd := NewMockSACDInterface(mockCtrl)
-	mockTemplate := NewMockTemplateInterface(mockCtrl)
+	mockTemplate := NewMockTemplate(mockCtrl)
 	mockipfs := NewMockIPFSClient(mockCtrl)
 	mockSigValidator := NewMockSignatureValidator(mockCtrl)
 

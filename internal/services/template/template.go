@@ -21,6 +21,7 @@ import (
 
 type Template interface {
 	Templates(opts *bind.CallOpts, templateID *big.Int) (template.ITemplateTemplateData, error)
+	IsTemplateActive(opts *bind.CallOpts, templateID *big.Int) (bool, error)
 }
 
 type IPFSClient interface {
@@ -116,6 +117,22 @@ func (s *Service) GetTemplatePermissions(ctx context.Context, permissionTemplate
 	s.cacheMutex.Unlock()
 
 	templatePermGrants := s.extractPermissionsFromAgreements(data.Agreements, assetDID)
+
+	if len(templatePermGrants) != 0 {
+		isTemplateActive, err := s.templateContract.IsTemplateActive(opts, templateID)
+		if err != nil {
+			return nil, richerrors.Error{
+				Code:        http.StatusInternalServerError,
+				Err:         fmt.Errorf("failed to get template status: %w", err),
+				ExternalMsg: "Failed to get template status",
+			}
+		}
+
+		if !isTemplateActive {
+			return nil, nil
+		}
+	}
+
 	return templatePermGrants, nil
 }
 

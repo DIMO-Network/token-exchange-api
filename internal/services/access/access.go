@@ -46,8 +46,9 @@ type SACDInterface interface {
 	GetPermissions(opts *bind.CallOpts, asset common.Address, tokenID *big.Int, grantee common.Address, permissions *big.Int) (*big.Int, error)
 }
 
-type TemplateInterface interface {
+type Template interface {
 	Templates(opts *bind.CallOpts, templateID *big.Int) (template.ITemplateTemplateData, error)
+	IsTemplateActive(opts *bind.CallOpts, templateID *big.Int) (bool, error)
 }
 
 type Erc1271Interface interface {

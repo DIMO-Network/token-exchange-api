@@ -76,6 +76,11 @@ func TestTemplateService_CacheEffectiveness(t *testing.T) {
 	mockTemplateContract.EXPECT().
 		Templates(gomock.Any(), big.NewInt(123)).
 		Return(mockTemplateData, nil).
+		Times(1) // Should only be called once due to
+
+	mockTemplateContract.EXPECT().
+		IsTemplateActive(gomock.Any(), big.NewInt(123)).
+		Return(true, nil).
 		Times(1) // Should only be called once due to caching
 
 	mockIPFS.EXPECT().
