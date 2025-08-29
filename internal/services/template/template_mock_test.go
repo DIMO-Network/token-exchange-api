@@ -45,6 +45,21 @@ func (m *MockTemplate) EXPECT() *MockTemplateMockRecorder {
 	return m.recorder
 }
 
+// IsTemplateActive mocks base method.
+func (m *MockTemplate) IsTemplateActive(opts *bind.CallOpts, templateID *big.Int) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IsTemplateActive", opts, templateID)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// IsTemplateActive indicates an expected call of IsTemplateActive.
+func (mr *MockTemplateMockRecorder) IsTemplateActive(opts, templateID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsTemplateActive", reflect.TypeOf((*MockTemplate)(nil).IsTemplateActive), opts, templateID)
+}
+
 // Templates mocks base method.
 func (m *MockTemplate) Templates(opts *bind.CallOpts, templateID *big.Int) (template.ITemplateTemplateData, error) {
 	m.ctrl.T.Helper()

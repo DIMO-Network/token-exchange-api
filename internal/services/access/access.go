@@ -14,6 +14,7 @@ import (
 	"github.com/DIMO-Network/token-exchange-api/internal/contracts/template"
 	"github.com/DIMO-Network/token-exchange-api/internal/ipfsdoc"
 	"github.com/DIMO-Network/token-exchange-api/internal/models"
+	template_service "github.com/DIMO-Network/token-exchange-api/internal/services/template"
 	"github.com/DIMO-Network/token-exchange-api/internal/signature"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
@@ -46,8 +47,9 @@ type SACDInterface interface {
 	GetPermissions(opts *bind.CallOpts, asset common.Address, tokenID *big.Int, grantee common.Address, permissions *big.Int) (*big.Int, error)
 }
 
-type TemplateInterface interface {
+type Template interface {
 	Templates(opts *bind.CallOpts, templateID *big.Int) (template.ITemplateTemplateData, error)
+	IsTemplateActive(opts *bind.CallOpts, templateID *big.Int) (bool, error)
 }
 
 type Erc1271Interface interface {
@@ -59,7 +61,7 @@ type IPFSClient interface {
 }
 
 type TemplateService interface {
-	GetTemplatePermissions(ctx context.Context, permissionTemplateID string, assetDID cloudevent.ERC721DID) (map[string]bool, error)
+	GetTemplatePermissions(ctx context.Context, permissionTemplateID string, assetDID cloudevent.ERC721DID) (*template_service.PermissionsResult, error)
 }
 
 type SignatureValidator interface {

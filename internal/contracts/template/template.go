@@ -39,7 +39,7 @@ type ITemplateTemplateData struct {
 
 // TemplateMetaData contains all meta data concerning the Template contract.
 var TemplateMetaData = &bind.MetaData{
-	ABI: "[{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"templateId\",\"type\":\"uint256\"}],\"name\":\"templates\",\"outputs\":[{\"components\":[{\"internalType\":\"address\",\"name\":\"asset\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"permissions\",\"type\":\"uint256\"},{\"internalType\":\"string\",\"name\":\"source\",\"type\":\"string\"},{\"internalType\":\"bool\",\"name\":\"isActive\",\"type\":\"bool\"}],\"internalType\":\"structITemplate.TemplateData\",\"name\":\"templateData\",\"type\":\"tuple\"}],\"stateMutability\":\"view\",\"type\":\"function\"}]",
+	ABI: "[{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"templateId\",\"type\":\"uint256\"}],\"name\":\"templates\",\"outputs\":[{\"components\":[{\"internalType\":\"address\",\"name\":\"asset\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"permissions\",\"type\":\"uint256\"},{\"internalType\":\"string\",\"name\":\"source\",\"type\":\"string\"},{\"internalType\":\"bool\",\"name\":\"isActive\",\"type\":\"bool\"}],\"internalType\":\"structITemplate.TemplateData\",\"name\":\"templateData\",\"type\":\"tuple\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"templateId\",\"type\":\"uint256\"}],\"name\":\"isTemplateActive\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"isActive\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"}]",
 }
 
 // TemplateABI is the input ABI used to generate the binding from.
@@ -186,6 +186,37 @@ func (_Template *TemplateTransactorRaw) Transfer(opts *bind.TransactOpts) (*type
 // Transact invokes the (paid) contract method with params as input values.
 func (_Template *TemplateTransactorRaw) Transact(opts *bind.TransactOpts, method string, params ...interface{}) (*types.Transaction, error) {
 	return _Template.Contract.contract.Transact(opts, method, params...)
+}
+
+// IsTemplateActive is a free data retrieval call binding the contract method 0xe0a0d933.
+//
+// Solidity: function isTemplateActive(uint256 templateId) view returns(bool isActive)
+func (_Template *TemplateCaller) IsTemplateActive(opts *bind.CallOpts, templateId *big.Int) (bool, error) {
+	var out []interface{}
+	err := _Template.contract.Call(opts, &out, "isTemplateActive", templateId)
+
+	if err != nil {
+		return *new(bool), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(bool)).(*bool)
+
+	return out0, err
+
+}
+
+// IsTemplateActive is a free data retrieval call binding the contract method 0xe0a0d933.
+//
+// Solidity: function isTemplateActive(uint256 templateId) view returns(bool isActive)
+func (_Template *TemplateSession) IsTemplateActive(templateId *big.Int) (bool, error) {
+	return _Template.Contract.IsTemplateActive(&_Template.CallOpts, templateId)
+}
+
+// IsTemplateActive is a free data retrieval call binding the contract method 0xe0a0d933.
+//
+// Solidity: function isTemplateActive(uint256 templateId) view returns(bool isActive)
+func (_Template *TemplateCallerSession) IsTemplateActive(templateId *big.Int) (bool, error) {
+	return _Template.Contract.IsTemplateActive(&_Template.CallOpts, templateId)
 }
 
 // Templates is a free data retrieval call binding the contract method 0xbc525652.
