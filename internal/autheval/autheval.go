@@ -163,6 +163,10 @@ func UserGrantMap(data *models.SACDData, assetDID cloudevent.ERC721DID) (map[str
 			return nil, nil, fmt.Errorf("asset DID %s does not match request DID %s", agreement.Asset, assetDID.String())
 		}
 
+		if agreement.PermissionTemplateID != "" && agreement.PermissionTemplateID != "0" {
+			// TODO(lorran) get permissions from template
+		}
+
 		switch agreement.Type {
 		case "cloudevent":
 			if _, ok := cloudEvtGrants[agreement.EventType]; !ok {
@@ -183,6 +187,8 @@ func UserGrantMap(data *models.SACDData, assetDID cloudevent.ERC721DID) (map[str
 			}
 		}
 	}
+
+	// TODO(lorran) merge template perms and userPermGrants
 
 	return userPermGrants, cloudEvtGrants, nil
 }

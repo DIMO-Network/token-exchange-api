@@ -32,6 +32,7 @@ func TestAccessService_ValidateAccess(t *testing.T) {
 	mockErc1271Factory := NewMockerc1271Mgr(mockCtrl)
 	mockErc1271Factory.EXPECT().NewErc1271(gomock.Any(), gomock.Any()).Return(mockErc1271, nil).AnyTimes()
 
+	// TODO(lorran) mock template
 	accessService, err := NewAccessService(mockipfs, mockSacd, nil)
 	require.NoError(t, err)
 	accessService.erc1271Mgr = mockErc1271Factory
@@ -52,13 +53,14 @@ func TestAccessService_ValidateAccess(t *testing.T) {
 		Asset:       "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
 		Agreements: []models.Agreement{
 			{
-				Type:        "cloudevent",
-				EffectiveAt: effectiveAt,
-				ExpiresAt:   expiresAt,
-				EventType:   cloudevent.TypeAttestation,
-				Source:      common.BigToAddress(big.NewInt(1)).Hex(),
-				IDs:         []string{"1"},
-				Asset:       "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
+				Type:                 "cloudevent",
+				EffectiveAt:          effectiveAt,
+				ExpiresAt:            expiresAt,
+				EventType:            cloudevent.TypeAttestation,
+				PermissionTemplateID: "", // TODO(lorran) create mock template ID
+				Source:               common.BigToAddress(big.NewInt(1)).Hex(),
+				IDs:                  []string{"1"},
+				Asset:                "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
 			},
 		},
 	}
