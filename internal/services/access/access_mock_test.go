@@ -195,19 +195,19 @@ func (m *MockIPFSClient) EXPECT() *MockIPFSClientMockRecorder {
 	return m.recorder
 }
 
-// Fetch mocks base method.
-func (m *MockIPFSClient) Fetch(ctx context.Context, cid string) ([]byte, error) {
+// GetValidSacdDoc mocks base method.
+func (m *MockIPFSClient) GetValidSacdDoc(ctx context.Context, source string) (*cloudevent.RawEvent, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Fetch", ctx, cid)
-	ret0, _ := ret[0].([]byte)
+	ret := m.ctrl.Call(m, "GetValidSacdDoc", ctx, source)
+	ret0, _ := ret[0].(*cloudevent.RawEvent)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// Fetch indicates an expected call of Fetch.
-func (mr *MockIPFSClientMockRecorder) Fetch(ctx, cid any) *gomock.Call {
+// GetValidSacdDoc indicates an expected call of GetValidSacdDoc.
+func (mr *MockIPFSClientMockRecorder) GetValidSacdDoc(ctx, source any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Fetch", reflect.TypeOf((*MockIPFSClient)(nil).Fetch), ctx, cid)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetValidSacdDoc", reflect.TypeOf((*MockIPFSClient)(nil).GetValidSacdDoc), ctx, source)
 }
 
 // MockTemplateService is a mock of TemplateService interface.

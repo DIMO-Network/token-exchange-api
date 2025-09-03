@@ -64,9 +64,6 @@ func TestTemplateService_CacheEffectiveness(t *testing.T) {
 	ipfsRecord, _, err := signTemplateJSONHelper(&templateData)
 	require.NoError(t, err)
 
-	ipfsDoc, err := json.Marshal(ipfsRecord)
-	require.NoError(t, err)
-
 	mockTemplateContract.EXPECT().
 		Templates(gomock.Any(), big.NewInt(123)).
 		Return(mockTemplateData, nil).
@@ -78,8 +75,8 @@ func TestTemplateService_CacheEffectiveness(t *testing.T) {
 		Times(3) // Called each time to get current activation status
 
 	mockIPFS.EXPECT().
-		Fetch(gomock.Any(), "ipfs://test-hash").
-		Return(ipfsDoc, nil).
+		GetValidSacdDoc(gomock.Any(), "ipfs://test-hash").
+		Return(ipfsRecord, nil).
 		Times(1) // Should only be called once due to caching
 
 	mockSigValidator.EXPECT().
@@ -166,9 +163,6 @@ func TestGetTemplatePermissions(t *testing.T) {
 	ipfsRecord, owner, err := signTemplateJSONHelper(&validTemplateData)
 	require.NoError(t, err)
 
-	validIPFSDoc, err := json.Marshal(ipfsRecord)
-	require.NoError(t, err)
-
 	tests := []struct {
 		name           string
 		setupMocks     func()
@@ -183,8 +177,8 @@ func TestGetTemplatePermissions(t *testing.T) {
 					Templates(gomock.Any(), big.NewInt(123)).
 					Return(mockTemplateData, nil)
 				mockIPFS.EXPECT().
-					Fetch(gomock.Any(), "ipfs://test-hash").
-					Return(validIPFSDoc, nil)
+					GetValidSacdDoc(gomock.Any(), "ipfs://test-hash").
+					Return(ipfsRecord, nil)
 				mockSigValidator.EXPECT().
 					ValidateSignature(gomock.Any(), gomock.Any(), ipfsRecord.Signature, common.HexToAddress(owner.Address)).
 					Return(true, nil)
@@ -206,14 +200,13 @@ func TestGetTemplatePermissions(t *testing.T) {
 			setupMocks: func() {
 				record := *ipfsRecord
 				record.Signature = "0xbad-signature"
-				invalidIPFSDoc, err := json.Marshal(record)
 				require.NoError(t, err)
 				mockTemplateContract.EXPECT().
 					Templates(gomock.Any(), big.NewInt(123)).
 					Return(mockTemplateData, nil)
 				mockIPFS.EXPECT().
-					Fetch(gomock.Any(), "ipfs://test-hash").
-					Return(invalidIPFSDoc, nil)
+					GetValidSacdDoc(gomock.Any(), "ipfs://test-hash").
+					Return(&record, nil)
 				mockSigValidator.EXPECT().
 					ValidateSignature(gomock.Any(), gomock.Any(), record.Signature, common.HexToAddress(owner.Address)).
 					Return(false, nil)
@@ -229,8 +222,8 @@ func TestGetTemplatePermissions(t *testing.T) {
 					Templates(gomock.Any(), big.NewInt(123)).
 					Return(mockTemplateData, nil)
 				mockIPFS.EXPECT().
-					Fetch(gomock.Any(), "ipfs://test-hash").
-					Return(validIPFSDoc, nil)
+					GetValidSacdDoc(gomock.Any(), "ipfs://test-hash").
+					Return(ipfsRecord, nil)
 				mockSigValidator.EXPECT().
 					ValidateSignature(gomock.Any(), gomock.Any(), ipfsRecord.Signature, common.HexToAddress(owner.Address)).
 					Return(false, fmt.Errorf("signature validation failed"))
@@ -257,7 +250,7 @@ func TestGetTemplatePermissions(t *testing.T) {
 					Templates(gomock.Any(), big.NewInt(123)).
 					Return(mockTemplateData, nil)
 				mockIPFS.EXPECT().
-					Fetch(gomock.Any(), "ipfs://test-hash").
+					GetValidSacdDoc(gomock.Any(), "ipfs://test-hash").
 					Return(nil, fmt.Errorf("IPFS fetch failed"))
 			},
 			expectedResult: nil,
@@ -278,8 +271,8 @@ func TestGetTemplatePermissions(t *testing.T) {
 					Templates(gomock.Any(), big.NewInt(123)).
 					Return(mockTemplateData, nil)
 				mockIPFS.EXPECT().
-					Fetch(gomock.Any(), "ipfs://test-hash").
-					Return(validIPFSDoc, nil)
+					GetValidSacdDoc(gomock.Any(), "ipfs://test-hash").
+					Return(ipfsRecord, nil)
 				mockSigValidator.EXPECT().
 					ValidateSignature(gomock.Any(), gomock.Any(), ipfsRecord.Signature, common.HexToAddress(owner.Address)).
 					Return(true, nil)
@@ -303,8 +296,8 @@ func TestGetTemplatePermissions(t *testing.T) {
 					Templates(gomock.Any(), big.NewInt(123)).
 					Return(mockTemplateData, nil)
 				mockIPFS.EXPECT().
-					Fetch(gomock.Any(), "ipfs://test-hash").
-					Return(validIPFSDoc, nil)
+					GetValidSacdDoc(gomock.Any(), "ipfs://test-hash").
+					Return(ipfsRecord, nil)
 				mockSigValidator.EXPECT().
 					ValidateSignature(gomock.Any(), gomock.Any(), ipfsRecord.Signature, common.HexToAddress(owner.Address)).
 					Return(true, nil)

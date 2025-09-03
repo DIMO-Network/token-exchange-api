@@ -12,7 +12,6 @@ import (
 	"github.com/DIMO-Network/token-exchange-api/internal/autheval"
 	"github.com/DIMO-Network/token-exchange-api/internal/contracts/sacd"
 	"github.com/DIMO-Network/token-exchange-api/internal/contracts/template"
-	"github.com/DIMO-Network/token-exchange-api/internal/ipfsdoc"
 	"github.com/DIMO-Network/token-exchange-api/internal/models"
 	templatesvs "github.com/DIMO-Network/token-exchange-api/internal/services/template"
 	"github.com/DIMO-Network/token-exchange-api/internal/signature"
@@ -57,7 +56,7 @@ type Erc1271Interface interface {
 }
 
 type IPFSClient interface {
-	Fetch(ctx context.Context, cid string) ([]byte, error)
+	GetValidSacdDoc(ctx context.Context, source string) (*cloudevent.RawEvent, error)
 }
 
 type TemplateService interface {
@@ -123,7 +122,7 @@ func (s *Service) ValidateAccessViaSourceDoc(ctx context.Context, accessReq *NFT
 		}
 	}
 
-	record, err := ipfsdoc.GetValidSacdDoc(ctx, resPermRecord.Source, s.ipfsClient)
+	record, err := s.ipfsClient.GetValidSacdDoc(ctx, resPermRecord.Source)
 	if err != nil {
 		return err
 	}

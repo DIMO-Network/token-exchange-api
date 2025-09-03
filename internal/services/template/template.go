@@ -11,7 +11,6 @@ import (
 	"github.com/DIMO-Network/cloudevent"
 	"github.com/DIMO-Network/server-garage/pkg/richerrors"
 	"github.com/DIMO-Network/token-exchange-api/internal/contracts/template"
-	"github.com/DIMO-Network/token-exchange-api/internal/ipfsdoc"
 	"github.com/DIMO-Network/token-exchange-api/internal/models"
 	"github.com/DIMO-Network/token-exchange-api/internal/signature"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -25,7 +24,7 @@ type Template interface {
 }
 
 type IPFSClient interface {
-	Fetch(ctx context.Context, cid string) ([]byte, error)
+	GetValidSacdDoc(ctx context.Context, source string) (*cloudevent.RawEvent, error)
 }
 
 type SignatureValidator interface {
@@ -85,7 +84,7 @@ func (s *Service) GetTemplatePermissions(ctx context.Context, permissionTemplate
 	}
 
 	// Fetch template document from IPFS
-	rawEvent, err := ipfsdoc.GetValidSacdDoc(ctx, templateData.Source, s.ipfsClient)
+	rawEvent, err := s.ipfsClient.GetValidSacdDoc(ctx, templateData.Source)
 	if err != nil {
 		return nil, err
 	}

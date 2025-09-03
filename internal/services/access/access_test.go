@@ -69,9 +69,6 @@ func TestAccessService_ValidateAccess_WithoutTemplateId(t *testing.T) {
 	ipfsRecord, err := signSACDHelper(&permData)
 	require.NoError(t, err)
 
-	ipfsBytes, err := json.Marshal(ipfsRecord)
-	require.NoError(t, err)
-
 	// Create a mock empty permission record to return
 	emptyPermRecord := sacd.ISacdPermissionRecord{
 		Permissions: big.NewInt(0),
@@ -99,7 +96,7 @@ func TestAccessService_ValidateAccess_WithoutTemplateId(t *testing.T) {
 			},
 			mockSetup: func(*testing.T) {
 				mockSacd.EXPECT().CurrentPermissionRecord(gomock.Any(), common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), devLicenseAddr).Return(emptyPermRecord, nil)
-				mockipfs.EXPECT().Fetch(gomock.Any(), gomock.Any()).Return(nil, errors.New("no valid doc"))
+				mockipfs.EXPECT().GetValidSacdDoc(gomock.Any(), gomock.Any()).Return(nil, errors.New("no valid doc"))
 				mockSacd.EXPECT().GetPermissions(gomock.Any(), common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), devLicenseAddr, big.NewInt(0b1100000000)).Return(big.NewInt(0b1100000000), nil)
 			}},
 		{
@@ -114,7 +111,7 @@ func TestAccessService_ValidateAccess_WithoutTemplateId(t *testing.T) {
 				Permissions: []string{PrivilegeIDToName[1], PrivilegeIDToName[2], PrivilegeIDToName[4], PrivilegeIDToName[5]},
 			},
 			mockSetup: func(*testing.T) {
-				mockipfs.EXPECT().Fetch(gomock.Any(), gomock.Any()).Return(nil, errors.New("no valid doc"))
+				mockipfs.EXPECT().GetValidSacdDoc(gomock.Any(), gomock.Any()).Return(nil, errors.New("no valid doc"))
 				mockSacd.EXPECT().CurrentPermissionRecord(gomock.Any(), common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr).Return(emptyPermRecord, nil)
 				mockSacd.EXPECT().GetPermissions(gomock.Any(), common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr, big.NewInt(0b111100111100)).Return(big.NewInt(0b111100111100), nil)
 			}},
@@ -130,7 +127,7 @@ func TestAccessService_ValidateAccess_WithoutTemplateId(t *testing.T) {
 				Permissions: []string{PrivilegeIDToName[1], PrivilegeIDToName[2], PrivilegeIDToName[4], PrivilegeIDToName[5]},
 			},
 			mockSetup: func(*testing.T) {
-				mockipfs.EXPECT().Fetch(gomock.Any(), gomock.Any()).Return(nil, errors.New("no valid doc"))
+				mockipfs.EXPECT().GetValidSacdDoc(gomock.Any(), gomock.Any()).Return(nil, errors.New("no valid doc"))
 				mockSacd.EXPECT().CurrentPermissionRecord(gomock.Any(), common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr).Return(emptyPermRecord, nil)
 				mockSacd.EXPECT().GetPermissions(gomock.Any(), common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr, big.NewInt(0b111100111100)).Return(big.NewInt(0b111100001100), nil)
 
@@ -162,7 +159,7 @@ func TestAccessService_ValidateAccess_WithoutTemplateId(t *testing.T) {
 					Source:      "test-source",
 				}
 				mockSacd.EXPECT().CurrentPermissionRecord(gomock.Any(), common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr).Return(permRecord, nil)
-				mockipfs.EXPECT().Fetch(gomock.Any(), permRecord.Source).Return(ipfsBytes, nil)
+				mockipfs.EXPECT().GetValidSacdDoc(gomock.Any(), permRecord.Source).Return(ipfsRecord, nil)
 				mockSigValidator.EXPECT().ValidateSignature(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil)
 			},
 		},
@@ -192,10 +189,9 @@ func TestAccessService_ValidateAccess_WithoutTemplateId(t *testing.T) {
 				}
 				record := *ipfsRecord
 				record.Signature = "0xbad-signature"
-				ipfsByte, err := json.Marshal(record)
 				require.NoError(t, err)
 				mockSacd.EXPECT().CurrentPermissionRecord(gomock.Any(), common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr).Return(permRecord, nil)
-				mockipfs.EXPECT().Fetch(gomock.Any(), permRecord.Source).Return(ipfsByte, nil)
+				mockipfs.EXPECT().GetValidSacdDoc(gomock.Any(), permRecord.Source).Return(&record, nil)
 				mockSigValidator.EXPECT().ValidateSignature(gomock.Any(), gomock.Any(), "0xbad-signature", gomock.Any()).Return(false, nil)
 			},
 			expectedErrCode: fiber.StatusForbidden,
@@ -226,10 +222,9 @@ func TestAccessService_ValidateAccess_WithoutTemplateId(t *testing.T) {
 				}
 				record := *ipfsRecord
 				record.Signature = "0xbad-signature"
-				ipfsBytes, err := json.Marshal(record)
 				require.NoError(t, err)
 				mockSacd.EXPECT().CurrentPermissionRecord(gomock.Any(), common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr).Return(permRecord, nil)
-				mockipfs.EXPECT().Fetch(gomock.Any(), permRecord.Source).Return(ipfsBytes, nil)
+				mockipfs.EXPECT().GetValidSacdDoc(gomock.Any(), permRecord.Source).Return(&record, nil)
 				mockSigValidator.EXPECT().ValidateSignature(gomock.Any(), gomock.Any(), "0xbad-signature", gomock.Any()).Return(true, nil)
 			},
 		},
@@ -248,7 +243,7 @@ func TestAccessService_ValidateAccess_WithoutTemplateId(t *testing.T) {
 			},
 			mockSetup: func(*testing.T) {
 				mockSacd.EXPECT().CurrentPermissionRecord(gomock.Any(), common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr).Return(emptyPermRecord, nil)
-				mockipfs.EXPECT().Fetch(gomock.Any(), gomock.Any()).Return(ipfsBytes, nil)
+				mockipfs.EXPECT().GetValidSacdDoc(gomock.Any(), gomock.Any()).Return(ipfsRecord, nil)
 				mockSigValidator.EXPECT().ValidateSignature(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil)
 			},
 			expectedErrCode: fiber.StatusForbidden,
@@ -315,9 +310,6 @@ func TestAccessService_ValidateAccess_WithTemplateId(t *testing.T) {
 	ipfsRecord, err := signSACDHelper(&permData)
 	require.NoError(t, err)
 
-	ipfsBytes, err := json.Marshal(ipfsRecord)
-	require.NoError(t, err)
-
 	// Create a mock empty permission record to return
 	emptyPermRecord := sacd.ISacdPermissionRecord{
 		Permissions: big.NewInt(0),
@@ -345,7 +337,7 @@ func TestAccessService_ValidateAccess_WithTemplateId(t *testing.T) {
 			},
 			mockSetup: func(*testing.T) {
 				mockSacd.EXPECT().CurrentPermissionRecord(gomock.Any(), common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), devLicenseAddr).Return(emptyPermRecord, nil)
-				mockipfs.EXPECT().Fetch(gomock.Any(), gomock.Any()).Return(nil, errors.New("no valid doc"))
+				mockipfs.EXPECT().GetValidSacdDoc(gomock.Any(), gomock.Any()).Return(nil, errors.New("no valid doc"))
 				mockSacd.EXPECT().GetPermissions(gomock.Any(), common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), devLicenseAddr, big.NewInt(0b1100000000)).Return(big.NewInt(0b1100000000), nil)
 			}},
 		{
@@ -360,7 +352,7 @@ func TestAccessService_ValidateAccess_WithTemplateId(t *testing.T) {
 				Permissions: []string{PrivilegeIDToName[1], PrivilegeIDToName[2], PrivilegeIDToName[4], PrivilegeIDToName[5]},
 			},
 			mockSetup: func(*testing.T) {
-				mockipfs.EXPECT().Fetch(gomock.Any(), gomock.Any()).Return(nil, errors.New("no valid doc"))
+				mockipfs.EXPECT().GetValidSacdDoc(gomock.Any(), gomock.Any()).Return(nil, errors.New("no valid doc"))
 				mockSacd.EXPECT().CurrentPermissionRecord(gomock.Any(), common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr).Return(emptyPermRecord, nil)
 				mockSacd.EXPECT().GetPermissions(gomock.Any(), common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr, big.NewInt(0b111100111100)).Return(big.NewInt(0b111100111100), nil)
 			}},
@@ -376,7 +368,7 @@ func TestAccessService_ValidateAccess_WithTemplateId(t *testing.T) {
 				Permissions: []string{PrivilegeIDToName[1], PrivilegeIDToName[2], PrivilegeIDToName[4], PrivilegeIDToName[5]},
 			},
 			mockSetup: func(*testing.T) {
-				mockipfs.EXPECT().Fetch(gomock.Any(), gomock.Any()).Return(nil, errors.New("no valid doc"))
+				mockipfs.EXPECT().GetValidSacdDoc(gomock.Any(), gomock.Any()).Return(nil, errors.New("no valid doc"))
 				mockSacd.EXPECT().CurrentPermissionRecord(gomock.Any(), common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr).Return(emptyPermRecord, nil)
 				mockSacd.EXPECT().GetPermissions(gomock.Any(), common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr, big.NewInt(0b111100111100)).Return(big.NewInt(0b111100001100), nil)
 
@@ -405,7 +397,7 @@ func TestAccessService_ValidateAccess_WithTemplateId(t *testing.T) {
 					common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"),
 					big.NewInt(123),
 					userEthAddr).Return(permRecord, nil)
-				mockipfs.EXPECT().Fetch(gomock.Any(), permRecord.Source).Return(ipfsBytes, nil)
+				mockipfs.EXPECT().GetValidSacdDoc(gomock.Any(), permRecord.Source).Return(ipfsRecord, nil)
 				mockSacd.EXPECT().GetPermissions(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(big.NewInt(0b1100000000), nil)
 				mockSigValidator.EXPECT().ValidateSignature(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil)
 
@@ -447,7 +439,7 @@ func TestAccessService_ValidateAccess_WithTemplateId(t *testing.T) {
 					common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"),
 					big.NewInt(123),
 					userEthAddr).Return(permRecord, nil)
-				mockipfs.EXPECT().Fetch(gomock.Any(), permRecord.Source).Return(ipfsBytes, nil)
+				mockipfs.EXPECT().GetValidSacdDoc(gomock.Any(), permRecord.Source).Return(ipfsRecord, nil)
 				mockSacd.EXPECT().GetPermissions(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(big.NewInt(0b1100000000), nil)
 				mockSigValidator.EXPECT().ValidateSignature(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil)
 
@@ -489,7 +481,7 @@ func TestAccessService_ValidateAccess_WithTemplateId(t *testing.T) {
 					common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"),
 					big.NewInt(123),
 					userEthAddr).Return(permRecord, nil)
-				mockipfs.EXPECT().Fetch(gomock.Any(), permRecord.Source).Return(ipfsBytes, nil)
+				mockipfs.EXPECT().GetValidSacdDoc(gomock.Any(), permRecord.Source).Return(ipfsRecord, nil)
 				mockSigValidator.EXPECT().ValidateSignature(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil)
 
 				assetDID := cloudevent.ERC721DID{
