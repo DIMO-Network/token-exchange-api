@@ -160,11 +160,11 @@ func (s *Service) getTemplatePermissionsAndStatus(ctx context.Context, permissio
 func (s *Service) extractPermissionsFromAgreements(agreements []models.TemplateAgreement, assetDID cloudevent.ERC721DID) map[string]bool {
 	templatePermGrants := make(map[string]bool)
 
-	// Create the base DID without the token ID for comparison
-	baseDID := fmt.Sprintf("did:erc721:%d:%s", assetDID.ChainID, assetDID.ContractAddress.Hex())
+	// Convert did:erc721 to did:ethr without the token ID for comparison
+	assetEthrDID := fmt.Sprintf("did:ethr:%d:%s", assetDID.ChainID, assetDID.ContractAddress.Hex())
 
 	for _, agreement := range agreements {
-		if agreement.Asset != baseDID {
+		if agreement.Asset != assetEthrDID {
 			continue
 		}
 

@@ -52,7 +52,7 @@ func TestTemplateService_CacheEffectiveness(t *testing.T) {
 		Agreements: []models.TemplateAgreement{
 			{
 				Type:  "permission",
-				Asset: fmt.Sprintf("did:erc721:%d:%s", assetDID.ChainID, assetDID.ContractAddress.Hex()),
+				Asset: fmt.Sprintf("did:ethr:%d:%s", assetDID.ChainID, assetDID.ContractAddress.Hex()),
 				Permissions: []models.Permission{
 					{Name: "read:data"},
 					{Name: "write:data"},
@@ -151,7 +151,7 @@ func TestGetTemplatePermissions(t *testing.T) {
 		Agreements: []models.TemplateAgreement{
 			{
 				Type:  "permission",
-				Asset: fmt.Sprintf("did:erc721:%d:%s", assetDID.ChainID, assetDID.ContractAddress.Hex()),
+				Asset: fmt.Sprintf("did:ethr:%d:%s", assetDID.ChainID, assetDID.ContractAddress.Hex()),
 				Permissions: []models.Permission{
 					{Name: "read:data"},
 					{Name: "write:data"},
@@ -360,7 +360,7 @@ func TestExtractPermissionsFromAgreements(t *testing.T) {
 			agreements: []models.TemplateAgreement{
 				{
 					Type:  "permission",
-					Asset: "did:erc721:1:0x1234567890123456789012345678901234567890",
+					Asset: "did:ethr:1:0x1234567890123456789012345678901234567890",
 					Permissions: []models.Permission{
 						{Name: "privilege:GetNonLocationHistory"},
 						{Name: "privilege:ExecuteCommands"},
@@ -368,7 +368,7 @@ func TestExtractPermissionsFromAgreements(t *testing.T) {
 				},
 				{
 					Type:  "permission",
-					Asset: "did:erc721:1:0x1234567890123456789012345678901234567890",
+					Asset: "did:ethr:1:0x1234567890123456789012345678901234567890",
 					Permissions: []models.Permission{
 						{Name: "privilege:GetCurrentLocation"},
 					},
@@ -390,7 +390,7 @@ func TestExtractPermissionsFromAgreements(t *testing.T) {
 			agreements: []models.TemplateAgreement{
 				{
 					Type:  "permission",
-					Asset: "did:erc721:1:0x1234567890123456789012345678901234567890",
+					Asset: "did:ethr:1:0x1234567890123456789012345678901234567890",
 					Permissions: []models.Permission{
 						{Name: "privilege:GetNonLocationHistory"},
 						{Name: "privilege:ExecuteCommands"},
