@@ -46,10 +46,10 @@ func GetValidSacdDoc(ctx context.Context, source string, ipfsClient IPFSClient) 
 		}
 	}
 
-	if record.Type != "dimo.sacd" && record.Type != "dimo.sacd.template" {
+	if record.Type != cloudevent.TypeSACD && record.Type != cloudevent.TypeSACDTemplate {
 		return nil, richerrors.Error{
 			Code:        http.StatusUnauthorized,
-			ExternalMsg: fmt.Sprintf("invalid type: expected 'dimo.sacd' or 'dimo.sacd.template', got '%s'", record.Type),
+			ExternalMsg: fmt.Sprintf("invalid type: expected '%s' or '%s', got '%s'", cloudevent.TypeSACD, cloudevent.TypeSACDTemplate, record.Type),
 		}
 	}
 

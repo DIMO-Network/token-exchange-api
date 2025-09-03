@@ -468,6 +468,6 @@ func signTemplateJSONHelper(grantData *models.TemplateData) (*cloudevent.RawEven
 	final.Signature = "0x" + common.Bytes2Hex(signature)
 
 	final.Data = msgBytes
-	final.Type = "dimo.sacd.template"
+	final.Type = cloudevent.TypeSACDTemplate
 	return &final, &grantData.Owner, nil
 }

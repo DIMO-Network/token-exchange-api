@@ -13,7 +13,7 @@ type TemplateData struct {
 // TemplateAgreement represents a permission agreement for an asset
 type TemplateAgreement struct {
 	Type        string       `json:"type"`
-	Asset       string       `json:"asset"`
+	Asset       string       `json:"asset"` // Contract address
 	Permissions []Permission `json:"permissions"`
 }
 
@@ -34,7 +34,7 @@ type Agreement struct {
 	IDs                  []string     `json:"ids"`
 	EffectiveAt          time.Time    `json:"effectiveAt"`
 	ExpiresAt            time.Time    `json:"expiresAt"`
-	PermissionTemplateID string       `json:"permissionTemplateID"`
+	PermissionTemplateID string       `json:"permissionTemplateId"`
 	Source               string       `json:"source"`
 	Asset                string       `json:"asset"`
 	Permissions          []Permission `json:"permissions"`

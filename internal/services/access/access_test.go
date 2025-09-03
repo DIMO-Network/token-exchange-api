@@ -557,6 +557,6 @@ func signSACDHelper(grantData *models.SACDData) (*cloudevent.RawEvent, error) {
 	final.Signature = "0x" + common.Bytes2Hex(signature)
 
 	final.Data = msgBytes
-	final.Type = "dimo.sacd"
+	final.Type = cloudevent.TypeSACD
 	return &final, nil
 }
