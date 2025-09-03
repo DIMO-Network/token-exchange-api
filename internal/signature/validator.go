@@ -13,7 +13,7 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 )
 
-var ERC1271MagicValue = [4]byte{0x16, 0x26, 0xba, 0x7e}
+var erc1271MagicValue = [4]byte{0x16, 0x26, 0xba, 0x7e}
 
 type Erc1271Interface interface {
 	IsValidSignature(opts *bind.CallOpts, hash [32]byte, signature []byte) ([4]byte, error)
@@ -21,10 +21,6 @@ type Erc1271Interface interface {
 
 type erc1271Mgr interface {
 	NewErc1271(address common.Address, backend bind.ContractBackend) (Erc1271Interface, error)
-}
-
-type Erc1271Factory interface {
-	NewERC1271(address common.Address, backend bind.ContractBackend) (Erc1271Interface, error)
 }
 
 type defaultErc1271Factory struct{}
@@ -77,7 +73,7 @@ func (v *Validator) ValidateSignature(ctx context.Context, payload json.RawMessa
 		errs = errors.Join(errs, fmt.Errorf("erc1271 call failed: %w", err))
 		return false, errs
 	}
-	return result == ERC1271MagicValue, nil
+	return result == erc1271MagicValue, nil
 }
 
 // ValidEOASignature validates a signature using the ECDSA recovery method

@@ -1,7 +1,6 @@
 package autheval
 
 import (
-	"context"
 	"math/big"
 	"testing"
 	"time"
@@ -343,7 +342,7 @@ func TestEvaluateCloudEvents_Attestations(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			permData.Agreements = tc.agreement
 			expectedCEGrants := tc.expectedCEGrants()
-			_, ceGrants, err := UserGrantMap(context.Background(), &permData, cloudevent.ERC721DID{
+			_, ceGrants, err := UserGrantMap(t.Context(), &permData, cloudevent.ERC721DID{
 				ContractAddress: common.HexToAddress(nftCtrAddr),
 				TokenID:         big.NewInt(123),
 				ChainID:         1,

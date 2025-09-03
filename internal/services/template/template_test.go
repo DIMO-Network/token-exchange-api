@@ -1,7 +1,6 @@
 package template
 
 import (
-	"context"
 	"crypto/ecdsa"
 	"encoding/json"
 	"errors"
@@ -88,7 +87,7 @@ func TestTemplateService_CacheEffectiveness(t *testing.T) {
 		Return(true, nil).
 		Times(1) // Should only be called once due to caching
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// First call - should fetch from blockchain and IPFS
 	assert.Equal(t, 0, service.GetCacheSize())
@@ -324,14 +323,14 @@ func TestGetTemplatePermissions(t *testing.T) {
 			service.ClearCache()
 
 			if tc.name == "invalid template ID" {
-				result, err := service.GetTemplatePermissions(context.Background(), "invalid", assetDID)
+				result, err := service.GetTemplatePermissions(t.Context(), "invalid", assetDID)
 				assert.Nil(t, result)
 				assert.Error(t, err)
 				assert.Contains(t, err.Error(), tc.errorContains)
 			} else {
 				tc.setupMocks()
 
-				result, err := service.GetTemplatePermissions(context.Background(), templateID, assetDID)
+				result, err := service.GetTemplatePermissions(t.Context(), templateID, assetDID)
 
 				if tc.expectedError {
 					assert.Error(t, err)
