@@ -148,40 +148,26 @@ func EvaluateIDsByGrantSource(globalGrants *set.StringSet, sourceGrants *set.Str
 	return missingIDs
 }
 
-// combinePermissions combines SACD and template permissions based on template activation status
-func combinePermissions(sacdPermissions map[string]bool, templateResult *template.PermissionsResult) map[string]bool {
-	if templateResult == nil || len(templateResult.Permissions) == 0 {
-		return sacdPermissions
+// matchTemplatePermissions checks if SACD and template permissions matches based on template activation status
+func matchTemplatePermissions(sacdPermissions map[string]bool, templateResult *template.PermissionsResult) bool {
+	if templateResult == nil {
+		return true
 	}
-
-	resultPermissions := make(map[string]bool)
 
 	if templateResult.IsActive {
-		// Template is active: combine permissions
-		// Check if SACD has the permissions that the template has
+		// Template is active: check if permissions match
+		// Check if SACD has all the permissions that the template has
 		for templatePerm := range templateResult.Permissions {
-			if sacdPermissions[templatePerm] {
-				resultPermissions[templatePerm] = true
+			if !sacdPermissions[templatePerm] {
+				return false
 			}
 		}
 
-		// Add additional permissions from SACD that are not in template
-		for sacdPerm, granted := range sacdPermissions {
-			if granted && !templateResult.Permissions[sacdPerm] {
-				resultPermissions[sacdPerm] = true
-			}
-		}
-	} else {
-		// Template is not active: only additional SACD permissions are granted
-		// Permissions in template that match SACD are NOT granted
-		for sacdPerm, granted := range sacdPermissions {
-			if granted && !templateResult.Permissions[sacdPerm] {
-				resultPermissions[sacdPerm] = true
-			}
-		}
+		return true
 	}
 
-	return resultPermissions
+	// Template is not active
+	return false
 }
 
 // UserGrantMap extracts permission and CloudEvent grants from SACD data
@@ -242,9 +228,11 @@ func UserGrantMap(ctx context.Context, data *models.SACDData, assetDID cloudeven
 	}
 
 	var userPermGrants map[string]bool
-	// Combine permissions using the autheval package logic
 	if hasTemplate {
-		userPermGrants = combinePermissions(sacdPermissions, templateResult)
+		match := matchTemplatePermissions(sacdPermissions, templateResult)
+		if match {
+			userPermGrants = sacdPermissions
+		}
 	} else {
 		// No template involved, use SACD permissions directly
 		userPermGrants = sacdPermissions

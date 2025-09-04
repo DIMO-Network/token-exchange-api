@@ -477,6 +477,25 @@ func TestEvaluatePermissionsWithTemplate(t *testing.T) {
 			missingPermissions:  nil,
 		},
 		{
+			name: "active template with some permissions",
+			userPermissions: map[string]bool{
+				"privilege:GetNonLocationHistory": true,
+				"privilege:ExecuteCommands":       true,
+			},
+			templatePermissions: &template.PermissionsResult{
+				Permissions: map[string]bool{
+					"privilege:GetNonLocationHistory": true,
+					"privilege:ExecuteCommands":       true,
+					"privilege:GetCurrentLocation":    true,
+				},
+				IsActive: true,
+			},
+			requestedPrivileges: []string{"privilege:GetNonLocationHistory", "privilege:ExecuteCommands", "privilege:GetCurrentLocation"},
+			tokenID:             123,
+			nftContractAddress:  "0x123",
+			missingPermissions:  []string{"privilege:GetNonLocationHistory", "privilege:ExecuteCommands", "privilege:GetCurrentLocation"},
+		},
+		{
 			name: "inactive template with all permissions",
 			userPermissions: map[string]bool{
 				"privilege:GetNonLocationHistory": true,
@@ -511,7 +530,7 @@ func TestEvaluatePermissionsWithTemplate(t *testing.T) {
 			requestedPrivileges: []string{"privilege:GetNonLocationHistory", "privilege:ExecuteCommands", "privilege:GetCurrentLocation"},
 			tokenID:             123,
 			nftContractAddress:  "0x123",
-			missingPermissions:  []string{"privilege:ExecuteCommands", "privilege:GetCurrentLocation"},
+			missingPermissions:  []string{"privilege:GetNonLocationHistory", "privilege:ExecuteCommands", "privilege:GetCurrentLocation"},
 		},
 		{
 			name: "SACD and template with only complementary permissions",
@@ -529,17 +548,20 @@ func TestEvaluatePermissionsWithTemplate(t *testing.T) {
 			requestedPrivileges: []string{"privilege:GetNonLocationHistory", "privilege:AdditionalPermission"},
 			tokenID:             123,
 			nftContractAddress:  "0x123",
-			missingPermissions:  nil,
+			missingPermissions:  []string{"privilege:GetNonLocationHistory", "privilege:AdditionalPermission"},
 		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			// Combine permissions from SACD and template
-			combinedPermissions := combinePermissions(tc.userPermissions, tc.templatePermissions)
+			var matchPermissions map[string]bool
 
-			// Evaluate permissions against the requested privileges
-			lacks := EvaluatePermissions(combinedPermissions, tc.requestedPrivileges)
+			match := matchTemplatePermissions(tc.userPermissions, tc.templatePermissions)
+			if match {
+				matchPermissions = tc.userPermissions
+			}
+
+			lacks := EvaluatePermissions(matchPermissions, tc.requestedPrivileges)
 			require.Equal(t, tc.missingPermissions, lacks)
 		})
 	}
