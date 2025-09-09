@@ -57,12 +57,18 @@ func (c *CustomClaims) Proto() (*structpb.Struct, error) {
 				ids = append(ids, id)
 			}
 
+			tags := []any{}
+			for _, tag := range evt.Tags {
+				tags = append(tags, tag)
+			}
+
 			events = append(
 				events,
 				map[string]any{
 					"event_type": evt.EventType,
 					"source":     evt.Source,
 					"ids":        ids,
+					"tags":       tags,
 				},
 			)
 		}
