@@ -27,6 +27,7 @@ type Event struct {
 	EventType string   `json:"event_type"`
 	Source    string   `json:"source"`
 	IDs       []string `json:"ids"`
+	Tags      []string `json:"tags"`
 }
 
 // Token is a JWT token created by token-exchange.
