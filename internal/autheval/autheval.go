@@ -227,7 +227,7 @@ func UserGrantMap(ctx context.Context, data *models.SACDData, assetDID cloudeven
 		}
 	}
 
-	var userPermGrants map[string]bool
+	userPermGrants := map[string]bool{}
 	if hasTemplate {
 		match := matchTemplatePermissions(sacdPermissions, templateResult)
 		if match {
