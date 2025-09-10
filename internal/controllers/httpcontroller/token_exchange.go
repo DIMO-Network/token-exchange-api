@@ -89,7 +89,7 @@ func (t *TokenExchangeController) ExchangeToken(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, "Please provide at least one privilege or cloudevent")
 	}
 
-	addDefaultIdentifer(tokenReq)
+	addDefaultIdentifiers(tokenReq)
 
 	ethAddr, err := api.GetUserEthAddr(c)
 	if err != nil {
@@ -183,9 +183,10 @@ func tokenReqToAccessReq(tokenReq *TokenRequest, chainID uint64) (*access.NFTAcc
 	}, nil
 }
 
-// if any cloud event identifiers are missing assume they want everything.
-func addDefaultIdentifer(tokenReq *TokenRequest) {
-	for _, ce := range tokenReq.CloudEvents.Events {
+// addDefaultIdentifiers update tokenReq.CloudEvents.Events so that if any cloud event identifiers are missing assume they want everything.
+func addDefaultIdentifiers(tokenReq *TokenRequest) {
+	for i := range tokenReq.CloudEvents.Events {
+		ce := &tokenReq.CloudEvents.Events[i]
 		if ce.EventType == "" {
 			ce.EventType = tokenclaims.GlobalIdentifier
 		}
