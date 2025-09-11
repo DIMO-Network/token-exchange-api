@@ -10,6 +10,10 @@ definitions:
         type: array
       source:
         type: string
+      tags:
+        items:
+          type: string
+        type: array
     type: object
   internal_controllers_httpcontroller.CloudEvents:
     properties:

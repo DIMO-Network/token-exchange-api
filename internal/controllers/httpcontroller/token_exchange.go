@@ -89,6 +89,8 @@ func (t *TokenExchangeController) ExchangeToken(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, "Please provide at least one privilege or cloudevent")
 	}
 
+	addDefaultIdentifiers(tokenReq)
+
 	ethAddr, err := api.GetUserEthAddr(c)
 	if err != nil {
 		return err
@@ -134,6 +136,7 @@ func (t *TokenExchangeController) createAndReturnToken(c *fiber.Ctx, tokenReq *T
 				EventType: ce.EventType,
 				Source:    ce.Source,
 				IDs:       ce.IDs,
+				Tags:      ce.Tags,
 			})
 		}
 		privTokenDTO.CloudEvents = &ces
@@ -178,4 +181,23 @@ func tokenReqToAccessReq(tokenReq *TokenRequest, chainID uint64) (*access.NFTAcc
 		Permissions:  permNames,
 		EventFilters: tokenReq.CloudEvents.Events,
 	}, nil
+}
+
+// addDefaultIdentifiers update tokenReq.CloudEvents.Events so that if any cloud event identifiers are missing assume they want everything.
+func addDefaultIdentifiers(tokenReq *TokenRequest) {
+	for i := range tokenReq.CloudEvents.Events {
+		ce := &tokenReq.CloudEvents.Events[i]
+		if ce.EventType == "" {
+			ce.EventType = tokenclaims.GlobalIdentifier
+		}
+		if ce.Source == "" {
+			ce.Source = tokenclaims.GlobalIdentifier
+		}
+		if len(ce.IDs) == 0 {
+			ce.IDs = []string{tokenclaims.GlobalIdentifier}
+		}
+		if len(ce.Tags) == 0 {
+			ce.Tags = []string{tokenclaims.GlobalIdentifier}
+		}
+	}
 }
