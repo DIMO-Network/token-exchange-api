@@ -11,6 +11,7 @@ import (
 	"github.com/DIMO-Network/cloudevent"
 	"github.com/DIMO-Network/shared/pkg/set"
 	"github.com/DIMO-Network/token-exchange-api/internal/models"
+	"github.com/DIMO-Network/token-exchange-api/internal/services/template"
 	"github.com/DIMO-Network/token-exchange-api/pkg/tokenclaims"
 	"github.com/ethereum/go-ethereum/common"
 )
@@ -22,7 +23,7 @@ type EventFilter struct {
 }
 
 type TemplateService interface {
-	GetTemplatePermissions(ctx context.Context, permissionTemplateID string, assetDID cloudevent.ERC721DID) (map[string]bool, error)
+	GetTemplatePermissions(ctx context.Context, permissionTemplateID string, assetDID cloudevent.ERC721DID) (*template.PermissionsResult, error)
 }
 
 // EvaluatePermissions checks if all requested privileges are present in the user permissions
@@ -147,13 +148,39 @@ func EvaluateIDsByGrantSource(globalGrants *set.StringSet, sourceGrants *set.Str
 	return missingIDs
 }
 
+// matchTemplatePermissions checks if SACD and template permissions matches based on template activation status
+func matchTemplatePermissions(sacdPermissions map[string]bool, templateResult *template.PermissionsResult) bool {
+	if templateResult == nil {
+		return true
+	}
+
+	if templateResult.IsActive {
+		// Template is active: check if permissions match
+		// Check if SACD has all the permissions that the template has
+		for templatePerm := range templateResult.Permissions {
+			if !sacdPermissions[templatePerm] {
+				return false
+			}
+		}
+
+		return true
+	}
+
+	// Template is not active
+	return false
+}
+
 // UserGrantMap extracts permission and CloudEvent grants from SACD data
 func UserGrantMap(ctx context.Context, data *models.SACDData, assetDID cloudevent.ERC721DID, templateService TemplateService) (map[string]bool, map[string]map[string]*set.StringSet, error) {
-	userPermGrants := make(map[string]bool)
 	// type -> source -> ids
 	cloudEvtGrants := make(map[string]map[string]*set.StringSet)
 
-	// Aggregates all the permission and attestation grants the user has.
+	// Collect direct SACD permissions
+	sacdPermissions := make(map[string]bool)
+	var templateResult *template.PermissionsResult
+	var hasTemplate bool
+
+	// Single loop to process all agreements
 	for _, agreement := range data.Agreements {
 		now := time.Now()
 		if !agreement.EffectiveAt.IsZero() && now.Before(agreement.EffectiveAt) {
@@ -166,21 +193,6 @@ func UserGrantMap(ctx context.Context, data *models.SACDData, assetDID cloudeven
 
 		if agreement.Asset != assetDID.String() {
 			return nil, nil, fmt.Errorf("asset DID %s does not match request DID %s", agreement.Asset, assetDID.String())
-		}
-
-		if agreement.PermissionTemplateID != "" && agreement.PermissionTemplateID != "0" {
-			templatePerms, err := templateService.GetTemplatePermissions(ctx, agreement.PermissionTemplateID, assetDID)
-			if err != nil {
-				// TODO(lorran) I don't think we want to return here
-				return nil, nil, fmt.Errorf("failed to get template permissions: %w", err)
-			}
-
-			// Merge template permissions into userPermGrants
-			for perm, granted := range templatePerms {
-				if granted {
-					userPermGrants[perm] = true
-				}
-			}
 		}
 
 		switch agreement.Type {
@@ -197,14 +209,34 @@ func UserGrantMap(ctx context.Context, data *models.SACDData, assetDID cloudeven
 				cloudEvtGrants[agreement.EventType][agreement.Source].Add(id)
 			}
 		case "permission":
-			// Add permissions from this agreement
+			// Collect direct SACD permissions
 			for _, permission := range agreement.Permissions {
-				userPermGrants[permission.Name] = true
+				sacdPermissions[permission.Name] = true
+			}
+
+			// Handle template if present
+			if agreement.PermissionTemplateID != "" && agreement.PermissionTemplateID != "0" && !hasTemplate {
+				var err error
+				templateResult, err = templateService.GetTemplatePermissions(ctx, agreement.PermissionTemplateID, assetDID)
+				if err != nil {
+					// TODO(lorran) I don't think we want to return here
+					return nil, nil, fmt.Errorf("failed to get template permissions: %w", err)
+				}
+				hasTemplate = true
 			}
 		}
 	}
 
-	// TODO(lorran) merge template perms and userPermGrants
+	userPermGrants := map[string]bool{}
+	if hasTemplate {
+		match := matchTemplatePermissions(sacdPermissions, templateResult)
+		if match {
+			userPermGrants = sacdPermissions
+		}
+	} else {
+		// No template involved, use SACD permissions directly
+		userPermGrants = sacdPermissions
+	}
 
 	return userPermGrants, cloudEvtGrants, nil
 }

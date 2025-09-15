@@ -1,7 +1,6 @@
 package autheval
 
 import (
-	"context"
 	"math/big"
 	"testing"
 	"time"
@@ -9,6 +8,7 @@ import (
 	"github.com/DIMO-Network/cloudevent"
 	"github.com/DIMO-Network/shared/pkg/set"
 	"github.com/DIMO-Network/token-exchange-api/internal/models"
+	"github.com/DIMO-Network/token-exchange-api/internal/services/template"
 	"github.com/DIMO-Network/token-exchange-api/pkg/tokenclaims"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
@@ -342,7 +342,7 @@ func TestEvaluateCloudEvents_Attestations(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			permData.Agreements = tc.agreement
 			expectedCEGrants := tc.expectedCEGrants()
-			_, ceGrants, err := UserGrantMap(context.Background(), &permData, cloudevent.ERC721DID{
+			_, ceGrants, err := UserGrantMap(t.Context(), &permData, cloudevent.ERC721DID{
 				ContractAddress: common.HexToAddress(nftCtrAddr),
 				TokenID:         big.NewInt(123),
 				ChainID:         1,
@@ -372,7 +372,7 @@ func TestEvaluateCloudEvents_Attestations(t *testing.T) {
 	}
 }
 
-func TestEvaluatePermissions(t *testing.T) {
+func TestEvaluatePermissionsOnlySACD(t *testing.T) {
 	tests := []struct {
 		name                string
 		userPermissions     map[string]bool
@@ -420,11 +420,148 @@ func TestEvaluatePermissions(t *testing.T) {
 			nftContractAddress:  "0x123",
 			missingPermissions:  nil,
 		},
+		{
+			name:                "unknown privilege ID",
+			userPermissions:     map[string]bool{},
+			requestedPrivileges: []string{"new-privilege"},
+			tokenID:             123,
+			nftContractAddress:  "0x123",
+			missingPermissions:  []string{"new-privilege"},
+		},
+		{
+			name:                "empty privileges",
+			userPermissions:     map[string]bool{},
+			requestedPrivileges: []string{},
+			tokenID:             123,
+			nftContractAddress:  "0x123",
+			missingPermissions:  nil,
+		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			lacks := EvaluatePermissions(tc.userPermissions, tc.requestedPrivileges)
+			require.Equal(t, tc.missingPermissions, lacks)
+		})
+	}
+}
+
+func TestEvaluatePermissionsWithTemplate(t *testing.T) {
+	tests := []struct {
+		name                string
+		userPermissions     map[string]bool
+		templatePermissions *template.PermissionsResult
+		requestedPrivileges []string
+		tokenID             int64
+		nftContractAddress  string
+		missingPermissions  []string
+	}{
+		{
+			name: "active template with all permissions",
+			userPermissions: map[string]bool{
+				"privilege:GetNonLocationHistory": true,
+				"privilege:ExecuteCommands":       true,
+				"privilege:GetCurrentLocation":    true,
+			},
+			templatePermissions: &template.PermissionsResult{
+				Permissions: map[string]bool{
+					"privilege:GetNonLocationHistory": true,
+					"privilege:ExecuteCommands":       true,
+					"privilege:GetCurrentLocation":    true,
+				},
+				IsActive: true,
+			},
+			requestedPrivileges: []string{"privilege:GetNonLocationHistory", "privilege:ExecuteCommands", "privilege:GetCurrentLocation"},
+			tokenID:             123,
+			nftContractAddress:  "0x123",
+			missingPermissions:  nil,
+		},
+		{
+			name: "active template with some permissions",
+			userPermissions: map[string]bool{
+				"privilege:GetNonLocationHistory": true,
+				"privilege:ExecuteCommands":       true,
+			},
+			templatePermissions: &template.PermissionsResult{
+				Permissions: map[string]bool{
+					"privilege:GetNonLocationHistory": true,
+					"privilege:ExecuteCommands":       true,
+					"privilege:GetCurrentLocation":    true,
+				},
+				IsActive: true,
+			},
+			requestedPrivileges: []string{"privilege:GetNonLocationHistory", "privilege:ExecuteCommands", "privilege:GetCurrentLocation"},
+			tokenID:             123,
+			nftContractAddress:  "0x123",
+			missingPermissions:  []string{"privilege:GetNonLocationHistory", "privilege:ExecuteCommands", "privilege:GetCurrentLocation"},
+		},
+		{
+			name: "inactive template with all permissions",
+			userPermissions: map[string]bool{
+				"privilege:GetNonLocationHistory": true,
+				"privilege:ExecuteCommands":       true,
+				"privilege:GetCurrentLocation":    true,
+			},
+			templatePermissions: &template.PermissionsResult{
+				Permissions: map[string]bool{
+					"privilege:GetNonLocationHistory": true,
+					"privilege:ExecuteCommands":       true,
+					"privilege:GetCurrentLocation":    true,
+				},
+				IsActive: false,
+			},
+			requestedPrivileges: []string{"privilege:GetNonLocationHistory", "privilege:ExecuteCommands", "privilege:GetCurrentLocation"},
+			tokenID:             123,
+			nftContractAddress:  "0x123",
+			missingPermissions:  []string{"privilege:GetNonLocationHistory", "privilege:ExecuteCommands", "privilege:GetCurrentLocation"},
+		},
+		{
+			name: "inactive template with permissions not in SACD",
+			userPermissions: map[string]bool{
+				"privilege:GetNonLocationHistory": true,
+			},
+			templatePermissions: &template.PermissionsResult{
+				Permissions: map[string]bool{
+					"privilege:ExecuteCommands":    true,
+					"privilege:GetCurrentLocation": true,
+				},
+				IsActive: false,
+			},
+			requestedPrivileges: []string{"privilege:GetNonLocationHistory", "privilege:ExecuteCommands", "privilege:GetCurrentLocation"},
+			tokenID:             123,
+			nftContractAddress:  "0x123",
+			missingPermissions:  []string{"privilege:GetNonLocationHistory", "privilege:ExecuteCommands", "privilege:GetCurrentLocation"},
+		},
+		{
+			name: "SACD and template with only complementary permissions",
+			userPermissions: map[string]bool{
+				"privilege:GetNonLocationHistory": true,
+				"privilege:AdditionalPermission":  true,
+			},
+			templatePermissions: &template.PermissionsResult{
+				Permissions: map[string]bool{
+					"privilege:ExecuteCommands":    true,
+					"privilege:GetCurrentLocation": true,
+				},
+				IsActive: true,
+			},
+			requestedPrivileges: []string{"privilege:GetNonLocationHistory", "privilege:AdditionalPermission"},
+			tokenID:             123,
+			nftContractAddress:  "0x123",
+			missingPermissions:  []string{"privilege:GetNonLocationHistory", "privilege:AdditionalPermission"},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			var matchPermissions map[string]bool
+
+			match := matchTemplatePermissions(tc.userPermissions, tc.templatePermissions)
+			if match {
+				matchPermissions = tc.userPermissions
+			}
+
+			lacks := EvaluatePermissions(matchPermissions, tc.requestedPrivileges)
 			require.Equal(t, tc.missingPermissions, lacks)
 		})
 	}

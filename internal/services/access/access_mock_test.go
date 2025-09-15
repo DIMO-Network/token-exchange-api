@@ -18,6 +18,7 @@ import (
 	cloudevent "github.com/DIMO-Network/cloudevent"
 	sacd "github.com/DIMO-Network/token-exchange-api/internal/contracts/sacd"
 	template "github.com/DIMO-Network/token-exchange-api/internal/contracts/template"
+	template0 "github.com/DIMO-Network/token-exchange-api/internal/services/template"
 	bind "github.com/ethereum/go-ethereum/accounts/abi/bind"
 	common "github.com/ethereum/go-ethereum/common"
 	gomock "go.uber.org/mock/gomock"
@@ -77,32 +78,47 @@ func (mr *MockSACDInterfaceMockRecorder) GetPermissions(opts, asset, tokenID, gr
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPermissions", reflect.TypeOf((*MockSACDInterface)(nil).GetPermissions), opts, asset, tokenID, grantee, permissions)
 }
 
-// MockTemplateInterface is a mock of TemplateInterface interface.
-type MockTemplateInterface struct {
+// MockTemplate is a mock of Template interface.
+type MockTemplate struct {
 	ctrl     *gomock.Controller
-	recorder *MockTemplateInterfaceMockRecorder
+	recorder *MockTemplateMockRecorder
 	isgomock struct{}
 }
 
-// MockTemplateInterfaceMockRecorder is the mock recorder for MockTemplateInterface.
-type MockTemplateInterfaceMockRecorder struct {
-	mock *MockTemplateInterface
+// MockTemplateMockRecorder is the mock recorder for MockTemplate.
+type MockTemplateMockRecorder struct {
+	mock *MockTemplate
 }
 
-// NewMockTemplateInterface creates a new mock instance.
-func NewMockTemplateInterface(ctrl *gomock.Controller) *MockTemplateInterface {
-	mock := &MockTemplateInterface{ctrl: ctrl}
-	mock.recorder = &MockTemplateInterfaceMockRecorder{mock}
+// NewMockTemplate creates a new mock instance.
+func NewMockTemplate(ctrl *gomock.Controller) *MockTemplate {
+	mock := &MockTemplate{ctrl: ctrl}
+	mock.recorder = &MockTemplateMockRecorder{mock}
 	return mock
 }
 
 // EXPECT returns an object that allows the caller to indicate expected use.
-func (m *MockTemplateInterface) EXPECT() *MockTemplateInterfaceMockRecorder {
+func (m *MockTemplate) EXPECT() *MockTemplateMockRecorder {
 	return m.recorder
 }
 
+// IsTemplateActive mocks base method.
+func (m *MockTemplate) IsTemplateActive(opts *bind.CallOpts, templateID *big.Int) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IsTemplateActive", opts, templateID)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// IsTemplateActive indicates an expected call of IsTemplateActive.
+func (mr *MockTemplateMockRecorder) IsTemplateActive(opts, templateID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsTemplateActive", reflect.TypeOf((*MockTemplate)(nil).IsTemplateActive), opts, templateID)
+}
+
 // Templates mocks base method.
-func (m *MockTemplateInterface) Templates(opts *bind.CallOpts, templateID *big.Int) (template.ITemplateTemplateData, error) {
+func (m *MockTemplate) Templates(opts *bind.CallOpts, templateID *big.Int) (template.ITemplateTemplateData, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Templates", opts, templateID)
 	ret0, _ := ret[0].(template.ITemplateTemplateData)
@@ -111,9 +127,9 @@ func (m *MockTemplateInterface) Templates(opts *bind.CallOpts, templateID *big.I
 }
 
 // Templates indicates an expected call of Templates.
-func (mr *MockTemplateInterfaceMockRecorder) Templates(opts, templateID any) *gomock.Call {
+func (mr *MockTemplateMockRecorder) Templates(opts, templateID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Templates", reflect.TypeOf((*MockTemplateInterface)(nil).Templates), opts, templateID)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Templates", reflect.TypeOf((*MockTemplate)(nil).Templates), opts, templateID)
 }
 
 // MockErc1271Interface is a mock of Erc1271Interface interface.
@@ -179,19 +195,19 @@ func (m *MockIPFSClient) EXPECT() *MockIPFSClientMockRecorder {
 	return m.recorder
 }
 
-// Fetch mocks base method.
-func (m *MockIPFSClient) Fetch(ctx context.Context, cid string) ([]byte, error) {
+// GetValidSacdDoc mocks base method.
+func (m *MockIPFSClient) GetValidSacdDoc(ctx context.Context, source string) (*cloudevent.RawEvent, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Fetch", ctx, cid)
-	ret0, _ := ret[0].([]byte)
+	ret := m.ctrl.Call(m, "GetValidSacdDoc", ctx, source)
+	ret0, _ := ret[0].(*cloudevent.RawEvent)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// Fetch indicates an expected call of Fetch.
-func (mr *MockIPFSClientMockRecorder) Fetch(ctx, cid any) *gomock.Call {
+// GetValidSacdDoc indicates an expected call of GetValidSacdDoc.
+func (mr *MockIPFSClientMockRecorder) GetValidSacdDoc(ctx, source any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Fetch", reflect.TypeOf((*MockIPFSClient)(nil).Fetch), ctx, cid)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetValidSacdDoc", reflect.TypeOf((*MockIPFSClient)(nil).GetValidSacdDoc), ctx, source)
 }
 
 // MockTemplateService is a mock of TemplateService interface.
@@ -219,10 +235,10 @@ func (m *MockTemplateService) EXPECT() *MockTemplateServiceMockRecorder {
 }
 
 // GetTemplatePermissions mocks base method.
-func (m *MockTemplateService) GetTemplatePermissions(ctx context.Context, permissionTemplateID string, assetDID cloudevent.ERC721DID) (map[string]bool, error) {
+func (m *MockTemplateService) GetTemplatePermissions(ctx context.Context, permissionTemplateID string, assetDID cloudevent.ERC721DID) (*template0.PermissionsResult, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetTemplatePermissions", ctx, permissionTemplateID, assetDID)
-	ret0, _ := ret[0].(map[string]bool)
+	ret0, _ := ret[0].(*template0.PermissionsResult)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

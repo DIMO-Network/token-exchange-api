@@ -15,6 +15,7 @@ import (
 	big "math/big"
 	reflect "reflect"
 
+	cloudevent "github.com/DIMO-Network/cloudevent"
 	template "github.com/DIMO-Network/token-exchange-api/internal/contracts/template"
 	bind "github.com/ethereum/go-ethereum/accounts/abi/bind"
 	common "github.com/ethereum/go-ethereum/common"
@@ -43,6 +44,21 @@ func NewMockTemplate(ctrl *gomock.Controller) *MockTemplate {
 // EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockTemplate) EXPECT() *MockTemplateMockRecorder {
 	return m.recorder
+}
+
+// IsTemplateActive mocks base method.
+func (m *MockTemplate) IsTemplateActive(opts *bind.CallOpts, templateID *big.Int) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IsTemplateActive", opts, templateID)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// IsTemplateActive indicates an expected call of IsTemplateActive.
+func (mr *MockTemplateMockRecorder) IsTemplateActive(opts, templateID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsTemplateActive", reflect.TypeOf((*MockTemplate)(nil).IsTemplateActive), opts, templateID)
 }
 
 // Templates mocks base method.
@@ -84,19 +100,19 @@ func (m *MockIPFSClient) EXPECT() *MockIPFSClientMockRecorder {
 	return m.recorder
 }
 
-// Fetch mocks base method.
-func (m *MockIPFSClient) Fetch(ctx context.Context, cid string) ([]byte, error) {
+// GetValidSacdDoc mocks base method.
+func (m *MockIPFSClient) GetValidSacdDoc(ctx context.Context, source string) (*cloudevent.RawEvent, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Fetch", ctx, cid)
-	ret0, _ := ret[0].([]byte)
+	ret := m.ctrl.Call(m, "GetValidSacdDoc", ctx, source)
+	ret0, _ := ret[0].(*cloudevent.RawEvent)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// Fetch indicates an expected call of Fetch.
-func (mr *MockIPFSClientMockRecorder) Fetch(ctx, cid any) *gomock.Call {
+// GetValidSacdDoc indicates an expected call of GetValidSacdDoc.
+func (mr *MockIPFSClientMockRecorder) GetValidSacdDoc(ctx, source any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Fetch", reflect.TypeOf((*MockIPFSClient)(nil).Fetch), ctx, cid)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetValidSacdDoc", reflect.TypeOf((*MockIPFSClient)(nil).GetValidSacdDoc), ctx, source)
 }
 
 // MockSignatureValidator is a mock of SignatureValidator interface.
