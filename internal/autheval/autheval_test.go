@@ -7,6 +7,7 @@ import (
 
 	"github.com/DIMO-Network/cloudevent"
 	"github.com/DIMO-Network/shared/pkg/set"
+	"github.com/DIMO-Network/token-exchange-api/internal/constants"
 	"github.com/DIMO-Network/token-exchange-api/internal/models"
 	"github.com/DIMO-Network/token-exchange-api/internal/services/template"
 	"github.com/DIMO-Network/token-exchange-api/pkg/tokenclaims"
@@ -384,11 +385,11 @@ func TestEvaluatePermissionsOnlySACD(t *testing.T) {
 		{
 			name: "valid permissions - all granted",
 			userPermissions: map[string]bool{
-				"privilege:GetNonLocationHistory": true,
-				"privilege:ExecuteCommands":       true,
-				"privilege:GetCurrentLocation":    true,
+				constants.PrivilegeIDToName[1]: true,
+				constants.PrivilegeIDToName[2]: true,
+				constants.PrivilegeIDToName[3]: true,
 			},
-			requestedPrivileges: []string{"privilege:GetNonLocationHistory", "privilege:ExecuteCommands", "privilege:GetCurrentLocation"},
+			requestedPrivileges: []string{constants.PrivilegeIDToName[1], constants.PrivilegeIDToName[2], constants.PrivilegeIDToName[3]},
 			tokenID:             123,
 			nftContractAddress:  "0x123",
 			missingPermissions:  nil,
@@ -396,13 +397,13 @@ func TestEvaluatePermissionsOnlySACD(t *testing.T) {
 		{
 			name: "missing permission",
 			userPermissions: map[string]bool{
-				"privilege:GetNonLocationHistory": true,
-				"privilege:ExecuteCommands":       true,
+				constants.PrivilegeIDToName[1]: true,
+				constants.PrivilegeIDToName[2]: true,
 			},
-			requestedPrivileges: []string{"privilege:GetNonLocationHistory", "privilege:ExecuteCommands", "privilege:GetCurrentLocation"}, // 3 is missing
+			requestedPrivileges: []string{constants.PrivilegeIDToName[1], constants.PrivilegeIDToName[2], constants.PrivilegeIDToName[3]}, // 3 is missing
 			tokenID:             123,
 			nftContractAddress:  "0x123",
-			missingPermissions:  []string{"privilege:GetCurrentLocation"},
+			missingPermissions:  []string{constants.PrivilegeIDToName[3]},
 		},
 		{
 			name:                "unknown privilege ID",
@@ -459,19 +460,19 @@ func TestEvaluatePermissionsWithTemplate(t *testing.T) {
 		{
 			name: "active template with all permissions",
 			userPermissions: map[string]bool{
-				"privilege:GetNonLocationHistory": true,
-				"privilege:ExecuteCommands":       true,
-				"privilege:GetCurrentLocation":    true,
+				constants.PrivilegeIDToName[1]: true,
+				constants.PrivilegeIDToName[2]: true,
+				constants.PrivilegeIDToName[3]: true,
 			},
 			templatePermissions: &template.PermissionsResult{
 				Permissions: map[string]bool{
-					"privilege:GetNonLocationHistory": true,
-					"privilege:ExecuteCommands":       true,
-					"privilege:GetCurrentLocation":    true,
+					constants.PrivilegeIDToName[1]: true,
+					constants.PrivilegeIDToName[2]: true,
+					constants.PrivilegeIDToName[3]: true,
 				},
 				IsActive: true,
 			},
-			requestedPrivileges: []string{"privilege:GetNonLocationHistory", "privilege:ExecuteCommands", "privilege:GetCurrentLocation"},
+			requestedPrivileges: []string{constants.PrivilegeIDToName[1], constants.PrivilegeIDToName[2], constants.PrivilegeIDToName[3]},
 			tokenID:             123,
 			nftContractAddress:  "0x123",
 			missingPermissions:  nil,
@@ -479,76 +480,76 @@ func TestEvaluatePermissionsWithTemplate(t *testing.T) {
 		{
 			name: "active template with some permissions",
 			userPermissions: map[string]bool{
-				"privilege:GetNonLocationHistory": true,
-				"privilege:ExecuteCommands":       true,
+				constants.PrivilegeIDToName[1]: true,
+				constants.PrivilegeIDToName[2]: true,
 			},
 			templatePermissions: &template.PermissionsResult{
 				Permissions: map[string]bool{
-					"privilege:GetNonLocationHistory": true,
-					"privilege:ExecuteCommands":       true,
-					"privilege:GetCurrentLocation":    true,
+					constants.PrivilegeIDToName[1]: true,
+					constants.PrivilegeIDToName[2]: true,
+					constants.PrivilegeIDToName[3]: true,
 				},
 				IsActive: true,
 			},
-			requestedPrivileges: []string{"privilege:GetNonLocationHistory", "privilege:ExecuteCommands", "privilege:GetCurrentLocation"},
+			requestedPrivileges: []string{constants.PrivilegeIDToName[1], constants.PrivilegeIDToName[2], constants.PrivilegeIDToName[3]},
 			tokenID:             123,
 			nftContractAddress:  "0x123",
-			missingPermissions:  []string{"privilege:GetNonLocationHistory", "privilege:ExecuteCommands", "privilege:GetCurrentLocation"},
+			missingPermissions:  []string{constants.PrivilegeIDToName[1], constants.PrivilegeIDToName[2], constants.PrivilegeIDToName[3]},
 		},
 		{
 			name: "inactive template with all permissions",
 			userPermissions: map[string]bool{
-				"privilege:GetNonLocationHistory": true,
-				"privilege:ExecuteCommands":       true,
-				"privilege:GetCurrentLocation":    true,
+				constants.PrivilegeIDToName[1]: true,
+				constants.PrivilegeIDToName[2]: true,
+				constants.PrivilegeIDToName[3]: true,
 			},
 			templatePermissions: &template.PermissionsResult{
 				Permissions: map[string]bool{
-					"privilege:GetNonLocationHistory": true,
-					"privilege:ExecuteCommands":       true,
-					"privilege:GetCurrentLocation":    true,
+					constants.PrivilegeIDToName[1]: true,
+					constants.PrivilegeIDToName[2]: true,
+					constants.PrivilegeIDToName[3]: true,
 				},
 				IsActive: false,
 			},
-			requestedPrivileges: []string{"privilege:GetNonLocationHistory", "privilege:ExecuteCommands", "privilege:GetCurrentLocation"},
+			requestedPrivileges: []string{constants.PrivilegeIDToName[1], constants.PrivilegeIDToName[2], constants.PrivilegeIDToName[3]},
 			tokenID:             123,
 			nftContractAddress:  "0x123",
-			missingPermissions:  []string{"privilege:GetNonLocationHistory", "privilege:ExecuteCommands", "privilege:GetCurrentLocation"},
+			missingPermissions:  []string{constants.PrivilegeIDToName[1], constants.PrivilegeIDToName[2], constants.PrivilegeIDToName[3]},
 		},
 		{
 			name: "inactive template with permissions not in SACD",
 			userPermissions: map[string]bool{
-				"privilege:GetNonLocationHistory": true,
+				constants.PrivilegeIDToName[1]: true,
 			},
 			templatePermissions: &template.PermissionsResult{
 				Permissions: map[string]bool{
-					"privilege:ExecuteCommands":    true,
-					"privilege:GetCurrentLocation": true,
+					constants.PrivilegeIDToName[2]: true,
+					constants.PrivilegeIDToName[3]: true,
 				},
 				IsActive: false,
 			},
-			requestedPrivileges: []string{"privilege:GetNonLocationHistory", "privilege:ExecuteCommands", "privilege:GetCurrentLocation"},
+			requestedPrivileges: []string{constants.PrivilegeIDToName[1], constants.PrivilegeIDToName[2], constants.PrivilegeIDToName[3]},
 			tokenID:             123,
 			nftContractAddress:  "0x123",
-			missingPermissions:  []string{"privilege:GetNonLocationHistory", "privilege:ExecuteCommands", "privilege:GetCurrentLocation"},
+			missingPermissions:  []string{constants.PrivilegeIDToName[1], constants.PrivilegeIDToName[2], constants.PrivilegeIDToName[3]},
 		},
 		{
 			name: "SACD and template with only complementary permissions",
 			userPermissions: map[string]bool{
-				"privilege:GetNonLocationHistory": true,
-				"privilege:AdditionalPermission":  true,
+				constants.PrivilegeIDToName[1]:   true,
+				"privilege:AdditionalPermission": true,
 			},
 			templatePermissions: &template.PermissionsResult{
 				Permissions: map[string]bool{
-					"privilege:ExecuteCommands":    true,
-					"privilege:GetCurrentLocation": true,
+					constants.PrivilegeIDToName[2]: true,
+					constants.PrivilegeIDToName[3]: true,
 				},
 				IsActive: true,
 			},
-			requestedPrivileges: []string{"privilege:GetNonLocationHistory", "privilege:AdditionalPermission"},
+			requestedPrivileges: []string{constants.PrivilegeIDToName[1], "privilege:AdditionalPermission"},
 			tokenID:             123,
 			nftContractAddress:  "0x123",
-			missingPermissions:  []string{"privilege:GetNonLocationHistory", "privilege:AdditionalPermission"},
+			missingPermissions:  []string{constants.PrivilegeIDToName[1], "privilege:AdditionalPermission"},
 		},
 	}
 
