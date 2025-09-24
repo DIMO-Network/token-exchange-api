@@ -723,7 +723,7 @@ type MockTemplateService struct {
 	shouldError    bool
 }
 
-func (m *MockTemplateService) GetTemplatePermissions(ctx context.Context, permissionTemplateID string, assetDID cloudevent.ERC721DID) (*template.PermissionsResult, error) {
+func (m *MockTemplateService) GetTemplatePermissions(_ context.Context, _ string, _ cloudevent.ERC721DID) (*template.PermissionsResult, error) {
 	if m.shouldError {
 		return nil, fmt.Errorf("template service error")
 	}
