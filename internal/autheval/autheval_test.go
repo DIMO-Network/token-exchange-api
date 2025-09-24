@@ -1,6 +1,8 @@
 package autheval
 
 import (
+	"context"
+	"fmt"
 	"math/big"
 	"testing"
 	"time"
@@ -451,26 +453,29 @@ func TestEvaluatePermissionsWithTemplate(t *testing.T) {
 	tests := []struct {
 		name                string
 		userPermissions     map[string]bool
-		templatePermissions *template.PermissionsResult
+		templateSetup       func() *template.PermissionsResult
 		requestedPrivileges []string
 		tokenID             int64
 		nftContractAddress  string
 		missingPermissions  []string
+		expectTemplateError bool
 	}{
 		{
-			name: "active template with all permissions",
+			name: "ACTIVE template with all permissions, matching template and sacd assets",
 			userPermissions: map[string]bool{
 				constants.PrivilegeIDToName[1]: true,
 				constants.PrivilegeIDToName[2]: true,
 				constants.PrivilegeIDToName[3]: true,
 			},
-			templatePermissions: &template.PermissionsResult{
-				Permissions: map[string]bool{
-					constants.PrivilegeIDToName[1]: true,
-					constants.PrivilegeIDToName[2]: true,
-					constants.PrivilegeIDToName[3]: true,
-				},
-				IsActive: true,
+			templateSetup: func() *template.PermissionsResult {
+				return &template.PermissionsResult{
+					Permissions: map[string]bool{
+						constants.PrivilegeIDToName[1]: true,
+						constants.PrivilegeIDToName[2]: true,
+						constants.PrivilegeIDToName[3]: true,
+					},
+					IsActive: true,
+				}
 			},
 			requestedPrivileges: []string{constants.PrivilegeIDToName[1], constants.PrivilegeIDToName[2], constants.PrivilegeIDToName[3]},
 			tokenID:             123,
@@ -478,18 +483,20 @@ func TestEvaluatePermissionsWithTemplate(t *testing.T) {
 			missingPermissions:  nil,
 		},
 		{
-			name: "active template with some permissions",
+			name: "ACTIVE template with some permissions, matching template and sacd assets",
 			userPermissions: map[string]bool{
 				constants.PrivilegeIDToName[1]: true,
 				constants.PrivilegeIDToName[2]: true,
 			},
-			templatePermissions: &template.PermissionsResult{
-				Permissions: map[string]bool{
-					constants.PrivilegeIDToName[1]: true,
-					constants.PrivilegeIDToName[2]: true,
-					constants.PrivilegeIDToName[3]: true,
-				},
-				IsActive: true,
+			templateSetup: func() *template.PermissionsResult {
+				return &template.PermissionsResult{
+					Permissions: map[string]bool{
+						constants.PrivilegeIDToName[1]: true,
+						constants.PrivilegeIDToName[2]: true,
+						constants.PrivilegeIDToName[3]: true,
+					},
+					IsActive: true,
+				}
 			},
 			requestedPrivileges: []string{constants.PrivilegeIDToName[1], constants.PrivilegeIDToName[2], constants.PrivilegeIDToName[3]},
 			tokenID:             123,
@@ -497,19 +504,17 @@ func TestEvaluatePermissionsWithTemplate(t *testing.T) {
 			missingPermissions:  []string{constants.PrivilegeIDToName[1], constants.PrivilegeIDToName[2], constants.PrivilegeIDToName[3]},
 		},
 		{
-			name: "inactive template with all permissions",
+			name: "ACTIVE template with all permissions, NOT matching template and sacd assets",
 			userPermissions: map[string]bool{
 				constants.PrivilegeIDToName[1]: true,
 				constants.PrivilegeIDToName[2]: true,
 				constants.PrivilegeIDToName[3]: true,
 			},
-			templatePermissions: &template.PermissionsResult{
-				Permissions: map[string]bool{
-					constants.PrivilegeIDToName[1]: true,
-					constants.PrivilegeIDToName[2]: true,
-					constants.PrivilegeIDToName[3]: true,
-				},
-				IsActive: false,
+			templateSetup: func() *template.PermissionsResult {
+				return &template.PermissionsResult{
+					Permissions: nil,
+					IsActive:    false,
+				}
 			},
 			requestedPrivileges: []string{constants.PrivilegeIDToName[1], constants.PrivilegeIDToName[2], constants.PrivilegeIDToName[3]},
 			tokenID:             123,
@@ -517,16 +522,40 @@ func TestEvaluatePermissionsWithTemplate(t *testing.T) {
 			missingPermissions:  []string{constants.PrivilegeIDToName[1], constants.PrivilegeIDToName[2], constants.PrivilegeIDToName[3]},
 		},
 		{
-			name: "inactive template with permissions not in SACD",
+			name: "INACTIVE template with all permissions, matching template and sacd assets",
+			userPermissions: map[string]bool{
+				constants.PrivilegeIDToName[1]: true,
+				constants.PrivilegeIDToName[2]: true,
+				constants.PrivilegeIDToName[3]: true,
+			},
+			templateSetup: func() *template.PermissionsResult {
+				return &template.PermissionsResult{
+					Permissions: map[string]bool{
+						constants.PrivilegeIDToName[1]: true,
+						constants.PrivilegeIDToName[2]: true,
+						constants.PrivilegeIDToName[3]: true,
+					},
+					IsActive: false,
+				}
+			},
+			requestedPrivileges: []string{constants.PrivilegeIDToName[1], constants.PrivilegeIDToName[2], constants.PrivilegeIDToName[3]},
+			tokenID:             123,
+			nftContractAddress:  "0x123",
+			missingPermissions:  []string{constants.PrivilegeIDToName[1], constants.PrivilegeIDToName[2], constants.PrivilegeIDToName[3]},
+		},
+		{
+			name: "INACTIVE template with permissions not in SACD, matching template and sacd assets",
 			userPermissions: map[string]bool{
 				constants.PrivilegeIDToName[1]: true,
 			},
-			templatePermissions: &template.PermissionsResult{
-				Permissions: map[string]bool{
-					constants.PrivilegeIDToName[2]: true,
-					constants.PrivilegeIDToName[3]: true,
-				},
-				IsActive: false,
+			templateSetup: func() *template.PermissionsResult {
+				return &template.PermissionsResult{
+					Permissions: map[string]bool{
+						constants.PrivilegeIDToName[2]: true,
+						constants.PrivilegeIDToName[3]: true,
+					},
+					IsActive: false,
+				}
 			},
 			requestedPrivileges: []string{constants.PrivilegeIDToName[1], constants.PrivilegeIDToName[2], constants.PrivilegeIDToName[3]},
 			tokenID:             123,
@@ -539,12 +568,14 @@ func TestEvaluatePermissionsWithTemplate(t *testing.T) {
 				constants.PrivilegeIDToName[1]:   true,
 				"privilege:AdditionalPermission": true,
 			},
-			templatePermissions: &template.PermissionsResult{
-				Permissions: map[string]bool{
-					constants.PrivilegeIDToName[2]: true,
-					constants.PrivilegeIDToName[3]: true,
-				},
-				IsActive: true,
+			templateSetup: func() *template.PermissionsResult {
+				return &template.PermissionsResult{
+					Permissions: map[string]bool{
+						constants.PrivilegeIDToName[2]: true,
+						constants.PrivilegeIDToName[3]: true,
+					},
+					IsActive: true,
+				}
 			},
 			requestedPrivileges: []string{constants.PrivilegeIDToName[1], "privilege:AdditionalPermission"},
 			tokenID:             123,
@@ -555,14 +586,44 @@ func TestEvaluatePermissionsWithTemplate(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			var matchPermissions map[string]bool
-
-			match := matchTemplatePermissions(tc.userPermissions, tc.templatePermissions)
-			if match {
-				matchPermissions = tc.userPermissions
+			mockTemplateService := &MockTemplateService{
+				templateResult: tc.templateSetup(),
+				shouldError:    tc.expectTemplateError,
 			}
 
-			lacks := EvaluatePermissions(matchPermissions, tc.requestedPrivileges)
+			sacdData := &models.SACDData{
+				PermissionTemplateID: "123",
+				Agreements: []models.Agreement{
+					{
+						Type:  "permission",
+						Asset: "did:erc721:1:0x0000000000000000000000000000000000000123:123",
+						Permissions: func() []models.Permission {
+							perms := make([]models.Permission, 0, len(tc.userPermissions))
+							for perm := range tc.userPermissions {
+								perms = append(perms, models.Permission{Name: perm})
+							}
+							return perms
+						}(),
+					},
+				},
+			}
+
+			assetDID := cloudevent.ERC721DID{
+				ChainID:         1,
+				ContractAddress: common.HexToAddress(tc.nftContractAddress),
+				TokenID:         big.NewInt(tc.tokenID),
+			}
+
+			userPermGrants, _, err := UserGrantMap(t.Context(), sacdData, assetDID, mockTemplateService)
+
+			if tc.expectTemplateError {
+				require.Error(t, err)
+				return
+			}
+
+			require.NoError(t, err)
+
+			lacks := EvaluatePermissions(userPermGrants, tc.requestedPrivileges)
 			require.Equal(t, tc.missingPermissions, lacks)
 		})
 	}
@@ -655,4 +716,16 @@ func TestIntArrayTo2BitArray(t *testing.T) {
 			}
 		})
 	}
+}
+
+type MockTemplateService struct {
+	templateResult *template.PermissionsResult
+	shouldError    bool
+}
+
+func (m *MockTemplateService) GetTemplatePermissions(ctx context.Context, permissionTemplateID string, assetDID cloudevent.ERC721DID) (*template.PermissionsResult, error) {
+	if m.shouldError {
+		return nil, fmt.Errorf("template service error")
+	}
+	return m.templateResult, nil
 }

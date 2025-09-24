@@ -128,7 +128,10 @@ func (s *Service) getTemplatePermissionsAndStatus(ctx context.Context, permissio
 	templatePermissions := s.extractPermissionsFromAgreements(agreements, assetDID)
 
 	if len(templatePermissions) == 0 {
-		return nil, nil
+		return &PermissionsResult{
+			Permissions: nil,
+			IsActive:    false,
+		}, nil
 	}
 
 	templateID, ok := big.NewInt(0).SetString(permissionTemplateID, 10)
