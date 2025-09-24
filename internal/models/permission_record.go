@@ -19,25 +19,25 @@ type TemplateAgreement struct {
 
 // SACDData contains the core permission data
 type SACDData struct {
-	Grantor     Address     `json:"grantor"`
-	Grantee     Address     `json:"grantee"`
-	EffectiveAt time.Time   `json:"effectiveAt"`
-	ExpiresAt   time.Time   `json:"expiresAt"`
-	Asset       string      `json:"asset,omitempty"`
-	Agreements  []Agreement `json:"agreements"`
+	Grantor              Address     `json:"grantor"`
+	Grantee              Address     `json:"grantee"`
+	EffectiveAt          time.Time   `json:"effectiveAt"`
+	ExpiresAt            time.Time   `json:"expiresAt"`
+	Asset                string      `json:"asset,omitempty"`
+	PermissionTemplateID string      `json:"permissionTemplateId"`
+	Agreements           []Agreement `json:"agreements"`
 }
 
 // Agreement represents a permission agreement for an asset
 type Agreement struct {
-	Type                 string       `json:"type"`
-	EventType            string       `json:"eventType"`
-	IDs                  []string     `json:"ids"`
-	EffectiveAt          time.Time    `json:"effectiveAt"`
-	ExpiresAt            time.Time    `json:"expiresAt"`
-	PermissionTemplateID string       `json:"permissionTemplateId"`
-	Source               string       `json:"source"`
-	Asset                string       `json:"asset"`
-	Permissions          []Permission `json:"permissions"`
+	Type        string       `json:"type"`
+	EventType   string       `json:"eventType"`
+	IDs         []string     `json:"ids"`
+	EffectiveAt time.Time    `json:"effectiveAt"`
+	ExpiresAt   time.Time    `json:"expiresAt"`
+	Source      string       `json:"source"`
+	Asset       string       `json:"asset"`
+	Permissions []Permission `json:"permissions"`
 }
 
 // Permission defines a single permission

@@ -289,16 +289,16 @@ func TestAccessService_ValidateAccess_WithTemplateId(t *testing.T) {
 		Grantee: models.Address{
 			Address: userEthAddr.Hex(),
 		},
-		EffectiveAt: time.Now().Add(-5 * time.Hour),
-		ExpiresAt:   time.Now().Add(5 * time.Hour),
-		Asset:       "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
+		EffectiveAt:          time.Now().Add(-5 * time.Hour),
+		ExpiresAt:            time.Now().Add(5 * time.Hour),
+		Asset:                "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
+		PermissionTemplateID: "123",
 		Agreements: []models.Agreement{
 			{
-				Type:                 "permission",
-				EffectiveAt:          effectiveAt,
-				ExpiresAt:            expiresAt,
-				PermissionTemplateID: "123",
-				Asset:                "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
+				Type:        "permission",
+				EffectiveAt: effectiveAt,
+				ExpiresAt:   expiresAt,
+				Asset:       "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
 				Permissions: []models.Permission{
 					{Name: PrivilegeIDToName[1]},
 					{Name: PrivilegeIDToName[2]},
