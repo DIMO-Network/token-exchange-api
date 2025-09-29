@@ -10,7 +10,7 @@ import (
 	"github.com/DIMO-Network/cloudevent"
 	"github.com/DIMO-Network/server-garage/pkg/richerrors"
 	"github.com/DIMO-Network/token-exchange-api/internal/autheval"
-	"github.com/DIMO-Network/token-exchange-api/internal/constants"
+	privilegemap "github.com/DIMO-Network/token-exchange-api/internal/constants"
 	"github.com/DIMO-Network/token-exchange-api/internal/contracts/sacd"
 	"github.com/DIMO-Network/token-exchange-api/internal/contracts/template"
 	"github.com/DIMO-Network/token-exchange-api/internal/models"
@@ -21,10 +21,6 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/rs/zerolog"
 )
-
-// privilege prefix to denote the 1:1 mapping to bit values and to make them easier to deprecate if desired in the future
-var PrivilegeIDToName = constants.PrivilegeIDToName
-var PrivilegeNameToID = constants.PrivilegeNameToID
 
 type SACDInterface interface {
 	CurrentPermissionRecord(opts *bind.CallOpts, asset common.Address, tokenID *big.Int, grantee common.Address) (sacd.ISacdPermissionRecord, error)
@@ -176,7 +172,7 @@ func (s *Service) ValidateAccessViaRecord(ctx context.Context, accessReq *NFTAcc
 	missing := make([]string, 0)
 	for i, p := range accessReq.Permissions {
 		var ok bool
-		permBits[i], ok = PrivilegeNameToID[p]
+		permBits[i], ok = privilegemap.PrivilegeNameToID[p]
 		if !ok {
 			missing = append(missing, p)
 		}

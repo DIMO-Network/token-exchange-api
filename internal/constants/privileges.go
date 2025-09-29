@@ -1,4 +1,4 @@
-package constants
+package privilegemap
 
 // privilege prefix to denote the 1:1 mapping to bit values and to make them easier to deprecate if desired in the future
 var PrivilegeIDToName = map[int64]string{

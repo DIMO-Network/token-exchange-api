@@ -9,7 +9,7 @@ import (
 
 	"github.com/DIMO-Network/cloudevent"
 	"github.com/DIMO-Network/shared/pkg/set"
-	"github.com/DIMO-Network/token-exchange-api/internal/constants"
+	privilegemap "github.com/DIMO-Network/token-exchange-api/internal/constants"
 	"github.com/DIMO-Network/token-exchange-api/internal/models"
 	"github.com/DIMO-Network/token-exchange-api/internal/services/template"
 	"github.com/DIMO-Network/token-exchange-api/pkg/tokenclaims"
@@ -387,11 +387,11 @@ func TestEvaluatePermissionsOnlySACD(t *testing.T) {
 		{
 			name: "valid permissions - all granted",
 			userPermissions: map[string]bool{
-				constants.PrivilegeIDToName[1]: true,
-				constants.PrivilegeIDToName[2]: true,
-				constants.PrivilegeIDToName[3]: true,
+				privilegemap.PrivilegeIDToName[1]: true,
+				privilegemap.PrivilegeIDToName[2]: true,
+				privilegemap.PrivilegeIDToName[3]: true,
 			},
-			requestedPrivileges: []string{constants.PrivilegeIDToName[1], constants.PrivilegeIDToName[2], constants.PrivilegeIDToName[3]},
+			requestedPrivileges: []string{privilegemap.PrivilegeIDToName[1], privilegemap.PrivilegeIDToName[2], privilegemap.PrivilegeIDToName[3]},
 			tokenID:             123,
 			nftContractAddress:  "0x123",
 			missingPermissions:  nil,
@@ -399,13 +399,13 @@ func TestEvaluatePermissionsOnlySACD(t *testing.T) {
 		{
 			name: "missing permission",
 			userPermissions: map[string]bool{
-				constants.PrivilegeIDToName[1]: true,
-				constants.PrivilegeIDToName[2]: true,
+				privilegemap.PrivilegeIDToName[1]: true,
+				privilegemap.PrivilegeIDToName[2]: true,
 			},
-			requestedPrivileges: []string{constants.PrivilegeIDToName[1], constants.PrivilegeIDToName[2], constants.PrivilegeIDToName[3]}, // 3 is missing
+			requestedPrivileges: []string{privilegemap.PrivilegeIDToName[1], privilegemap.PrivilegeIDToName[2], privilegemap.PrivilegeIDToName[3]}, // 3 is missing
 			tokenID:             123,
 			nftContractAddress:  "0x123",
-			missingPermissions:  []string{constants.PrivilegeIDToName[3]},
+			missingPermissions:  []string{privilegemap.PrivilegeIDToName[3]},
 		},
 		{
 			name:                "unknown privilege ID",
@@ -463,21 +463,21 @@ func TestEvaluatePermissionsWithTemplate(t *testing.T) {
 		{
 			name: "ACTIVE template with all permissions, matching template and sacd assets",
 			userPermissions: map[string]bool{
-				constants.PrivilegeIDToName[1]: true,
-				constants.PrivilegeIDToName[2]: true,
-				constants.PrivilegeIDToName[3]: true,
+				privilegemap.PrivilegeIDToName[1]: true,
+				privilegemap.PrivilegeIDToName[2]: true,
+				privilegemap.PrivilegeIDToName[3]: true,
 			},
 			templateSetup: func() *template.PermissionsResult {
 				return &template.PermissionsResult{
 					Permissions: map[string]bool{
-						constants.PrivilegeIDToName[1]: true,
-						constants.PrivilegeIDToName[2]: true,
-						constants.PrivilegeIDToName[3]: true,
+						privilegemap.PrivilegeIDToName[1]: true,
+						privilegemap.PrivilegeIDToName[2]: true,
+						privilegemap.PrivilegeIDToName[3]: true,
 					},
 					IsActive: true,
 				}
 			},
-			requestedPrivileges: []string{constants.PrivilegeIDToName[1], constants.PrivilegeIDToName[2], constants.PrivilegeIDToName[3]},
+			requestedPrivileges: []string{privilegemap.PrivilegeIDToName[1], privilegemap.PrivilegeIDToName[2], privilegemap.PrivilegeIDToName[3]},
 			tokenID:             123,
 			nftContractAddress:  "0x123",
 			missingPermissions:  nil,
@@ -485,30 +485,30 @@ func TestEvaluatePermissionsWithTemplate(t *testing.T) {
 		{
 			name: "ACTIVE template with some permissions, matching template and sacd assets",
 			userPermissions: map[string]bool{
-				constants.PrivilegeIDToName[1]: true,
-				constants.PrivilegeIDToName[2]: true,
+				privilegemap.PrivilegeIDToName[1]: true,
+				privilegemap.PrivilegeIDToName[2]: true,
 			},
 			templateSetup: func() *template.PermissionsResult {
 				return &template.PermissionsResult{
 					Permissions: map[string]bool{
-						constants.PrivilegeIDToName[1]: true,
-						constants.PrivilegeIDToName[2]: true,
-						constants.PrivilegeIDToName[3]: true,
+						privilegemap.PrivilegeIDToName[1]: true,
+						privilegemap.PrivilegeIDToName[2]: true,
+						privilegemap.PrivilegeIDToName[3]: true,
 					},
 					IsActive: true,
 				}
 			},
-			requestedPrivileges: []string{constants.PrivilegeIDToName[1], constants.PrivilegeIDToName[2], constants.PrivilegeIDToName[3]},
+			requestedPrivileges: []string{privilegemap.PrivilegeIDToName[1], privilegemap.PrivilegeIDToName[2], privilegemap.PrivilegeIDToName[3]},
 			tokenID:             123,
 			nftContractAddress:  "0x123",
-			missingPermissions:  []string{constants.PrivilegeIDToName[1], constants.PrivilegeIDToName[2], constants.PrivilegeIDToName[3]},
+			missingPermissions:  []string{privilegemap.PrivilegeIDToName[1], privilegemap.PrivilegeIDToName[2], privilegemap.PrivilegeIDToName[3]},
 		},
 		{
 			name: "ACTIVE template with all permissions, NOT matching template and sacd assets",
 			userPermissions: map[string]bool{
-				constants.PrivilegeIDToName[1]: true,
-				constants.PrivilegeIDToName[2]: true,
-				constants.PrivilegeIDToName[3]: true,
+				privilegemap.PrivilegeIDToName[1]: true,
+				privilegemap.PrivilegeIDToName[2]: true,
+				privilegemap.PrivilegeIDToName[3]: true,
 			},
 			templateSetup: func() *template.PermissionsResult {
 				return &template.PermissionsResult{
@@ -516,71 +516,71 @@ func TestEvaluatePermissionsWithTemplate(t *testing.T) {
 					IsActive:    false,
 				}
 			},
-			requestedPrivileges: []string{constants.PrivilegeIDToName[1], constants.PrivilegeIDToName[2], constants.PrivilegeIDToName[3]},
+			requestedPrivileges: []string{privilegemap.PrivilegeIDToName[1], privilegemap.PrivilegeIDToName[2], privilegemap.PrivilegeIDToName[3]},
 			tokenID:             123,
 			nftContractAddress:  "0x123",
-			missingPermissions:  []string{constants.PrivilegeIDToName[1], constants.PrivilegeIDToName[2], constants.PrivilegeIDToName[3]},
+			missingPermissions:  []string{privilegemap.PrivilegeIDToName[1], privilegemap.PrivilegeIDToName[2], privilegemap.PrivilegeIDToName[3]},
 		},
 		{
 			name: "INACTIVE template with all permissions, matching template and sacd assets",
 			userPermissions: map[string]bool{
-				constants.PrivilegeIDToName[1]: true,
-				constants.PrivilegeIDToName[2]: true,
-				constants.PrivilegeIDToName[3]: true,
+				privilegemap.PrivilegeIDToName[1]: true,
+				privilegemap.PrivilegeIDToName[2]: true,
+				privilegemap.PrivilegeIDToName[3]: true,
 			},
 			templateSetup: func() *template.PermissionsResult {
 				return &template.PermissionsResult{
 					Permissions: map[string]bool{
-						constants.PrivilegeIDToName[1]: true,
-						constants.PrivilegeIDToName[2]: true,
-						constants.PrivilegeIDToName[3]: true,
+						privilegemap.PrivilegeIDToName[1]: true,
+						privilegemap.PrivilegeIDToName[2]: true,
+						privilegemap.PrivilegeIDToName[3]: true,
 					},
 					IsActive: false,
 				}
 			},
-			requestedPrivileges: []string{constants.PrivilegeIDToName[1], constants.PrivilegeIDToName[2], constants.PrivilegeIDToName[3]},
+			requestedPrivileges: []string{privilegemap.PrivilegeIDToName[1], privilegemap.PrivilegeIDToName[2], privilegemap.PrivilegeIDToName[3]},
 			tokenID:             123,
 			nftContractAddress:  "0x123",
-			missingPermissions:  []string{constants.PrivilegeIDToName[1], constants.PrivilegeIDToName[2], constants.PrivilegeIDToName[3]},
+			missingPermissions:  []string{privilegemap.PrivilegeIDToName[1], privilegemap.PrivilegeIDToName[2], privilegemap.PrivilegeIDToName[3]},
 		},
 		{
 			name: "INACTIVE template with permissions not in SACD, matching template and sacd assets",
 			userPermissions: map[string]bool{
-				constants.PrivilegeIDToName[1]: true,
+				privilegemap.PrivilegeIDToName[1]: true,
 			},
 			templateSetup: func() *template.PermissionsResult {
 				return &template.PermissionsResult{
 					Permissions: map[string]bool{
-						constants.PrivilegeIDToName[2]: true,
-						constants.PrivilegeIDToName[3]: true,
+						privilegemap.PrivilegeIDToName[2]: true,
+						privilegemap.PrivilegeIDToName[3]: true,
 					},
 					IsActive: false,
 				}
 			},
-			requestedPrivileges: []string{constants.PrivilegeIDToName[1], constants.PrivilegeIDToName[2], constants.PrivilegeIDToName[3]},
+			requestedPrivileges: []string{privilegemap.PrivilegeIDToName[1], privilegemap.PrivilegeIDToName[2], privilegemap.PrivilegeIDToName[3]},
 			tokenID:             123,
 			nftContractAddress:  "0x123",
-			missingPermissions:  []string{constants.PrivilegeIDToName[1], constants.PrivilegeIDToName[2], constants.PrivilegeIDToName[3]},
+			missingPermissions:  []string{privilegemap.PrivilegeIDToName[1], privilegemap.PrivilegeIDToName[2], privilegemap.PrivilegeIDToName[3]},
 		},
 		{
 			name: "SACD and template with only complementary permissions",
 			userPermissions: map[string]bool{
-				constants.PrivilegeIDToName[1]:   true,
-				"privilege:AdditionalPermission": true,
+				privilegemap.PrivilegeIDToName[1]: true,
+				"privilege:AdditionalPermission":  true,
 			},
 			templateSetup: func() *template.PermissionsResult {
 				return &template.PermissionsResult{
 					Permissions: map[string]bool{
-						constants.PrivilegeIDToName[2]: true,
-						constants.PrivilegeIDToName[3]: true,
+						privilegemap.PrivilegeIDToName[2]: true,
+						privilegemap.PrivilegeIDToName[3]: true,
 					},
 					IsActive: true,
 				}
 			},
-			requestedPrivileges: []string{constants.PrivilegeIDToName[1], "privilege:AdditionalPermission"},
+			requestedPrivileges: []string{privilegemap.PrivilegeIDToName[1], "privilege:AdditionalPermission"},
 			tokenID:             123,
 			nftContractAddress:  "0x123",
-			missingPermissions:  []string{constants.PrivilegeIDToName[1], "privilege:AdditionalPermission"},
+			missingPermissions:  []string{privilegemap.PrivilegeIDToName[1], "privilege:AdditionalPermission"},
 		},
 	}
 
