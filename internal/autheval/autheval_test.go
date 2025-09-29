@@ -1,12 +1,15 @@
 package autheval
 
 import (
+	"context"
+	"fmt"
 	"math/big"
 	"testing"
 	"time"
 
 	"github.com/DIMO-Network/cloudevent"
 	"github.com/DIMO-Network/shared/pkg/set"
+	privilegemap "github.com/DIMO-Network/token-exchange-api/internal/constants"
 	"github.com/DIMO-Network/token-exchange-api/internal/models"
 	"github.com/DIMO-Network/token-exchange-api/internal/services/template"
 	"github.com/DIMO-Network/token-exchange-api/pkg/tokenclaims"
@@ -384,11 +387,11 @@ func TestEvaluatePermissionsOnlySACD(t *testing.T) {
 		{
 			name: "valid permissions - all granted",
 			userPermissions: map[string]bool{
-				"privilege:GetNonLocationHistory": true,
-				"privilege:ExecuteCommands":       true,
-				"privilege:GetCurrentLocation":    true,
+				privilegemap.PrivilegeIDToName[1]: true,
+				privilegemap.PrivilegeIDToName[2]: true,
+				privilegemap.PrivilegeIDToName[3]: true,
 			},
-			requestedPrivileges: []string{"privilege:GetNonLocationHistory", "privilege:ExecuteCommands", "privilege:GetCurrentLocation"},
+			requestedPrivileges: []string{privilegemap.PrivilegeIDToName[1], privilegemap.PrivilegeIDToName[2], privilegemap.PrivilegeIDToName[3]},
 			tokenID:             123,
 			nftContractAddress:  "0x123",
 			missingPermissions:  nil,
@@ -396,13 +399,13 @@ func TestEvaluatePermissionsOnlySACD(t *testing.T) {
 		{
 			name: "missing permission",
 			userPermissions: map[string]bool{
-				"privilege:GetNonLocationHistory": true,
-				"privilege:ExecuteCommands":       true,
+				privilegemap.PrivilegeIDToName[1]: true,
+				privilegemap.PrivilegeIDToName[2]: true,
 			},
-			requestedPrivileges: []string{"privilege:GetNonLocationHistory", "privilege:ExecuteCommands", "privilege:GetCurrentLocation"}, // 3 is missing
+			requestedPrivileges: []string{privilegemap.PrivilegeIDToName[1], privilegemap.PrivilegeIDToName[2], privilegemap.PrivilegeIDToName[3]}, // 3 is missing
 			tokenID:             123,
 			nftContractAddress:  "0x123",
-			missingPermissions:  []string{"privilege:GetCurrentLocation"},
+			missingPermissions:  []string{privilegemap.PrivilegeIDToName[3]},
 		},
 		{
 			name:                "unknown privilege ID",
@@ -450,118 +453,177 @@ func TestEvaluatePermissionsWithTemplate(t *testing.T) {
 	tests := []struct {
 		name                string
 		userPermissions     map[string]bool
-		templatePermissions *template.PermissionsResult
+		templateSetup       func() *template.PermissionsResult
 		requestedPrivileges []string
 		tokenID             int64
 		nftContractAddress  string
 		missingPermissions  []string
+		expectTemplateError bool
 	}{
 		{
-			name: "active template with all permissions",
+			name: "ACTIVE template with all permissions, matching template and sacd assets",
 			userPermissions: map[string]bool{
-				"privilege:GetNonLocationHistory": true,
-				"privilege:ExecuteCommands":       true,
-				"privilege:GetCurrentLocation":    true,
+				privilegemap.PrivilegeIDToName[1]: true,
+				privilegemap.PrivilegeIDToName[2]: true,
+				privilegemap.PrivilegeIDToName[3]: true,
 			},
-			templatePermissions: &template.PermissionsResult{
-				Permissions: map[string]bool{
-					"privilege:GetNonLocationHistory": true,
-					"privilege:ExecuteCommands":       true,
-					"privilege:GetCurrentLocation":    true,
-				},
-				IsActive: true,
+			templateSetup: func() *template.PermissionsResult {
+				return &template.PermissionsResult{
+					Permissions: map[string]bool{
+						privilegemap.PrivilegeIDToName[1]: true,
+						privilegemap.PrivilegeIDToName[2]: true,
+						privilegemap.PrivilegeIDToName[3]: true,
+					},
+					IsActive: true,
+				}
 			},
-			requestedPrivileges: []string{"privilege:GetNonLocationHistory", "privilege:ExecuteCommands", "privilege:GetCurrentLocation"},
+			requestedPrivileges: []string{privilegemap.PrivilegeIDToName[1], privilegemap.PrivilegeIDToName[2], privilegemap.PrivilegeIDToName[3]},
 			tokenID:             123,
 			nftContractAddress:  "0x123",
 			missingPermissions:  nil,
 		},
 		{
-			name: "active template with some permissions",
+			name: "ACTIVE template with some permissions, matching template and sacd assets",
 			userPermissions: map[string]bool{
-				"privilege:GetNonLocationHistory": true,
-				"privilege:ExecuteCommands":       true,
+				privilegemap.PrivilegeIDToName[1]: true,
+				privilegemap.PrivilegeIDToName[2]: true,
 			},
-			templatePermissions: &template.PermissionsResult{
-				Permissions: map[string]bool{
-					"privilege:GetNonLocationHistory": true,
-					"privilege:ExecuteCommands":       true,
-					"privilege:GetCurrentLocation":    true,
-				},
-				IsActive: true,
+			templateSetup: func() *template.PermissionsResult {
+				return &template.PermissionsResult{
+					Permissions: map[string]bool{
+						privilegemap.PrivilegeIDToName[1]: true,
+						privilegemap.PrivilegeIDToName[2]: true,
+						privilegemap.PrivilegeIDToName[3]: true,
+					},
+					IsActive: true,
+				}
 			},
-			requestedPrivileges: []string{"privilege:GetNonLocationHistory", "privilege:ExecuteCommands", "privilege:GetCurrentLocation"},
+			requestedPrivileges: []string{privilegemap.PrivilegeIDToName[1], privilegemap.PrivilegeIDToName[2], privilegemap.PrivilegeIDToName[3]},
 			tokenID:             123,
 			nftContractAddress:  "0x123",
-			missingPermissions:  []string{"privilege:GetNonLocationHistory", "privilege:ExecuteCommands", "privilege:GetCurrentLocation"},
+			missingPermissions:  []string{privilegemap.PrivilegeIDToName[1], privilegemap.PrivilegeIDToName[2], privilegemap.PrivilegeIDToName[3]},
 		},
 		{
-			name: "inactive template with all permissions",
+			name: "ACTIVE template with all permissions, NOT matching template and sacd assets",
 			userPermissions: map[string]bool{
-				"privilege:GetNonLocationHistory": true,
-				"privilege:ExecuteCommands":       true,
-				"privilege:GetCurrentLocation":    true,
+				privilegemap.PrivilegeIDToName[1]: true,
+				privilegemap.PrivilegeIDToName[2]: true,
+				privilegemap.PrivilegeIDToName[3]: true,
 			},
-			templatePermissions: &template.PermissionsResult{
-				Permissions: map[string]bool{
-					"privilege:GetNonLocationHistory": true,
-					"privilege:ExecuteCommands":       true,
-					"privilege:GetCurrentLocation":    true,
-				},
-				IsActive: false,
+			templateSetup: func() *template.PermissionsResult {
+				return &template.PermissionsResult{
+					Permissions: nil,
+					IsActive:    false,
+				}
 			},
-			requestedPrivileges: []string{"privilege:GetNonLocationHistory", "privilege:ExecuteCommands", "privilege:GetCurrentLocation"},
+			requestedPrivileges: []string{privilegemap.PrivilegeIDToName[1], privilegemap.PrivilegeIDToName[2], privilegemap.PrivilegeIDToName[3]},
 			tokenID:             123,
 			nftContractAddress:  "0x123",
-			missingPermissions:  []string{"privilege:GetNonLocationHistory", "privilege:ExecuteCommands", "privilege:GetCurrentLocation"},
+			missingPermissions:  []string{privilegemap.PrivilegeIDToName[1], privilegemap.PrivilegeIDToName[2], privilegemap.PrivilegeIDToName[3]},
 		},
 		{
-			name: "inactive template with permissions not in SACD",
+			name: "INACTIVE template with all permissions, matching template and sacd assets",
 			userPermissions: map[string]bool{
-				"privilege:GetNonLocationHistory": true,
+				privilegemap.PrivilegeIDToName[1]: true,
+				privilegemap.PrivilegeIDToName[2]: true,
+				privilegemap.PrivilegeIDToName[3]: true,
 			},
-			templatePermissions: &template.PermissionsResult{
-				Permissions: map[string]bool{
-					"privilege:ExecuteCommands":    true,
-					"privilege:GetCurrentLocation": true,
-				},
-				IsActive: false,
+			templateSetup: func() *template.PermissionsResult {
+				return &template.PermissionsResult{
+					Permissions: map[string]bool{
+						privilegemap.PrivilegeIDToName[1]: true,
+						privilegemap.PrivilegeIDToName[2]: true,
+						privilegemap.PrivilegeIDToName[3]: true,
+					},
+					IsActive: false,
+				}
 			},
-			requestedPrivileges: []string{"privilege:GetNonLocationHistory", "privilege:ExecuteCommands", "privilege:GetCurrentLocation"},
+			requestedPrivileges: []string{privilegemap.PrivilegeIDToName[1], privilegemap.PrivilegeIDToName[2], privilegemap.PrivilegeIDToName[3]},
 			tokenID:             123,
 			nftContractAddress:  "0x123",
-			missingPermissions:  []string{"privilege:GetNonLocationHistory", "privilege:ExecuteCommands", "privilege:GetCurrentLocation"},
+			missingPermissions:  []string{privilegemap.PrivilegeIDToName[1], privilegemap.PrivilegeIDToName[2], privilegemap.PrivilegeIDToName[3]},
+		},
+		{
+			name: "INACTIVE template with permissions not in SACD, matching template and sacd assets",
+			userPermissions: map[string]bool{
+				privilegemap.PrivilegeIDToName[1]: true,
+			},
+			templateSetup: func() *template.PermissionsResult {
+				return &template.PermissionsResult{
+					Permissions: map[string]bool{
+						privilegemap.PrivilegeIDToName[2]: true,
+						privilegemap.PrivilegeIDToName[3]: true,
+					},
+					IsActive: false,
+				}
+			},
+			requestedPrivileges: []string{privilegemap.PrivilegeIDToName[1], privilegemap.PrivilegeIDToName[2], privilegemap.PrivilegeIDToName[3]},
+			tokenID:             123,
+			nftContractAddress:  "0x123",
+			missingPermissions:  []string{privilegemap.PrivilegeIDToName[1], privilegemap.PrivilegeIDToName[2], privilegemap.PrivilegeIDToName[3]},
 		},
 		{
 			name: "SACD and template with only complementary permissions",
 			userPermissions: map[string]bool{
-				"privilege:GetNonLocationHistory": true,
+				privilegemap.PrivilegeIDToName[1]: true,
 				"privilege:AdditionalPermission":  true,
 			},
-			templatePermissions: &template.PermissionsResult{
-				Permissions: map[string]bool{
-					"privilege:ExecuteCommands":    true,
-					"privilege:GetCurrentLocation": true,
-				},
-				IsActive: true,
+			templateSetup: func() *template.PermissionsResult {
+				return &template.PermissionsResult{
+					Permissions: map[string]bool{
+						privilegemap.PrivilegeIDToName[2]: true,
+						privilegemap.PrivilegeIDToName[3]: true,
+					},
+					IsActive: true,
+				}
 			},
-			requestedPrivileges: []string{"privilege:GetNonLocationHistory", "privilege:AdditionalPermission"},
+			requestedPrivileges: []string{privilegemap.PrivilegeIDToName[1], "privilege:AdditionalPermission"},
 			tokenID:             123,
 			nftContractAddress:  "0x123",
-			missingPermissions:  []string{"privilege:GetNonLocationHistory", "privilege:AdditionalPermission"},
+			missingPermissions:  []string{privilegemap.PrivilegeIDToName[1], "privilege:AdditionalPermission"},
 		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			var matchPermissions map[string]bool
-
-			match := matchTemplatePermissions(tc.userPermissions, tc.templatePermissions)
-			if match {
-				matchPermissions = tc.userPermissions
+			mockTemplateService := &MockTemplateService{
+				templateResult: tc.templateSetup(),
+				shouldError:    tc.expectTemplateError,
 			}
 
-			lacks := EvaluatePermissions(matchPermissions, tc.requestedPrivileges)
+			sacdData := &models.SACDData{
+				PermissionTemplateID: "123",
+				Agreements: []models.Agreement{
+					{
+						Type:  "permission",
+						Asset: "did:erc721:1:0x0000000000000000000000000000000000000123:123",
+						Permissions: func() []models.Permission {
+							perms := make([]models.Permission, 0, len(tc.userPermissions))
+							for perm := range tc.userPermissions {
+								perms = append(perms, models.Permission{Name: perm})
+							}
+							return perms
+						}(),
+					},
+				},
+			}
+
+			assetDID := cloudevent.ERC721DID{
+				ChainID:         1,
+				ContractAddress: common.HexToAddress(tc.nftContractAddress),
+				TokenID:         big.NewInt(tc.tokenID),
+			}
+
+			userPermGrants, _, err := UserGrantMap(t.Context(), sacdData, assetDID, mockTemplateService)
+
+			if tc.expectTemplateError {
+				require.Error(t, err)
+				return
+			}
+
+			require.NoError(t, err)
+
+			lacks := EvaluatePermissions(userPermGrants, tc.requestedPrivileges)
 			require.Equal(t, tc.missingPermissions, lacks)
 		})
 	}
@@ -654,4 +716,16 @@ func TestIntArrayTo2BitArray(t *testing.T) {
 			}
 		})
 	}
+}
+
+type MockTemplateService struct {
+	templateResult *template.PermissionsResult
+	shouldError    bool
+}
+
+func (m *MockTemplateService) GetTemplatePermissions(_ context.Context, _ string, _ cloudevent.ERC721DID) (*template.PermissionsResult, error) {
+	if m.shouldError {
+		return nil, fmt.Errorf("template service error")
+	}
+	return m.templateResult, nil
 }

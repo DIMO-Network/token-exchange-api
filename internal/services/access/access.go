@@ -10,6 +10,7 @@ import (
 	"github.com/DIMO-Network/cloudevent"
 	"github.com/DIMO-Network/server-garage/pkg/richerrors"
 	"github.com/DIMO-Network/token-exchange-api/internal/autheval"
+	privilegemap "github.com/DIMO-Network/token-exchange-api/internal/constants"
 	"github.com/DIMO-Network/token-exchange-api/internal/contracts/sacd"
 	"github.com/DIMO-Network/token-exchange-api/internal/contracts/template"
 	"github.com/DIMO-Network/token-exchange-api/internal/models"
@@ -20,26 +21,6 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/rs/zerolog"
 )
-
-// privilege prefix to denote the 1:1 mapping to bit values and to make them easier to deprecate if desired in the future
-var PrivilegeIDToName = map[int64]string{
-	1: "privilege:GetNonLocationHistory",  // All-time non-location data
-	2: "privilege:ExecuteCommands",        // Commands
-	3: "privilege:GetCurrentLocation",     // Current location
-	4: "privilege:GetLocationHistory",     // All-time location
-	5: "privilege:GetVINCredential",       // View VIN credential
-	6: "privilege:GetLiveData",            // Subscribe live data
-	7: "privilege:GetRawData",             // Raw data
-	8: "privilege:GetApproximateLocation", // Approximate location
-}
-
-var PrivilegeNameToID = func() map[string]int64 {
-	privMap := make(map[string]int64, len(PrivilegeIDToName))
-	for id, name := range PrivilegeIDToName {
-		privMap[name] = id
-	}
-	return privMap
-}()
 
 type SACDInterface interface {
 	CurrentPermissionRecord(opts *bind.CallOpts, asset common.Address, tokenID *big.Int, grantee common.Address) (sacd.ISacdPermissionRecord, error)
@@ -191,7 +172,7 @@ func (s *Service) ValidateAccessViaRecord(ctx context.Context, accessReq *NFTAcc
 	missing := make([]string, 0)
 	for i, p := range accessReq.Permissions {
 		var ok bool
-		permBits[i], ok = PrivilegeNameToID[p]
+		permBits[i], ok = privilegemap.PrivilegeNameToID[p]
 		if !ok {
 			missing = append(missing, p)
 		}

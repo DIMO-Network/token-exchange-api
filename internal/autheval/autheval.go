@@ -178,7 +178,6 @@ func UserGrantMap(ctx context.Context, data *models.SACDData, assetDID cloudeven
 	// Collect direct SACD permissions
 	sacdPermissions := make(map[string]bool)
 	var templateResult *template.PermissionsResult
-	var hasTemplate bool
 
 	// Single loop to process all agreements
 	for _, agreement := range data.Agreements {
@@ -209,27 +208,22 @@ func UserGrantMap(ctx context.Context, data *models.SACDData, assetDID cloudeven
 				cloudEvtGrants[agreement.EventType][agreement.Source].Add(id)
 			}
 		case "permission":
-			// Collect direct SACD permissions
 			for _, permission := range agreement.Permissions {
 				sacdPermissions[permission.Name] = true
-			}
-
-			// Handle template if present
-			if agreement.PermissionTemplateID != "" && agreement.PermissionTemplateID != "0" && !hasTemplate {
-				var err error
-				templateResult, err = templateService.GetTemplatePermissions(ctx, agreement.PermissionTemplateID, assetDID)
-				if err != nil {
-					// TODO(lorran) I don't think we want to return here
-					return nil, nil, fmt.Errorf("failed to get template permissions: %w", err)
-				}
-				hasTemplate = true
 			}
 		}
 	}
 
 	userPermGrants := map[string]bool{}
-	if hasTemplate {
+	if data.PermissionTemplateID != "" && data.PermissionTemplateID != "0" {
+		var err error
+		templateResult, err = templateService.GetTemplatePermissions(ctx, data.PermissionTemplateID, assetDID)
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to get template permissions: %w", err)
+		}
+
 		match := matchTemplatePermissions(sacdPermissions, templateResult)
+
 		if match {
 			userPermGrants = sacdPermissions
 		}
