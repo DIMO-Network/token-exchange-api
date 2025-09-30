@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/DIMO-Network/server-garage/pkg/richerrors"
+	"github.com/DIMO-Network/shared/pkg/logfields"
 	"github.com/DIMO-Network/shared/pkg/middleware/metrics"
 	"github.com/DIMO-Network/token-exchange-api/internal/config"
 	"github.com/DIMO-Network/token-exchange-api/internal/contracts/sacd"
@@ -184,6 +185,7 @@ func ErrorHandler(ctx *fiber.Ctx, err error) error {
 		logger.Err(err).Int("httpStatusCode", code).
 			Str("httpPath", strings.TrimPrefix(ctx.Path(), "/")).
 			Str("httpMethod", ctx.Method()).
+			Str(logfields.Payload, string(ctx.Body())).
 			Msg("caught an error from http request")
 	}
 

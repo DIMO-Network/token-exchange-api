@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
-	"strings"
 	"time"
 
 	"github.com/DIMO-Network/cloudevent"
@@ -13,13 +12,18 @@ import (
 	"github.com/DIMO-Network/token-exchange-api/internal/models"
 	"github.com/DIMO-Network/token-exchange-api/internal/services/template"
 	"github.com/DIMO-Network/token-exchange-api/pkg/tokenclaims"
-	"github.com/ethereum/go-ethereum/common"
+)
+
+const (
+	TypeCloudEvent = "cloudevent"
+	TypePermission = "permission"
 )
 
 type EventFilter struct {
 	EventType string   `json:"eventType"`
 	Source    string   `json:"source"`
 	IDs       []string `json:"ids"`
+	Tags      []string `json:"tags"`
 }
 
 type TemplateService interface {
@@ -42,7 +46,7 @@ func EvaluatePermissions(userPermissions map[string]bool, requestedPrivileges []
 	return missingPermissions
 }
 
-// EvaluatePermissionsBits checks if user has privileges using 2-bit permission system
+// EvaluatePermissionsBits checks if user has privileges using 2-bit permission system.
 // Returns slice of missing privileges if any are missing, or empty slice if all are valid
 func EvaluatePermissionsBits(privileges []int64, permissionBits *big.Int) []int64 {
 	var lack []int64
@@ -56,48 +60,37 @@ func EvaluatePermissionsBits(privileges []int64, permissionBits *big.Int) []int6
 	return lack
 }
 
-// EvaluateCloudEvents validates all CloudEvent access requests against SACD agreements
-func EvaluateCloudEvents(sacdAgreements map[string]map[string]*set.StringSet, cloudEvents []EventFilter) error {
+// EvaluateCloudEvents validates all CloudEvent access requests against SACD agreements.
+func EvaluateCloudEvents(sacdAgreements CloudEventAgreements, cloudEvents []EventFilter) error {
 	var err error
 	for _, req := range cloudEvents {
-		ceErr := EvaluateCloudEvent(sacdAgreements, req)
-		err = errors.Join(err, ceErr)
-	}
+		eventType := req.EventType
+		if eventType == "" {
+			eventType = tokenclaims.GlobalIdentifier
+		}
+		source := req.Source
+		if source == "" {
+			source = tokenclaims.GlobalIdentifier
+		}
+		ids := req.IDs
+		if len(ids) == 0 {
+			ids = []string{tokenclaims.GlobalIdentifier}
+		}
+		tags := req.Tags
+		if len(tags) == 0 {
+			tags = []string{tokenclaims.GlobalIdentifier}
+		}
 
+		// Ids and tags can span across separate agreements so we need to check each combination
+		for _, id := range ids {
+			for _, tag := range tags {
+				if !sacdAgreements.Grants(eventType, source, id, tag) {
+					err = errors.Join(err, fmt.Errorf("lacking grant for requested cloud event {type: %s, source: %s, id: %s, tag: %s}", req.EventType, req.Source, id, tag))
+				}
+			}
+		}
+	}
 	return err
-}
-
-// EvaluateCloudEvent returns an error if CloudEvent access request is
-// disallowed under the grants in the agreement map.
-func EvaluateCloudEvent(sacdAgreement map[string]map[string]*set.StringSet, req EventFilter) error {
-	if !common.IsHexAddress(req.Source) && req.Source != tokenclaims.GlobalIdentifier {
-		return fmt.Errorf("requested source %q invalid: must be %s or valid hex address", req.Source, tokenclaims.GlobalIdentifier)
-	}
-
-	if len(req.IDs) == 0 {
-		return fmt.Errorf("must request at least one cloudevent id or global access request (%s)", tokenclaims.GlobalIdentifier)
-	}
-
-	grantedAggs := GetValidAgreements(sacdAgreement, req.EventType)
-	if len(grantedAggs) == 0 {
-		return fmt.Errorf("lacking grant for requested event type: %s", req.EventType)
-	}
-
-	globalGrantIDs, ok := grantedAggs[tokenclaims.GlobalIdentifier]
-	if ok && globalGrantIDs.Contains(tokenclaims.GlobalIdentifier) {
-		return nil
-	}
-
-	sourceGrantIDs, ok := grantedAggs[req.Source]
-	if globalGrantIDs == nil && !ok {
-		return fmt.Errorf("no %s grants for source: %s", req.EventType, req.Source)
-	}
-
-	if missingIDs := EvaluateIDsByGrantSource(globalGrantIDs, sourceGrantIDs, req.IDs); len(missingIDs) > 0 {
-		return fmt.Errorf("lacking %s grant for source %s with ids: %s", req.EventType, req.Source, strings.Join(missingIDs, ","))
-	}
-
-	return nil
 }
 
 // GetValidAgreements returns a map of sources to sets of valid IDs for a given CloudEvent type (`ceType`).
@@ -130,24 +123,6 @@ func GetValidAgreements(sacdAgreements map[string]map[string]*set.StringSet, ceT
 	return agreementsBySource
 }
 
-// EvaluateIDsByGrantSource checks if requested IDs are covered by grants
-func EvaluateIDsByGrantSource(globalGrants *set.StringSet, sourceGrants *set.StringSet, requestedIDs []string) []string {
-	// Note that when the request is for the source "*" then these are the same set.
-	grantsUnion := NewNilSafeUnion(globalGrants, sourceGrants)
-
-	if grantsUnion.Contains(tokenclaims.GlobalIdentifier) {
-		return nil
-	}
-
-	var missingIDs []string
-	for _, reqID := range requestedIDs {
-		if !grantsUnion.Contains(reqID) {
-			missingIDs = append(missingIDs, reqID)
-		}
-	}
-	return missingIDs
-}
-
 // matchTemplatePermissions checks if SACD and template permissions matches based on template activation status
 func matchTemplatePermissions(sacdPermissions map[string]bool, templateResult *template.PermissionsResult) bool {
 	if templateResult == nil {
@@ -171,9 +146,9 @@ func matchTemplatePermissions(sacdPermissions map[string]bool, templateResult *t
 }
 
 // UserGrantMap extracts permission and CloudEvent grants from SACD data
-func UserGrantMap(ctx context.Context, data *models.SACDData, assetDID cloudevent.ERC721DID, templateService TemplateService) (map[string]bool, map[string]map[string]*set.StringSet, error) {
-	// type -> source -> ids
-	cloudEvtGrants := make(map[string]map[string]*set.StringSet)
+func UserGrantMap(ctx context.Context, data *models.SACDData, assetDID cloudevent.ERC721DID, templateService TemplateService) (map[string]bool, CloudEventAgreements, error) {
+	userPermGrants := make(map[string]bool)
+	var cloudEvtAgreements CloudEventAgreements
 
 	// Collect direct SACD permissions
 	sacdPermissions := make(map[string]bool)
@@ -191,35 +166,25 @@ func UserGrantMap(ctx context.Context, data *models.SACDData, assetDID cloudeven
 		}
 
 		if agreement.Asset != assetDID.String() {
-			return nil, nil, fmt.Errorf("asset DID %s does not match request DID %s", agreement.Asset, assetDID.String())
+			return nil, cloudEvtAgreements, fmt.Errorf("asset DID %s does not match request DID %s", agreement.Asset, assetDID.String())
 		}
 
 		switch agreement.Type {
-		case "cloudevent":
-			if _, ok := cloudEvtGrants[agreement.EventType]; !ok {
-				cloudEvtGrants[agreement.EventType] = map[string]*set.StringSet{}
-			}
-
-			if _, ok := cloudEvtGrants[agreement.EventType][agreement.Source]; !ok {
-				cloudEvtGrants[agreement.EventType][agreement.Source] = set.NewStringSet()
-			}
-
-			for _, id := range agreement.IDs {
-				cloudEvtGrants[agreement.EventType][agreement.Source].Add(id)
-			}
-		case "permission":
+		case TypeCloudEvent:
+			cloudEvtAgreements.Add(agreement.EventType, agreement.Source, agreement.IDs, agreement.Tags)
+		case TypePermission:
+			// Add permissions from this agreement
 			for _, permission := range agreement.Permissions {
 				sacdPermissions[permission.Name] = true
 			}
 		}
 	}
 
-	userPermGrants := map[string]bool{}
 	if data.PermissionTemplateID != "" && data.PermissionTemplateID != "0" {
 		var err error
 		templateResult, err = templateService.GetTemplatePermissions(ctx, data.PermissionTemplateID, assetDID)
 		if err != nil {
-			return nil, nil, fmt.Errorf("failed to get template permissions: %w", err)
+			return nil, cloudEvtAgreements, fmt.Errorf("failed to get template permissions: %w", err)
 		}
 
 		match := matchTemplatePermissions(sacdPermissions, templateResult)
@@ -232,10 +197,10 @@ func UserGrantMap(ctx context.Context, data *models.SACDData, assetDID cloudeven
 		userPermGrants = sacdPermissions
 	}
 
-	return userPermGrants, cloudEvtGrants, nil
+	return userPermGrants, cloudEvtAgreements, nil
 }
 
-// IntArrayTo2BitArray converts array of indices to 2-bit array representation
+// IntArrayTo2BitArray converts array of indices to 2-bit array representation.
 func IntArrayTo2BitArray(indices []int64, length int) (*big.Int, error) {
 	mask := big.NewInt(0)
 
@@ -248,19 +213,4 @@ func IntArrayTo2BitArray(indices []int64, length int) (*big.Int, error) {
 	}
 
 	return mask, nil
-}
-
-// NilSafeUnion represents a union of two string sets that handles nil values safely
-type NilSafeUnion struct {
-	s1, s2 *set.StringSet
-}
-
-// NewNilSafeUnion creates a new NilSafeUnion from two string sets
-func NewNilSafeUnion(s1, s2 *set.StringSet) NilSafeUnion {
-	return NilSafeUnion{s1: s1, s2: s2}
-}
-
-// Contains checks if the union contains the given string
-func (s *NilSafeUnion) Contains(x string) bool {
-	return s.s1 != nil && s.s1.Contains(x) || s.s2 != nil && s.s2.Contains(x)
 }

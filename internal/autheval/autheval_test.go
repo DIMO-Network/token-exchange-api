@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/DIMO-Network/cloudevent"
-	"github.com/DIMO-Network/shared/pkg/set"
 	privilegemap "github.com/DIMO-Network/token-exchange-api/internal/constants"
 	"github.com/DIMO-Network/token-exchange-api/internal/models"
 	"github.com/DIMO-Network/token-exchange-api/internal/services/template"
@@ -36,17 +35,16 @@ func TestEvaluateCloudEvents_Attestations(t *testing.T) {
 
 	nftCtrAddr := "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"
 	tests := []struct {
-		name             string
-		agreement        []models.Agreement
-		request          []EventFilter
-		expectedCEGrants func() map[string]map[string]*set.StringSet
-		expectErr        bool
+		name      string
+		agreement []models.Agreement
+		request   []EventFilter
+		expectErr bool
 	}{
 		{
 			name: "Pass: request matches grant, all attestations",
 			agreement: []models.Agreement{
 				{
-					Type:      "cloudevent",
+					Type:      TypeCloudEvent,
 					EventType: "dimo.attestation",
 					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
 					IDs:       []string{"*"},
@@ -59,22 +57,13 @@ func TestEvaluateCloudEvents_Attestations(t *testing.T) {
 					Source:    "*",
 					IDs:       []string{"*"},
 				},
-			},
-			expectedCEGrants: func() map[string]map[string]*set.StringSet {
-				gset := set.NewStringSet()
-				gset.Add("*")
-				return map[string]map[string]*set.StringSet{
-					cloudevent.TypeAttestation: {
-						"*": gset,
-					},
-				}
 			},
 		},
 		{
 			name: "Pass: granted all attestations, asking for specific source",
 			agreement: []models.Agreement{
 				{
-					Type:      "cloudevent",
+					Type:      TypeCloudEvent,
 					EventType: "dimo.attestation",
 					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
 					IDs:       []string{"*"},
@@ -87,22 +76,13 @@ func TestEvaluateCloudEvents_Attestations(t *testing.T) {
 					Source:    common.BigToAddress(big.NewInt(1)).Hex(),
 					IDs:       []string{"*"},
 				},
-			},
-			expectedCEGrants: func() map[string]map[string]*set.StringSet {
-				gset := set.NewStringSet()
-				gset.Add("*")
-				return map[string]map[string]*set.StringSet{
-					cloudevent.TypeAttestation: {
-						"*": gset,
-					},
-				}
 			},
 		},
 		{
 			name: "Pass: granted all attestations, asking for specific source and ids",
 			agreement: []models.Agreement{
 				{
-					Type:      "cloudevent",
+					Type:      TypeCloudEvent,
 					EventType: "dimo.attestation",
 					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
 					IDs:       []string{"*"},
@@ -113,24 +93,15 @@ func TestEvaluateCloudEvents_Attestations(t *testing.T) {
 				{
 					EventType: cloudevent.TypeAttestation,
 					Source:    common.BigToAddress(big.NewInt(1)).Hex(),
-					IDs:       []string{"1, 2, 3"},
+					IDs:       []string{"1", "2", "3"},
 				},
-			},
-			expectedCEGrants: func() map[string]map[string]*set.StringSet {
-				gset := set.NewStringSet()
-				gset.Add("*")
-				return map[string]map[string]*set.StringSet{
-					cloudevent.TypeAttestation: {
-						"*": gset,
-					},
-				}
 			},
 		},
 		{
 			name: "Fail: not requesting any ids",
 			agreement: []models.Agreement{
 				{
-					Type:      "cloudevent",
+					Type:      TypeCloudEvent,
 					EventType: "dimo.attestation",
 					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
 					IDs:       []string{"1"},
@@ -142,15 +113,6 @@ func TestEvaluateCloudEvents_Attestations(t *testing.T) {
 					EventType: cloudevent.TypeAttestation,
 					Source:    common.BigToAddress(big.NewInt(1)).Hex(),
 				},
-			},
-			expectedCEGrants: func() map[string]map[string]*set.StringSet {
-				gset := set.NewStringSet()
-				gset.Add("1")
-				return map[string]map[string]*set.StringSet{
-					cloudevent.TypeAttestation: {
-						common.BigToAddress(big.NewInt(1)).Hex(): gset,
-					},
-				}
 			},
 			expectErr: true,
 		},
@@ -158,7 +120,7 @@ func TestEvaluateCloudEvents_Attestations(t *testing.T) {
 			name: "Fail: not requesting source",
 			agreement: []models.Agreement{
 				{
-					Type:      "cloudevent",
+					Type:      TypeCloudEvent,
 					EventType: "dimo.attestation",
 					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
 					IDs:       []string{"1"},
@@ -171,22 +133,13 @@ func TestEvaluateCloudEvents_Attestations(t *testing.T) {
 					IDs:       []string{"1"},
 				},
 			},
-			expectedCEGrants: func() map[string]map[string]*set.StringSet {
-				gset := set.NewStringSet()
-				gset.Add("1")
-				return map[string]map[string]*set.StringSet{
-					cloudevent.TypeAttestation: {
-						common.BigToAddress(big.NewInt(1)).Hex(): gset,
-					},
-				}
-			},
 			expectErr: true,
 		},
 		{
 			name: "Fail: source not valid hex address",
 			agreement: []models.Agreement{
 				{
-					Type:      "cloudevent",
+					Type:      TypeCloudEvent,
 					EventType: cloudevent.TypeAttestation,
 					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
 					IDs:       []string{"1"},
@@ -200,22 +153,13 @@ func TestEvaluateCloudEvents_Attestations(t *testing.T) {
 					Source:    "0x123",
 				},
 			},
-			expectedCEGrants: func() map[string]map[string]*set.StringSet {
-				gset := set.NewStringSet()
-				gset.Add("1")
-				return map[string]map[string]*set.StringSet{
-					cloudevent.TypeAttestation: {
-						"0xcce4eF41A67E28C3CF3dbc51a6CD3d004F53aCBd": gset,
-					},
-				}
-			},
 			expectErr: true,
 		},
 		{
 			name: "Fail: permission not granted, address must match exactly",
 			agreement: []models.Agreement{
 				{
-					Type:      "cloudevent",
+					Type:      TypeCloudEvent,
 					EventType: cloudevent.TypeAttestation,
 					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
 					IDs:       []string{"1"},
@@ -229,36 +173,27 @@ func TestEvaluateCloudEvents_Attestations(t *testing.T) {
 					Source:    "0xcce4eF41A67E28C3CF3dbc51a6CD3d004F53aCBB",
 				},
 			},
-			expectedCEGrants: func() map[string]map[string]*set.StringSet {
-				gset := set.NewStringSet()
-				gset.Add("1")
-				return map[string]map[string]*set.StringSet{
-					cloudevent.TypeAttestation: {
-						"0xcce4eF41A67E28C3CF3dbc51a6CD3d004F53aCBd": gset,
-					},
-				}
-			},
 			expectErr: true,
 		},
 		{
 			name: "Pass: Asking for implicit grant (global) ",
 			agreement: []models.Agreement{
 				{
-					Type:      "cloudevent",
+					Type:      TypeCloudEvent,
 					EventType: cloudevent.TypeAttestation,
 					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
 					IDs:       []string{"5", "6", "7"},
 					Source:    tokenclaims.GlobalIdentifier,
 				},
 				{
-					Type:      "cloudevent",
+					Type:      TypeCloudEvent,
 					EventType: cloudevent.TypeAttestation,
 					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
 					IDs:       []string{"1"},
 					Source:    common.BigToAddress(big.NewInt(1)).Hex(),
 				},
 				{
-					Type:      "cloudevent",
+					Type:      TypeCloudEvent,
 					EventType: cloudevent.TypeAttestation,
 					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
 					IDs:       []string{"2"},
@@ -272,43 +207,26 @@ func TestEvaluateCloudEvents_Attestations(t *testing.T) {
 					Source:    common.BigToAddress(big.NewInt(1)).Hex(),
 				},
 			},
-			expectedCEGrants: func() map[string]map[string]*set.StringSet {
-				set1 := set.NewStringSet()
-				set1.Add("1")
-				set2 := set.NewStringSet()
-				set2.Add("2")
-				set3 := set.NewStringSet()
-				set3.Add("5")
-				set3.Add("6")
-				set3.Add("7")
-				return map[string]map[string]*set.StringSet{
-					cloudevent.TypeAttestation: {
-						common.BigToAddress(big.NewInt(1)).Hex(): set1,
-						common.BigToAddress(big.NewInt(2)).Hex(): set2,
-						tokenclaims.GlobalIdentifier:             set3,
-					},
-				}
-			},
 		},
 		{
 			name: "Pass: Asking for a source not specifically granted (global)",
 			agreement: []models.Agreement{
 				{
-					Type:      "cloudevent",
+					Type:      TypeCloudEvent,
 					EventType: cloudevent.TypeAttestation,
 					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
 					IDs:       []string{"5", "6", "7"},
 					Source:    tokenclaims.GlobalIdentifier,
 				},
 				{
-					Type:      "cloudevent",
+					Type:      TypeCloudEvent,
 					EventType: cloudevent.TypeAttestation,
 					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
 					IDs:       []string{"1"},
 					Source:    common.BigToAddress(big.NewInt(1)).Hex(),
 				},
 				{
-					Type:      "cloudevent",
+					Type:      TypeCloudEvent,
 					EventType: cloudevent.TypeAttestation,
 					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
 					IDs:       []string{"2"},
@@ -322,54 +240,23 @@ func TestEvaluateCloudEvents_Attestations(t *testing.T) {
 					Source:    common.BigToAddress(big.NewInt(6)).Hex(),
 				},
 			},
-			expectedCEGrants: func() map[string]map[string]*set.StringSet {
-				set1 := set.NewStringSet()
-				set1.Add("1")
-				set2 := set.NewStringSet()
-				set2.Add("2")
-				set3 := set.NewStringSet()
-				set3.Add("5")
-				set3.Add("6")
-				set3.Add("7")
-				return map[string]map[string]*set.StringSet{
-					cloudevent.TypeAttestation: {
-						common.BigToAddress(big.NewInt(1)).Hex(): set1,
-						common.BigToAddress(big.NewInt(2)).Hex(): set2,
-						tokenclaims.GlobalIdentifier:             set3,
-					},
-				}
-			},
 		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			permData.Agreements = tc.agreement
-			expectedCEGrants := tc.expectedCEGrants()
 			_, ceGrants, err := UserGrantMap(t.Context(), &permData, cloudevent.ERC721DID{
 				ContractAddress: common.HexToAddress(nftCtrAddr),
 				TokenID:         big.NewInt(123),
 				ChainID:         1,
 			}, nil)
 			require.Nil(t, err)
-			for eventType, evtMap := range expectedCEGrants {
-				_, ok := ceGrants[eventType]
-				require.True(t, ok)
-
-				for src, vals := range evtMap {
-					grantedIDs, ok := ceGrants[eventType][src]
-					require.True(t, ok)
-
-					for _, id := range grantedIDs.Slice() {
-						require.Contains(t, vals.Slice(), id)
-					}
-				}
-			}
 
 			err = EvaluateCloudEvents(ceGrants, tc.request)
 			if tc.expectErr {
-				require.NotNil(t, err)
+				require.Error(t, err)
 			} else {
-				require.Nil(t, err)
+				require.NoError(t, err)
 			}
 		})
 	}
@@ -713,6 +600,389 @@ func TestIntArrayTo2BitArray(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 				require.NotNil(t, result)
+			}
+		})
+	}
+}
+
+// TestEvaluateCloudEvents_Comprehensive tests all cloud event functionality in logical groups
+func TestEvaluateCloudEvents_Comprehensive(t *testing.T) {
+	userEthAddr := common.HexToAddress("0x20Ca3bE69a8B95D3093383375F0473A8c6341727")
+	oneMinAgo := time.Now().Add(-1 * time.Minute)
+	oneMinFuture := time.Now().Add(1 * time.Minute)
+
+	permData := models.SACDData{
+		Grantor: models.Address{
+			Address: common.BigToAddress(big.NewInt(1)).Hex(),
+		},
+		Grantee: models.Address{
+			Address: userEthAddr.Hex(),
+		},
+		EffectiveAt: oneMinAgo,
+		ExpiresAt:   oneMinFuture,
+		Asset:       "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
+	}
+
+	nftCtrAddr := "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"
+	tests := []struct {
+		name      string
+		agreement []models.Agreement
+		request   []EventFilter
+		expectErr bool
+	}{
+		// === WILDCARD/GLOBAL MATCHING TESTS ===
+		{
+			name: "Pass: wildcard tags grant covers specific tag requests",
+			agreement: []models.Agreement{
+				{
+					Type:      TypeCloudEvent,
+					EventType: "dimo.attestation",
+					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
+					Source:    "*",
+					Tags:      []string{"*"},
+				},
+			},
+			request: []EventFilter{
+				{
+					EventType: cloudevent.TypeAttestation,
+					Source:    "*",
+					IDs:       []string{"*"},
+					Tags:      []string{"diagnostics", "location"},
+				},
+			},
+		},
+		{
+			name: "Pass: global event type grant covers any event type",
+			agreement: []models.Agreement{
+				{
+					Type:      TypeCloudEvent,
+					EventType: "*", // Global grant
+					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
+					IDs:       []string{"*"},
+					Source:    "*",
+					Tags:      []string{"*"},
+				},
+			},
+			request: []EventFilter{
+				{
+					EventType: "any.custom.event.type",
+					Source:    "*",
+					IDs:       []string{"*"},
+					Tags:      []string{"any-tag"},
+				},
+			},
+		},
+		{
+			name: "Pass: empty fields default to global wildcards",
+			agreement: []models.Agreement{
+				{
+					Type:      TypeCloudEvent,
+					EventType: "*",
+					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
+					IDs:       []string{"*"},
+					Source:    "*",
+					Tags:      []string{"*"},
+				},
+			},
+			request: []EventFilter{
+				{
+					EventType: "", // Should default to "*"
+					Source:    "", // Should default to "*"
+					IDs:       []string{},
+					Tags:      []string{},
+				},
+			},
+		},
+
+		// === SPECIFIC MATCHING TESTS ===
+		{
+			name: "Pass: specific tags match specific grants",
+			agreement: []models.Agreement{
+				{
+					Type:      TypeCloudEvent,
+					EventType: "dimo.fingerprint",
+					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
+					IDs:       []string{"*"},
+					Source:    "*",
+					Tags:      []string{"security", "identity", "diagnostics"},
+				},
+			},
+			request: []EventFilter{
+				{
+					EventType: "dimo.fingerprint",
+					Source:    "*",
+					IDs:       []string{"*"},
+					Tags:      []string{"security", "diagnostics"},
+				},
+			},
+		},
+		{
+			name: "Fail: requesting tag not granted",
+			agreement: []models.Agreement{
+				{
+					Type:      TypeCloudEvent,
+					EventType: "custom.vehicle.status",
+					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
+					IDs:       []string{"*"},
+					Source:    "*",
+					Tags:      []string{"engine"},
+				},
+			},
+			request: []EventFilter{
+				{
+					EventType: "custom.vehicle.status",
+					Source:    "*",
+					IDs:       []string{"*"},
+					Tags:      []string{"battery"}, // Not granted
+				},
+			},
+			expectErr: true,
+		},
+		{
+			name: "Fail: requesting event type not granted",
+			agreement: []models.Agreement{
+				{
+					Type:      TypeCloudEvent,
+					EventType: "dimo.attestation",
+					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
+					IDs:       []string{"*"},
+					Source:    "*",
+					Tags:      []string{"*"},
+				},
+			},
+			request: []EventFilter{
+				{
+					EventType: "dimo.fingerprint", // Not granted
+					Source:    "*",
+					IDs:       []string{"*"},
+					Tags:      []string{"*"},
+				},
+			},
+			expectErr: true,
+		},
+
+		// === MULTI-AGREEMENT COMBINATIONS ===
+		{
+			name: "Pass: tags and IDs spanning multiple agreements",
+			agreement: []models.Agreement{
+				{
+					Type:      TypeCloudEvent,
+					EventType: "dimo.attestation",
+					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
+					IDs:       []string{"1", "3"},
+					Source:    "*",
+					Tags:      []string{"diagnostics"},
+				},
+				{
+					Type:      TypeCloudEvent,
+					EventType: "dimo.attestation",
+					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
+					IDs:       []string{"1", "3"},
+					Source:    "*",
+					Tags:      []string{"location"},
+				},
+			},
+			request: []EventFilter{
+				{
+					EventType: cloudevent.TypeAttestation,
+					Source:    "*",
+					IDs:       []string{"1", "3"},
+					Tags:      []string{"diagnostics", "location"},
+				},
+			},
+		},
+		{
+			name: "Fail: missing tag-id combination across agreements",
+			agreement: []models.Agreement{
+				{
+					Type:      TypeCloudEvent,
+					EventType: "dimo.attestation",
+					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
+					IDs:       []string{"1"},
+					Source:    "*",
+					Tags:      []string{"diagnostics"},
+				},
+				{
+					Type:      TypeCloudEvent,
+					EventType: "dimo.attestation",
+					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
+					IDs:       []string{"2"},
+					Source:    "*",
+					Tags:      []string{"location"},
+				},
+			},
+			request: []EventFilter{
+				{
+					EventType: cloudevent.TypeAttestation,
+					Source:    "*",
+					IDs:       []string{"1"},
+					Tags:      []string{"location"}, // ID 1 doesn't have location tag
+				},
+			},
+			expectErr: true,
+		},
+
+		// === MULTI-REQUEST TESTS ===
+		{
+			name: "Pass: multiple event types in single request",
+			agreement: []models.Agreement{
+				{
+					Type:      TypeCloudEvent,
+					EventType: "dimo.attestation",
+					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
+					IDs:       []string{"*"},
+					Source:    "*",
+					Tags:      []string{"diagnostics", "location"},
+				},
+				{
+					Type:      TypeCloudEvent,
+					EventType: "dimo.fingerprint",
+					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
+					IDs:       []string{"*"},
+					Source:    "*",
+					Tags:      []string{"security", "identity"},
+				},
+			},
+			request: []EventFilter{
+				{
+					EventType: cloudevent.TypeAttestation,
+					Source:    "*",
+					IDs:       []string{"1"},
+					Tags:      []string{"diagnostics"},
+				},
+				{
+					EventType: "dimo.fingerprint",
+					Source:    "*",
+					IDs:       []string{"2"},
+					Tags:      []string{"security"},
+				},
+			},
+		},
+		{
+			name: "Fail: one request in batch fails",
+			agreement: []models.Agreement{
+				{
+					Type:      TypeCloudEvent,
+					EventType: "dimo.attestation",
+					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
+					IDs:       []string{"*"},
+					Source:    "*",
+					Tags:      []string{"diagnostics"},
+				},
+				{
+					Type:      TypeCloudEvent,
+					EventType: "dimo.fingerprint",
+					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
+					IDs:       []string{"*"},
+					Source:    "*",
+					Tags:      []string{"security"},
+				},
+			},
+			request: []EventFilter{
+				{
+					EventType: cloudevent.TypeAttestation,
+					Source:    "*",
+					IDs:       []string{"1"},
+					Tags:      []string{"diagnostics"}, // This is granted
+				},
+				{
+					EventType: "dimo.fingerprint",
+					Source:    "*",
+					IDs:       []string{"2"},
+					Tags:      []string{"identity"}, // This is NOT granted
+				},
+			},
+			expectErr: true,
+		},
+
+		// === EDGE CASES AND VALIDATION ===
+		{
+			name: "Pass: empty request array",
+			agreement: []models.Agreement{
+				{
+					Type:      TypeCloudEvent,
+					EventType: "dimo.attestation",
+					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
+					IDs:       []string{"*"},
+					Source:    "*",
+					Tags:      []string{"*"},
+				},
+			},
+			request: []EventFilter{}, // Empty request should pass
+		},
+		{
+			name:      "Fail: no agreements provided",
+			agreement: []models.Agreement{}, // No agreements
+			request: []EventFilter{
+				{
+					EventType: cloudevent.TypeAttestation,
+					Source:    "*",
+					IDs:       []string{"*"},
+					Tags:      []string{"*"},
+				},
+			},
+			expectErr: true,
+		},
+		{
+			name: "Pass: case sensitivity exact match",
+			agreement: []models.Agreement{
+				{
+					Type:      TypeCloudEvent,
+					EventType: "dimo.attestation",
+					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
+					IDs:       []string{"ABC123"},
+					Source:    "*",
+					Tags:      []string{"DiAgNoStIcS"},
+				},
+			},
+			request: []EventFilter{
+				{
+					EventType: cloudevent.TypeAttestation,
+					Source:    "*",
+					IDs:       []string{"ABC123"},      // Exact match
+					Tags:      []string{"DiAgNoStIcS"}, // Exact match
+				},
+			},
+		},
+		{
+			name: "Fail: case sensitivity mismatch",
+			agreement: []models.Agreement{
+				{
+					Type:      TypeCloudEvent,
+					EventType: "dimo.attestation",
+					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
+					IDs:       []string{"ABC123"},
+					Source:    "*",
+					Tags:      []string{"diagnostics"},
+				},
+			},
+			request: []EventFilter{
+				{
+					EventType: cloudevent.TypeAttestation,
+					Source:    "*",
+					IDs:       []string{"abc123"},      // Case mismatch
+					Tags:      []string{"DIAGNOSTICS"}, // Case mismatch
+				},
+			},
+			expectErr: true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			permData.Agreements = tc.agreement
+			_, ceGrants, err := UserGrantMap(t.Context(), &permData, cloudevent.ERC721DID{
+				ContractAddress: common.HexToAddress(nftCtrAddr),
+				TokenID:         big.NewInt(123),
+				ChainID:         1,
+			}, nil)
+			require.Nil(t, err)
+
+			err = EvaluateCloudEvents(ceGrants, tc.request)
+			if tc.expectErr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
 			}
 		})
 	}
