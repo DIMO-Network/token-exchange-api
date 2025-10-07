@@ -1,13 +1,16 @@
 package autheval
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"math/big"
 	"time"
 
 	"github.com/DIMO-Network/cloudevent"
+	"github.com/DIMO-Network/shared/pkg/set"
 	"github.com/DIMO-Network/token-exchange-api/internal/models"
+	"github.com/DIMO-Network/token-exchange-api/internal/services/template"
 	"github.com/DIMO-Network/token-exchange-api/pkg/tokenclaims"
 )
 
@@ -21,6 +24,10 @@ type EventFilter struct {
 	Source    string   `json:"source"`
 	IDs       []string `json:"ids"`
 	Tags      []string `json:"tags"`
+}
+
+type TemplateService interface {
+	GetTemplatePermissions(ctx context.Context, permissionTemplateID string, assetDID cloudevent.ERC721DID) (*template.PermissionsResult, error)
 }
 
 // EvaluatePermissions checks if all requested privileges are present in the user permissions
@@ -86,12 +93,68 @@ func EvaluateCloudEvents(sacdAgreements CloudEventAgreements, cloudEvents []Even
 	return err
 }
 
-// UserGrantMap extracts permission and CloudEvent grants from SACD data.
-func UserGrantMap(data *models.SACDData, assetDID cloudevent.ERC721DID) (map[string]bool, CloudEventAgreements, error) {
+// GetValidAgreements returns a map of sources to sets of valid IDs for a given CloudEvent type (`ceType`).
+// global grants (applied to all events) and event-specific grants are merged
+// input 'sacdAgreements' is a nested map: eventType -> source -> set of IDs.
+func GetValidAgreements(sacdAgreements map[string]map[string]*set.StringSet, ceType string) map[string]*set.StringSet {
+	agreementsBySource := make(map[string]*set.StringSet)
+	eventGrants := sacdAgreements[ceType]
+	globlaGrants := sacdAgreements[tokenclaims.GlobalIdentifier]
+
+	for source, ids := range eventGrants {
+		agreementsBySource[source] = set.NewStringSet()
+
+		for _, id := range ids.Slice() {
+			agreementsBySource[source].Add(id)
+		}
+
+	}
+
+	for source, ids := range globlaGrants {
+		if _, ok := agreementsBySource[source]; !ok {
+			agreementsBySource[source] = set.NewStringSet()
+		}
+
+		for _, id := range ids.Slice() {
+			agreementsBySource[source].Add(id)
+		}
+	}
+
+	return agreementsBySource
+}
+
+// matchTemplatePermissions checks if SACD and template permissions matches based on template activation status
+func matchTemplatePermissions(sacdPermissions map[string]bool, templateResult *template.PermissionsResult) bool {
+	if templateResult == nil {
+		return true
+	}
+
+	if templateResult.IsActive {
+		// Template is active: check if permissions match
+		// Check if SACD has all the permissions that the template has
+		for templatePerm := range templateResult.Permissions {
+			if !sacdPermissions[templatePerm] {
+				return false
+			}
+		}
+
+		return true
+	}
+
+	// Template is not active
+	return false
+}
+
+// UserGrantMap extracts permission and CloudEvent grants from SACD data
+func UserGrantMap(ctx context.Context, data *models.SACDData, assetDID cloudevent.ERC721DID, templateService TemplateService) (map[string]bool, CloudEventAgreements, error) {
 	userPermGrants := make(map[string]bool)
 	var cloudEvtAgreements CloudEventAgreements
 
-	// Aggregates all the permission and attestation grants the user has.
+	// Collect direct SACD permissions
+	sacdPermissions := make(map[string]bool)
+	var templateResult *template.PermissionsResult
+
+	// Single loop to process all agreements
 	for _, agreement := range data.Agreements {
 		now := time.Now()
 		if !agreement.EffectiveAt.IsZero() && now.Before(agreement.EffectiveAt) {
@@ -112,9 +175,26 @@ func UserGrantMap(data *models.SACDData, assetDID cloudevent.ERC721DID) (map[str
 		case TypePermission:
 			// Add permissions from this agreement
 			for _, permission := range agreement.Permissions {
-				userPermGrants[permission.Name] = true
+				sacdPermissions[permission.Name] = true
 			}
 		}
+	}
+
+	if data.PermissionTemplateID != "" && data.PermissionTemplateID != "0" {
+		var err error
+		templateResult, err = templateService.GetTemplatePermissions(ctx, data.PermissionTemplateID, assetDID)
+		if err != nil {
+			return nil, cloudEvtAgreements, fmt.Errorf("failed to get template permissions: %w", err)
+		}
+
+		match := matchTemplatePermissions(sacdPermissions, templateResult)
+
+		if match {
+			userPermGrants = sacdPermissions
+		}
+	} else {
+		// No template involved, use SACD permissions directly
+		userPermGrants = sacdPermissions
 	}
 
 	return userPermGrants, cloudEvtAgreements, nil

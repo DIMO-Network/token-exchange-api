@@ -4,14 +4,28 @@ import (
 	"time"
 )
 
+// TemplateData contains the core permission data
+type TemplateData struct {
+	Owner      Address             `json:"owner"`
+	Agreements []TemplateAgreement `json:"agreements"`
+}
+
+// TemplateAgreement represents a permission agreement for an asset
+type TemplateAgreement struct {
+	Type        string       `json:"type"`
+	Asset       string       `json:"asset"` // Contract address
+	Permissions []Permission `json:"permissions"`
+}
+
 // SACDData contains the core permission data
 type SACDData struct {
-	Grantor     Address     `json:"grantor"`
-	Grantee     Address     `json:"grantee"`
-	EffectiveAt time.Time   `json:"effectiveAt"`
-	ExpiresAt   time.Time   `json:"expiresAt"`
-	Asset       string      `json:"asset,omitempty"`
-	Agreements  []Agreement `json:"agreements"`
+	Grantor              Address     `json:"grantor"`
+	Grantee              Address     `json:"grantee"`
+	EffectiveAt          time.Time   `json:"effectiveAt"`
+	ExpiresAt            time.Time   `json:"expiresAt"`
+	Asset                string      `json:"asset,omitempty"`
+	PermissionTemplateID string      `json:"permissionTemplateId"`
+	Agreements           []Agreement `json:"agreements"`
 }
 
 // Agreement represents a permission agreement for an asset

@@ -19,6 +19,7 @@ import (
 	"github.com/DIMO-Network/shared/pkg/privileges"
 	"github.com/DIMO-Network/token-exchange-api/internal/autheval"
 	"github.com/DIMO-Network/token-exchange-api/internal/config"
+	privilegemap "github.com/DIMO-Network/token-exchange-api/internal/constants"
 	"github.com/DIMO-Network/token-exchange-api/internal/controllers/httpcontroller"
 	"github.com/DIMO-Network/token-exchange-api/internal/middleware"
 	"github.com/DIMO-Network/token-exchange-api/internal/middleware/dex"
@@ -96,7 +97,7 @@ func TestTokenExchangeController_ExchangeToken(t *testing.T) {
 						TokenID:         big.NewInt(123),
 						ChainID:         1,
 					},
-					Permissions: []string{access.PrivilegeIDToName[4]},
+					Permissions: []string{privilegemap.PrivilegeIDToName[4]},
 				}, userEthAddr).Return(nil)
 				dexService.EXPECT().SignPrivilegePayload(gomock.Any(), services.PrivilegeTokenDTO{
 					TokenID:            strconv.FormatInt(123, 10),
@@ -130,7 +131,7 @@ func TestTokenExchangeController_ExchangeToken(t *testing.T) {
 						TokenID:         big.NewInt(123),
 						ChainID:         1,
 					},
-					Permissions: []string{access.PrivilegeIDToName[4]},
+					Permissions: []string{privilegemap.PrivilegeIDToName[4]},
 				}, devLicenseAddr).Return(nil)
 				dexService.EXPECT().SignPrivilegePayload(gomock.Any(), services.PrivilegeTokenDTO{
 					TokenID:            strconv.FormatInt(123, 10),
@@ -162,7 +163,7 @@ func TestTokenExchangeController_ExchangeToken(t *testing.T) {
 						TokenID:         big.NewInt(123),
 						ChainID:         1,
 					},
-					Permissions: []string{access.PrivilegeIDToName[1], access.PrivilegeIDToName[2], access.PrivilegeIDToName[4], access.PrivilegeIDToName[5]},
+					Permissions: []string{privilegemap.PrivilegeIDToName[1], privilegemap.PrivilegeIDToName[2], privilegemap.PrivilegeIDToName[4], privilegemap.PrivilegeIDToName[5]},
 				}, userEthAddr).Return(nil)
 				dexService.EXPECT().SignPrivilegePayload(gomock.Any(), services.PrivilegeTokenDTO{
 					TokenID:            strconv.FormatInt(123, 10),
@@ -211,7 +212,7 @@ func TestTokenExchangeController_ExchangeToken(t *testing.T) {
 						TokenID:         big.NewInt(123),
 						ChainID:         1,
 					},
-					Permissions: []string{access.PrivilegeIDToName[4]},
+					Permissions: []string{privilegemap.PrivilegeIDToName[4]},
 				}, userEthAddr).Return(nil)
 				dexService.EXPECT().SignPrivilegePayload(gomock.Any(), services.PrivilegeTokenDTO{
 					TokenID:            strconv.FormatInt(123, 10),

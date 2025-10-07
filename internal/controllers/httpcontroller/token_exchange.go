@@ -12,6 +12,7 @@ import (
 	"github.com/DIMO-Network/token-exchange-api/internal/api"
 	"github.com/DIMO-Network/token-exchange-api/internal/autheval"
 	"github.com/DIMO-Network/token-exchange-api/internal/config"
+	privilegemap "github.com/DIMO-Network/token-exchange-api/internal/constants"
 	"github.com/DIMO-Network/token-exchange-api/internal/middleware"
 	"github.com/DIMO-Network/token-exchange-api/internal/services"
 	"github.com/DIMO-Network/token-exchange-api/internal/services/access"
@@ -155,7 +156,7 @@ func tokenReqToAccessReq(tokenReq *TokenRequest, chainID uint64) (*access.NFTAcc
 	permNames := make([]string, len(tokenReq.Privileges))
 	unknownPrivs := make([]int64, 0)
 	for i, privID := range tokenReq.Privileges {
-		permName, exists := access.PrivilegeIDToName[privID]
+		permName, exists := privilegemap.PrivilegeIDToName[privID]
 		if !exists {
 			// If we don't have a mapping for this privilege ID, consider it missing
 			unknownPrivs = append(unknownPrivs, privID)

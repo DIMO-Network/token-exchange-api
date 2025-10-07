@@ -11,10 +11,14 @@ package access
 
 import (
 	context "context"
+	json "encoding/json"
 	big "math/big"
 	reflect "reflect"
 
+	cloudevent "github.com/DIMO-Network/cloudevent"
 	sacd "github.com/DIMO-Network/token-exchange-api/internal/contracts/sacd"
+	template "github.com/DIMO-Network/token-exchange-api/internal/contracts/template"
+	template0 "github.com/DIMO-Network/token-exchange-api/internal/services/template"
 	bind "github.com/ethereum/go-ethereum/accounts/abi/bind"
 	common "github.com/ethereum/go-ethereum/common"
 	gomock "go.uber.org/mock/gomock"
@@ -74,43 +78,58 @@ func (mr *MockSACDInterfaceMockRecorder) GetPermissions(opts, asset, tokenID, gr
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPermissions", reflect.TypeOf((*MockSACDInterface)(nil).GetPermissions), opts, asset, tokenID, grantee, permissions)
 }
 
-// Mockerc1271Mgr is a mock of erc1271Mgr interface.
-type Mockerc1271Mgr struct {
+// MockTemplate is a mock of Template interface.
+type MockTemplate struct {
 	ctrl     *gomock.Controller
-	recorder *Mockerc1271MgrMockRecorder
+	recorder *MockTemplateMockRecorder
 	isgomock struct{}
 }
 
-// Mockerc1271MgrMockRecorder is the mock recorder for Mockerc1271Mgr.
-type Mockerc1271MgrMockRecorder struct {
-	mock *Mockerc1271Mgr
+// MockTemplateMockRecorder is the mock recorder for MockTemplate.
+type MockTemplateMockRecorder struct {
+	mock *MockTemplate
 }
 
-// NewMockerc1271Mgr creates a new mock instance.
-func NewMockerc1271Mgr(ctrl *gomock.Controller) *Mockerc1271Mgr {
-	mock := &Mockerc1271Mgr{ctrl: ctrl}
-	mock.recorder = &Mockerc1271MgrMockRecorder{mock}
+// NewMockTemplate creates a new mock instance.
+func NewMockTemplate(ctrl *gomock.Controller) *MockTemplate {
+	mock := &MockTemplate{ctrl: ctrl}
+	mock.recorder = &MockTemplateMockRecorder{mock}
 	return mock
 }
 
 // EXPECT returns an object that allows the caller to indicate expected use.
-func (m *Mockerc1271Mgr) EXPECT() *Mockerc1271MgrMockRecorder {
+func (m *MockTemplate) EXPECT() *MockTemplateMockRecorder {
 	return m.recorder
 }
 
-// NewErc1271 mocks base method.
-func (m *Mockerc1271Mgr) NewErc1271(address common.Address, backend bind.ContractBackend) (Erc1271Interface, error) {
+// IsTemplateActive mocks base method.
+func (m *MockTemplate) IsTemplateActive(opts *bind.CallOpts, templateID *big.Int) (bool, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "NewErc1271", address, backend)
-	ret0, _ := ret[0].(Erc1271Interface)
+	ret := m.ctrl.Call(m, "IsTemplateActive", opts, templateID)
+	ret0, _ := ret[0].(bool)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// NewErc1271 indicates an expected call of NewErc1271.
-func (mr *Mockerc1271MgrMockRecorder) NewErc1271(address, backend any) *gomock.Call {
+// IsTemplateActive indicates an expected call of IsTemplateActive.
+func (mr *MockTemplateMockRecorder) IsTemplateActive(opts, templateID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewErc1271", reflect.TypeOf((*Mockerc1271Mgr)(nil).NewErc1271), address, backend)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsTemplateActive", reflect.TypeOf((*MockTemplate)(nil).IsTemplateActive), opts, templateID)
+}
+
+// Templates mocks base method.
+func (m *MockTemplate) Templates(opts *bind.CallOpts, templateID *big.Int) (template.ITemplateTemplateData, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Templates", opts, templateID)
+	ret0, _ := ret[0].(template.ITemplateTemplateData)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Templates indicates an expected call of Templates.
+func (mr *MockTemplateMockRecorder) Templates(opts, templateID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Templates", reflect.TypeOf((*MockTemplate)(nil).Templates), opts, templateID)
 }
 
 // MockErc1271Interface is a mock of Erc1271Interface interface.
@@ -176,17 +195,95 @@ func (m *MockIPFSClient) EXPECT() *MockIPFSClientMockRecorder {
 	return m.recorder
 }
 
-// Fetch mocks base method.
-func (m *MockIPFSClient) Fetch(ctx context.Context, cid string) ([]byte, error) {
+// GetValidSacdDoc mocks base method.
+func (m *MockIPFSClient) GetValidSacdDoc(ctx context.Context, source string) (*cloudevent.RawEvent, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Fetch", ctx, cid)
-	ret0, _ := ret[0].([]byte)
+	ret := m.ctrl.Call(m, "GetValidSacdDoc", ctx, source)
+	ret0, _ := ret[0].(*cloudevent.RawEvent)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// Fetch indicates an expected call of Fetch.
-func (mr *MockIPFSClientMockRecorder) Fetch(ctx, cid any) *gomock.Call {
+// GetValidSacdDoc indicates an expected call of GetValidSacdDoc.
+func (mr *MockIPFSClientMockRecorder) GetValidSacdDoc(ctx, source any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Fetch", reflect.TypeOf((*MockIPFSClient)(nil).Fetch), ctx, cid)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetValidSacdDoc", reflect.TypeOf((*MockIPFSClient)(nil).GetValidSacdDoc), ctx, source)
+}
+
+// MockTemplateService is a mock of TemplateService interface.
+type MockTemplateService struct {
+	ctrl     *gomock.Controller
+	recorder *MockTemplateServiceMockRecorder
+	isgomock struct{}
+}
+
+// MockTemplateServiceMockRecorder is the mock recorder for MockTemplateService.
+type MockTemplateServiceMockRecorder struct {
+	mock *MockTemplateService
+}
+
+// NewMockTemplateService creates a new mock instance.
+func NewMockTemplateService(ctrl *gomock.Controller) *MockTemplateService {
+	mock := &MockTemplateService{ctrl: ctrl}
+	mock.recorder = &MockTemplateServiceMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockTemplateService) EXPECT() *MockTemplateServiceMockRecorder {
+	return m.recorder
+}
+
+// GetTemplatePermissions mocks base method.
+func (m *MockTemplateService) GetTemplatePermissions(ctx context.Context, permissionTemplateID string, assetDID cloudevent.ERC721DID) (*template0.PermissionsResult, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetTemplatePermissions", ctx, permissionTemplateID, assetDID)
+	ret0, _ := ret[0].(*template0.PermissionsResult)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetTemplatePermissions indicates an expected call of GetTemplatePermissions.
+func (mr *MockTemplateServiceMockRecorder) GetTemplatePermissions(ctx, permissionTemplateID, assetDID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTemplatePermissions", reflect.TypeOf((*MockTemplateService)(nil).GetTemplatePermissions), ctx, permissionTemplateID, assetDID)
+}
+
+// MockSignatureValidator is a mock of SignatureValidator interface.
+type MockSignatureValidator struct {
+	ctrl     *gomock.Controller
+	recorder *MockSignatureValidatorMockRecorder
+	isgomock struct{}
+}
+
+// MockSignatureValidatorMockRecorder is the mock recorder for MockSignatureValidator.
+type MockSignatureValidatorMockRecorder struct {
+	mock *MockSignatureValidator
+}
+
+// NewMockSignatureValidator creates a new mock instance.
+func NewMockSignatureValidator(ctrl *gomock.Controller) *MockSignatureValidator {
+	mock := &MockSignatureValidator{ctrl: ctrl}
+	mock.recorder = &MockSignatureValidatorMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockSignatureValidator) EXPECT() *MockSignatureValidatorMockRecorder {
+	return m.recorder
+}
+
+// ValidateSignature mocks base method.
+func (m *MockSignatureValidator) ValidateSignature(ctx context.Context, payload json.RawMessage, signature string, ethAddr common.Address) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ValidateSignature", ctx, payload, signature, ethAddr)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ValidateSignature indicates an expected call of ValidateSignature.
+func (mr *MockSignatureValidatorMockRecorder) ValidateSignature(ctx, payload, signature, ethAddr any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateSignature", reflect.TypeOf((*MockSignatureValidator)(nil).ValidateSignature), ctx, payload, signature, ethAddr)
 }
