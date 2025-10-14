@@ -1,6 +1,6 @@
 basePath: /v1
 definitions:
-  github_com_DIMO-Network_token-exchange-api_internal_autheval.EventFilter:
+  github_com_DIMO-Network_token-exchange-api_internal_models.EventFilter:
     properties:
       eventType:
         type: string
@@ -19,11 +19,15 @@ definitions:
     properties:
       events:
         items:
-          $ref: '#/definitions/github_com_DIMO-Network_token-exchange-api_internal_autheval.EventFilter'
+          $ref: '#/definitions/github_com_DIMO-Network_token-exchange-api_internal_models.EventFilter'
         type: array
     type: object
   internal_controllers_httpcontroller.TokenRequest:
     properties:
+      asset:
+        description: Asset DID of the asset that permissions are being requested for
+          currently either did:erc721 or did:ethr
+        type: string
       audience:
         description: Audience is the intended audience for the token.
         items:
@@ -39,11 +43,20 @@ definitions:
           NFTContractAddress is the address of the NFT contract. Privileges will be checked
           on-chain at this address. Address must be in the 0x format e.g. 0x5FbDB2315678afecb367f032d93F642f64180aa3.
           Varying case is okay.
+          If asset is provided, this is ignored.
+          Deprecated: Use Asset instead.
         example: 0xbA5738a18d83D41847dfFbDC6101d37C69c9B0cF
         type: string
+      permissions:
+        description: Permissions is a list of the desired permissions.
+        items:
+          type: string
+        type: array
       privileges:
-        description: Privileges is a list of the desired privileges. It must not be
-          empty.
+        description: |-
+          Privileges is a list of the desired privileges. It must not be empty.
+          If Permissions are provided, this is ignored.
+          Deprecated: Use Permissions instead.
         example:
         - 1
         - 2
@@ -53,13 +66,12 @@ definitions:
           type: integer
         type: array
       tokenId:
-        description: TokenID is the NFT token id.
+        description: |-
+          TokenID is the NFT token id.
+          If asset is provided, this is ignored.
+          Deprecated: Use Asset instead.
         example: 7
         type: integer
-    required:
-    - nftContractAddress
-    - privileges
-    - tokenId
     type: object
   internal_controllers_httpcontroller.TokenResponse:
     properties:

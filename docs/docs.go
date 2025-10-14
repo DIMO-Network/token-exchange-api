@@ -53,7 +53,7 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "github_com_DIMO-Network_token-exchange-api_internal_autheval.EventFilter": {
+        "github_com_DIMO-Network_token-exchange-api_internal_models.EventFilter": {
             "type": "object",
             "properties": {
                 "eventType": {
@@ -82,19 +82,18 @@ const docTemplate = `{
                 "events": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_DIMO-Network_token-exchange-api_internal_autheval.EventFilter"
+                        "$ref": "#/definitions/github_com_DIMO-Network_token-exchange-api_internal_models.EventFilter"
                     }
                 }
             }
         },
         "internal_controllers_httpcontroller.TokenRequest": {
             "type": "object",
-            "required": [
-                "nftContractAddress",
-                "privileges",
-                "tokenId"
-            ],
             "properties": {
+                "asset": {
+                    "description": "Asset DID of the asset that permissions are being requested for currently either did:erc721 or did:ethr",
+                    "type": "string"
+                },
                 "audience": {
                     "description": "Audience is the intended audience for the token.",
                     "type": "array",
@@ -111,12 +110,19 @@ const docTemplate = `{
                     ]
                 },
                 "nftContractAddress": {
-                    "description": "NFTContractAddress is the address of the NFT contract. Privileges will be checked\non-chain at this address. Address must be in the 0x format e.g. 0x5FbDB2315678afecb367f032d93F642f64180aa3.\nVarying case is okay.",
+                    "description": "NFTContractAddress is the address of the NFT contract. Privileges will be checked\non-chain at this address. Address must be in the 0x format e.g. 0x5FbDB2315678afecb367f032d93F642f64180aa3.\nVarying case is okay.\nIf asset is provided, this is ignored.\nDeprecated: Use Asset instead.",
                     "type": "string",
                     "example": "0xbA5738a18d83D41847dfFbDC6101d37C69c9B0cF"
                 },
+                "permissions": {
+                    "description": "Permissions is a list of the desired permissions.",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
                 "privileges": {
-                    "description": "Privileges is a list of the desired privileges. It must not be empty.",
+                    "description": "Privileges is a list of the desired privileges. It must not be empty.\nIf Permissions are provided, this is ignored.\nDeprecated: Use Permissions instead.",
                     "type": "array",
                     "items": {
                         "type": "integer"
@@ -129,7 +135,7 @@ const docTemplate = `{
                     ]
                 },
                 "tokenId": {
-                    "description": "TokenID is the NFT token id.",
+                    "description": "TokenID is the NFT token id.\nIf asset is provided, this is ignored.\nDeprecated: Use Asset instead.",
                     "type": "integer",
                     "example": 7
                 }

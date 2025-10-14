@@ -4,7 +4,7 @@ import (
 	"slices"
 
 	"github.com/DIMO-Network/shared/pkg/set"
-	"github.com/DIMO-Network/token-exchange-api/pkg/tokenclaims"
+	"github.com/DIMO-Network/token-exchange-api/internal/models"
 )
 
 type CloudEventAgreements struct {
@@ -13,10 +13,10 @@ type CloudEventAgreements struct {
 
 func (c *CloudEventAgreements) Add(eventType, source string, ids, tags []string) {
 	if len(tags) == 0 {
-		tags = []string{tokenclaims.GlobalIdentifier}
+		tags = []string{models.GlobalIdentifier}
 	}
 	if len(ids) == 0 {
-		ids = []string{tokenclaims.GlobalIdentifier}
+		ids = []string{models.GlobalIdentifier}
 	}
 	c.agreements = append(c.agreements, Agreement{EventType: eventType, Source: source, IDs: set.New(ids...), Tags: set.New(tags...)})
 }
@@ -33,8 +33,8 @@ type Agreement struct {
 }
 
 func (a Agreement) Grants(eventType, source, ids, tags string) bool {
-	return (a.EventType == eventType || a.EventType == tokenclaims.GlobalIdentifier) &&
-		(a.Source == source || a.Source == tokenclaims.GlobalIdentifier) &&
-		(a.IDs.Contains(ids) || a.IDs.Contains(tokenclaims.GlobalIdentifier)) &&
-		(a.Tags.Contains(tags) || a.Tags.Contains(tokenclaims.GlobalIdentifier))
+	return (a.EventType == eventType || a.EventType == models.GlobalIdentifier) &&
+		(a.Source == source || a.Source == models.GlobalIdentifier) &&
+		(a.IDs.Contains(ids) || a.IDs.Contains(models.GlobalIdentifier)) &&
+		(a.Tags.Contains(tags) || a.Tags.Contains(models.GlobalIdentifier))
 }

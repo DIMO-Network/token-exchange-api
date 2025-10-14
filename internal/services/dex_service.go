@@ -5,9 +5,9 @@ import (
 	"fmt"
 
 	"github.com/DIMO-Network/shared/pkg/privileges"
+	"github.com/DIMO-Network/token-exchange-api/internal/services/access"
 	"github.com/DIMO-Network/token-exchange-api/pkg/tokenclaims"
 	dgrpc "github.com/dexidp/dex/api/v2"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/rs/zerolog"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -19,12 +19,9 @@ type DexClient struct {
 }
 
 type PrivilegeTokenDTO struct {
-	TokenID            string
-	PrivilegeIDs       []int64
-	NFTContractAddress string
-	Audience           []string
-	CloudEvents        *tokenclaims.CloudEvents
-	ResponseSubject    string
+	*access.NFTAccessRequest
+	Audience        []string
+	ResponseSubject string
 }
 
 func NewDexClient(log *zerolog.Logger, dexgRPCAddr string) (*DexClient, error) {
@@ -40,16 +37,32 @@ func NewDexClient(log *zerolog.Logger, dexgRPCAddr string) (*DexClient, error) {
 }
 
 func (d *DexClient) SignPrivilegePayload(ctx context.Context, req PrivilegeTokenDTO) (string, error) {
-	privs := make([]privileges.Privilege, len(req.PrivilegeIDs))
-	for i, iD := range req.PrivilegeIDs {
-		privs[i] = privileges.Privilege(iD)
+	privs := make([]privileges.Privilege, len(req.Permissions))
+	for i, perm := range req.Permissions {
+		permID, ok := tokenclaims.PrivilegeNameToID[perm]
+		if ok {
+			privs[i] = privileges.Privilege(permID)
+		}
+	}
+	events := make([]tokenclaims.Event, len(req.EventFilters))
+	for i, event := range req.EventFilters {
+		events[i] = tokenclaims.Event{
+			EventType: event.EventType,
+			Source:    event.Source,
+			IDs:       event.IDs,
+			Tags:      event.Tags,
+		}
 	}
 
 	cc := tokenclaims.CustomClaims{
-		ContractAddress: common.HexToAddress(req.NFTContractAddress),
-		TokenID:         req.TokenID,
+		Asset:       req.Asset.String(),
+		Permissions: req.Permissions,
+		CloudEvents: &tokenclaims.CloudEvents{Events: events},
+
+		// Old fields
+		ContractAddress: req.Asset.ContractAddress,
+		TokenID:         req.Asset.TokenID.String(),
 		PrivilegeIDs:    privs,
-		CloudEvents:     req.CloudEvents,
 	}
 
 	ps, err := cc.Proto()

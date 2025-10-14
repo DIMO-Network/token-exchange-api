@@ -11,11 +11,10 @@ import (
 
 	"github.com/DIMO-Network/cloudevent"
 	"github.com/DIMO-Network/server-garage/pkg/richerrors"
-	"github.com/DIMO-Network/token-exchange-api/internal/autheval"
-	privilegemap "github.com/DIMO-Network/token-exchange-api/internal/constants"
 	"github.com/DIMO-Network/token-exchange-api/internal/contracts/sacd"
 	"github.com/DIMO-Network/token-exchange-api/internal/models"
 	"github.com/DIMO-Network/token-exchange-api/internal/services/template"
+	"github.com/DIMO-Network/token-exchange-api/pkg/tokenclaims"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/gofiber/fiber/v2"
@@ -93,7 +92,7 @@ func TestAccessService_ValidateAccess_WithoutTemplateId(t *testing.T) {
 					TokenID:         big.NewInt(123),
 					ChainID:         1,
 				},
-				Permissions: []string{privilegemap.PrivilegeIDToName[4]},
+				Permissions: []string{tokenclaims.PrivilegeIDToName[4]},
 			},
 			mockSetup: func(*testing.T) {
 				mockSacd.EXPECT().CurrentPermissionRecord(gomock.Any(), common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), devLicenseAddr).Return(emptyPermRecord, nil)
@@ -109,7 +108,7 @@ func TestAccessService_ValidateAccess_WithoutTemplateId(t *testing.T) {
 					TokenID:         big.NewInt(123),
 					ChainID:         1,
 				},
-				Permissions: []string{privilegemap.PrivilegeIDToName[1], privilegemap.PrivilegeIDToName[2], privilegemap.PrivilegeIDToName[4], privilegemap.PrivilegeIDToName[5]},
+				Permissions: []string{tokenclaims.PrivilegeIDToName[1], tokenclaims.PrivilegeIDToName[2], tokenclaims.PrivilegeIDToName[4], tokenclaims.PrivilegeIDToName[5]},
 			},
 			mockSetup: func(*testing.T) {
 				mockipfs.EXPECT().GetValidSacdDoc(gomock.Any(), gomock.Any()).Return(nil, errors.New("no valid doc"))
@@ -125,7 +124,7 @@ func TestAccessService_ValidateAccess_WithoutTemplateId(t *testing.T) {
 					TokenID:         big.NewInt(123),
 					ChainID:         1,
 				},
-				Permissions: []string{privilegemap.PrivilegeIDToName[1], privilegemap.PrivilegeIDToName[2], privilegemap.PrivilegeIDToName[4], privilegemap.PrivilegeIDToName[5]},
+				Permissions: []string{tokenclaims.PrivilegeIDToName[1], tokenclaims.PrivilegeIDToName[2], tokenclaims.PrivilegeIDToName[4], tokenclaims.PrivilegeIDToName[5]},
 			},
 			mockSetup: func(*testing.T) {
 				mockipfs.EXPECT().GetValidSacdDoc(gomock.Any(), gomock.Any()).Return(nil, errors.New("no valid doc"))
@@ -144,7 +143,7 @@ func TestAccessService_ValidateAccess_WithoutTemplateId(t *testing.T) {
 					TokenID:         big.NewInt(123),
 					ChainID:         1,
 				},
-				EventFilters: []autheval.EventFilter{
+				EventFilters: []models.EventFilter{
 					{
 						EventType: cloudevent.TypeAttestation,
 						Source:    common.BigToAddress(big.NewInt(1)).Hex(),
@@ -173,7 +172,7 @@ func TestAccessService_ValidateAccess_WithoutTemplateId(t *testing.T) {
 					TokenID:         big.NewInt(123),
 					ChainID:         1,
 				},
-				EventFilters: []autheval.EventFilter{
+				EventFilters: []models.EventFilter{
 					{
 						EventType: cloudevent.TypeAttestation,
 						Source:    common.BigToAddress(big.NewInt(1)).Hex(),
@@ -206,7 +205,7 @@ func TestAccessService_ValidateAccess_WithoutTemplateId(t *testing.T) {
 					TokenID:         big.NewInt(123),
 					ChainID:         1,
 				},
-				EventFilters: []autheval.EventFilter{
+				EventFilters: []models.EventFilter{
 					{
 						EventType: cloudevent.TypeAttestation,
 						Source:    common.BigToAddress(big.NewInt(1)).Hex(),
@@ -238,7 +237,7 @@ func TestAccessService_ValidateAccess_WithoutTemplateId(t *testing.T) {
 					TokenID:         big.NewInt(123),
 					ChainID:         1,
 				},
-				EventFilters: []autheval.EventFilter{
+				EventFilters: []models.EventFilter{
 					{},
 				},
 			},
@@ -301,8 +300,8 @@ func TestAccessService_ValidateAccess_WithTemplateId(t *testing.T) {
 				ExpiresAt:   expiresAt,
 				Asset:       "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
 				Permissions: []models.Permission{
-					{Name: privilegemap.PrivilegeIDToName[1]},
-					{Name: privilegemap.PrivilegeIDToName[2]},
+					{Name: tokenclaims.PrivilegeIDToName[1]},
+					{Name: tokenclaims.PrivilegeIDToName[2]},
 				},
 			},
 		},
@@ -334,7 +333,7 @@ func TestAccessService_ValidateAccess_WithTemplateId(t *testing.T) {
 					TokenID:         big.NewInt(123),
 					ChainID:         1,
 				},
-				Permissions: []string{privilegemap.PrivilegeIDToName[4]},
+				Permissions: []string{tokenclaims.PrivilegeIDToName[4]},
 			},
 			mockSetup: func(*testing.T) {
 				mockSacd.EXPECT().CurrentPermissionRecord(gomock.Any(), common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), devLicenseAddr).Return(emptyPermRecord, nil)
@@ -350,7 +349,7 @@ func TestAccessService_ValidateAccess_WithTemplateId(t *testing.T) {
 					TokenID:         big.NewInt(123),
 					ChainID:         1,
 				},
-				Permissions: []string{privilegemap.PrivilegeIDToName[1], privilegemap.PrivilegeIDToName[2], privilegemap.PrivilegeIDToName[4], privilegemap.PrivilegeIDToName[5]},
+				Permissions: []string{tokenclaims.PrivilegeIDToName[1], tokenclaims.PrivilegeIDToName[2], tokenclaims.PrivilegeIDToName[4], tokenclaims.PrivilegeIDToName[5]},
 			},
 			mockSetup: func(*testing.T) {
 				mockipfs.EXPECT().GetValidSacdDoc(gomock.Any(), gomock.Any()).Return(nil, errors.New("no valid doc"))
@@ -366,7 +365,7 @@ func TestAccessService_ValidateAccess_WithTemplateId(t *testing.T) {
 					TokenID:         big.NewInt(123),
 					ChainID:         1,
 				},
-				Permissions: []string{privilegemap.PrivilegeIDToName[1], privilegemap.PrivilegeIDToName[2], privilegemap.PrivilegeIDToName[4], privilegemap.PrivilegeIDToName[5]},
+				Permissions: []string{tokenclaims.PrivilegeIDToName[1], tokenclaims.PrivilegeIDToName[2], tokenclaims.PrivilegeIDToName[4], tokenclaims.PrivilegeIDToName[5]},
 			},
 			mockSetup: func(*testing.T) {
 				mockipfs.EXPECT().GetValidSacdDoc(gomock.Any(), gomock.Any()).Return(nil, errors.New("no valid doc"))
@@ -385,7 +384,7 @@ func TestAccessService_ValidateAccess_WithTemplateId(t *testing.T) {
 					TokenID:         big.NewInt(123),
 					ChainID:         1,
 				},
-				Permissions: []string{privilegemap.PrivilegeIDToName[1], privilegemap.PrivilegeIDToName[2]},
+				Permissions: []string{tokenclaims.PrivilegeIDToName[1], tokenclaims.PrivilegeIDToName[2]},
 			},
 			mockSetup: func(*testing.T) {
 				permRecord := sacd.ISacdPermissionRecord{
@@ -411,8 +410,8 @@ func TestAccessService_ValidateAccess_WithTemplateId(t *testing.T) {
 				mockTemplateService.EXPECT().GetTemplatePermissions(gomock.Any(), "123", assetDID).Return(
 					&template.PermissionsResult{
 						Permissions: map[string]bool{
-							privilegemap.PrivilegeIDToName[1]: true,
-							privilegemap.PrivilegeIDToName[2]: true,
+							tokenclaims.PrivilegeIDToName[1]: true,
+							tokenclaims.PrivilegeIDToName[2]: true,
 						},
 						IsActive: true,
 					}, nil)
@@ -427,7 +426,7 @@ func TestAccessService_ValidateAccess_WithTemplateId(t *testing.T) {
 					TokenID:         big.NewInt(123),
 					ChainID:         1,
 				},
-				Permissions: []string{privilegemap.PrivilegeIDToName[1], privilegemap.PrivilegeIDToName[2]},
+				Permissions: []string{tokenclaims.PrivilegeIDToName[1], tokenclaims.PrivilegeIDToName[2]},
 			},
 			mockSetup: func(*testing.T) {
 				permRecord := sacd.ISacdPermissionRecord{
@@ -453,7 +452,7 @@ func TestAccessService_ValidateAccess_WithTemplateId(t *testing.T) {
 				mockTemplateService.EXPECT().GetTemplatePermissions(gomock.Any(), "123", assetDID).Return(
 					&template.PermissionsResult{
 						Permissions: map[string]bool{
-							privilegemap.PrivilegeIDToName[2]: true,
+							tokenclaims.PrivilegeIDToName[2]: true,
 						},
 						IsActive: false,
 					}, nil)
@@ -469,7 +468,7 @@ func TestAccessService_ValidateAccess_WithTemplateId(t *testing.T) {
 					TokenID:         big.NewInt(123),
 					ChainID:         1,
 				},
-				Permissions: []string{privilegemap.PrivilegeIDToName[1], privilegemap.PrivilegeIDToName[2]},
+				Permissions: []string{tokenclaims.PrivilegeIDToName[1], tokenclaims.PrivilegeIDToName[2]},
 			},
 			mockSetup: func(*testing.T) {
 				permRecord := sacd.ISacdPermissionRecord{
