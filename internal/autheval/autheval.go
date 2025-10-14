@@ -10,21 +10,9 @@ import (
 	"github.com/DIMO-Network/cloudevent"
 	"github.com/DIMO-Network/shared/pkg/set"
 	"github.com/DIMO-Network/token-exchange-api/internal/models"
+	models1 "github.com/DIMO-Network/token-exchange-api/internal/models"
 	"github.com/DIMO-Network/token-exchange-api/internal/services/template"
-	"github.com/DIMO-Network/token-exchange-api/pkg/tokenclaims"
 )
-
-const (
-	TypeCloudEvent = "cloudevent"
-	TypePermission = "permission"
-)
-
-type EventFilter struct {
-	EventType string   `json:"eventType"`
-	Source    string   `json:"source"`
-	IDs       []string `json:"ids"`
-	Tags      []string `json:"tags"`
-}
 
 type TemplateService interface {
 	GetTemplatePermissions(ctx context.Context, permissionTemplateID string, assetDID cloudevent.ERC721DID) (*template.PermissionsResult, error)
@@ -61,24 +49,24 @@ func EvaluatePermissionsBits(privileges []int64, permissionBits *big.Int) []int6
 }
 
 // EvaluateCloudEvents validates all CloudEvent access requests against SACD agreements.
-func EvaluateCloudEvents(sacdAgreements CloudEventAgreements, cloudEvents []EventFilter) error {
+func EvaluateCloudEvents(sacdAgreements CloudEventAgreements, cloudEvents []models1.EventFilter) error {
 	var err error
 	for _, req := range cloudEvents {
 		eventType := req.EventType
 		if eventType == "" {
-			eventType = tokenclaims.GlobalIdentifier
+			eventType = models1.GlobalIdentifier
 		}
 		source := req.Source
 		if source == "" {
-			source = tokenclaims.GlobalIdentifier
+			source = models1.GlobalIdentifier
 		}
 		ids := req.IDs
 		if len(ids) == 0 {
-			ids = []string{tokenclaims.GlobalIdentifier}
+			ids = []string{models1.GlobalIdentifier}
 		}
 		tags := req.Tags
 		if len(tags) == 0 {
-			tags = []string{tokenclaims.GlobalIdentifier}
+			tags = []string{models1.GlobalIdentifier}
 		}
 
 		// Ids and tags can span across separate agreements so we need to check each combination
@@ -99,7 +87,7 @@ func EvaluateCloudEvents(sacdAgreements CloudEventAgreements, cloudEvents []Even
 func GetValidAgreements(sacdAgreements map[string]map[string]*set.StringSet, ceType string) map[string]*set.StringSet {
 	agreementsBySource := make(map[string]*set.StringSet)
 	eventGrants := sacdAgreements[ceType]
-	globlaGrants := sacdAgreements[tokenclaims.GlobalIdentifier]
+	globlaGrants := sacdAgreements[models1.GlobalIdentifier]
 
 	for source, ids := range eventGrants {
 		agreementsBySource[source] = set.NewStringSet()
@@ -170,9 +158,9 @@ func UserGrantMap(ctx context.Context, data *models.SACDData, assetDID cloudeven
 		}
 
 		switch agreement.Type {
-		case TypeCloudEvent:
+		case models1.TypeCloudEvent:
 			cloudEvtAgreements.Add(agreement.EventType, agreement.Source, agreement.IDs, agreement.Tags)
-		case TypePermission:
+		case models1.TypePermission:
 			// Add permissions from this agreement
 			for _, permission := range agreement.Permissions {
 				sacdPermissions[permission.Name] = true

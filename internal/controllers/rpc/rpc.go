@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"github.com/DIMO-Network/cloudevent"
-	"github.com/DIMO-Network/token-exchange-api/internal/autheval"
+	"github.com/DIMO-Network/token-exchange-api/internal/models"
 	"github.com/DIMO-Network/token-exchange-api/internal/services/access"
 	"github.com/DIMO-Network/token-exchange-api/pkg/grpc"
 	"github.com/ethereum/go-ethereum/common"
@@ -31,9 +31,9 @@ func (s *TokenExchangeServer) AccessCheck(ctx context.Context, req *grpc.AccessC
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode asset DID: %w", err)
 	}
-	events := make([]autheval.EventFilter, len(req.GetEvents()))
+	events := make([]models.EventFilter, len(req.GetEvents()))
 	for i, event := range req.GetEvents() {
-		events[i] = autheval.EventFilter{
+		events[i] = models.EventFilter{
 			EventType: event.GetEventType(),
 			Source:    event.GetSource(),
 			IDs:       event.GetIds(),

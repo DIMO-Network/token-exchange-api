@@ -9,7 +9,6 @@ import (
 	"math/big"
 	"net/http"
 	"os"
-	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -17,12 +16,11 @@ import (
 	"github.com/DIMO-Network/cloudevent"
 	"github.com/DIMO-Network/server-garage/pkg/richerrors"
 	"github.com/DIMO-Network/shared/pkg/privileges"
-	"github.com/DIMO-Network/token-exchange-api/internal/autheval"
 	"github.com/DIMO-Network/token-exchange-api/internal/config"
-	privilegemap "github.com/DIMO-Network/token-exchange-api/internal/constants"
 	"github.com/DIMO-Network/token-exchange-api/internal/controllers/httpcontroller"
 	"github.com/DIMO-Network/token-exchange-api/internal/middleware"
 	"github.com/DIMO-Network/token-exchange-api/internal/middleware/dex"
+	"github.com/DIMO-Network/token-exchange-api/internal/models"
 	"github.com/DIMO-Network/token-exchange-api/internal/services"
 	"github.com/DIMO-Network/token-exchange-api/internal/services/access"
 	"github.com/DIMO-Network/token-exchange-api/pkg/tokenclaims"
@@ -97,14 +95,19 @@ func TestTokenExchangeController_ExchangeToken(t *testing.T) {
 						TokenID:         big.NewInt(123),
 						ChainID:         1,
 					},
-					Permissions: []string{privilegemap.PrivilegeIDToName[4]},
+					Permissions: []string{models.PrivilegeIDToName[4]},
 				}, userEthAddr).Return(nil)
 				dexService.EXPECT().SignPrivilegePayload(gomock.Any(), services.PrivilegeTokenDTO{
-					TokenID:            strconv.FormatInt(123, 10),
-					PrivilegeIDs:       []int64{4},
-					NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
-					Audience:           defaultAudience,
-					ResponseSubject:    "dimo-driver",
+					NFTAccessRequest: &access.NFTAccessRequest{
+						Asset: cloudevent.ERC721DID{
+							ContractAddress: common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"),
+							TokenID:         big.NewInt(123),
+							ChainID:         1,
+						},
+						Permissions: []string{models.PrivilegeIDToName[4]},
+					},
+					Audience:        defaultAudience,
+					ResponseSubject: "dimo-driver",
 				}).Return("jwt", nil)
 			},
 			expectedCode: fiber.StatusOK,
@@ -131,14 +134,19 @@ func TestTokenExchangeController_ExchangeToken(t *testing.T) {
 						TokenID:         big.NewInt(123),
 						ChainID:         1,
 					},
-					Permissions: []string{privilegemap.PrivilegeIDToName[4]},
+					Permissions: []string{models.PrivilegeIDToName[4]},
 				}, devLicenseAddr).Return(nil)
 				dexService.EXPECT().SignPrivilegePayload(gomock.Any(), services.PrivilegeTokenDTO{
-					TokenID:            strconv.FormatInt(123, 10),
-					PrivilegeIDs:       []int64{4},
-					NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
-					Audience:           defaultAudience,
-					ResponseSubject:    devLicenseAddr.Hex(),
+					NFTAccessRequest: &access.NFTAccessRequest{
+						Asset: cloudevent.ERC721DID{
+							ContractAddress: common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"),
+							TokenID:         big.NewInt(123),
+							ChainID:         1,
+						},
+						Permissions: []string{models.PrivilegeIDToName[4]},
+					},
+					Audience:        defaultAudience,
+					ResponseSubject: devLicenseAddr.Hex(),
 				}).Return("jwt", nil)
 			},
 			expectedCode: fiber.StatusOK,
@@ -163,14 +171,19 @@ func TestTokenExchangeController_ExchangeToken(t *testing.T) {
 						TokenID:         big.NewInt(123),
 						ChainID:         1,
 					},
-					Permissions: []string{privilegemap.PrivilegeIDToName[1], privilegemap.PrivilegeIDToName[2], privilegemap.PrivilegeIDToName[4], privilegemap.PrivilegeIDToName[5]},
+					Permissions: []string{models.PrivilegeIDToName[1], models.PrivilegeIDToName[2], models.PrivilegeIDToName[4], models.PrivilegeIDToName[5]},
 				}, userEthAddr).Return(nil)
 				dexService.EXPECT().SignPrivilegePayload(gomock.Any(), services.PrivilegeTokenDTO{
-					TokenID:            strconv.FormatInt(123, 10),
-					PrivilegeIDs:       []int64{1, 2, 4, 5},
-					NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
-					Audience:           defaultAudience,
-					ResponseSubject:    "dimo-driver",
+					NFTAccessRequest: &access.NFTAccessRequest{
+						Asset: cloudevent.ERC721DID{
+							ContractAddress: common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"),
+							TokenID:         big.NewInt(123),
+							ChainID:         1,
+						},
+						Permissions: []string{models.PrivilegeIDToName[1], models.PrivilegeIDToName[2], models.PrivilegeIDToName[4], models.PrivilegeIDToName[5]},
+					},
+					Audience:        defaultAudience,
+					ResponseSubject: "dimo-driver",
 				}).Return("jwt", nil)
 			},
 			expectedCode: fiber.StatusOK,
@@ -212,14 +225,19 @@ func TestTokenExchangeController_ExchangeToken(t *testing.T) {
 						TokenID:         big.NewInt(123),
 						ChainID:         1,
 					},
-					Permissions: []string{privilegemap.PrivilegeIDToName[4]},
+					Permissions: []string{models.PrivilegeIDToName[4]},
 				}, userEthAddr).Return(nil)
 				dexService.EXPECT().SignPrivilegePayload(gomock.Any(), services.PrivilegeTokenDTO{
-					TokenID:            strconv.FormatInt(123, 10),
-					PrivilegeIDs:       []int64{4},
-					NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
-					Audience:           []string{"my-app", "foo"},
-					ResponseSubject:    "dimo-driver",
+					NFTAccessRequest: &access.NFTAccessRequest{
+						Asset: cloudevent.ERC721DID{
+							ContractAddress: common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"),
+							TokenID:         big.NewInt(123),
+							ChainID:         1,
+						},
+						Permissions: []string{models.PrivilegeIDToName[4]},
+					},
+					Audience:        []string{"my-app", "foo"},
+					ResponseSubject: "dimo-driver",
 				}).Return("jwt", nil)
 			},
 			expectedCode: fiber.StatusOK,
@@ -235,7 +253,7 @@ func TestTokenExchangeController_ExchangeToken(t *testing.T) {
 			permissionTokenRequest: &httpcontroller.TokenRequest{
 				TokenID: 123,
 				CloudEvents: httpcontroller.CloudEvents{
-					Events: []autheval.EventFilter{},
+					Events: []models.EventFilter{},
 				},
 				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
 			},
