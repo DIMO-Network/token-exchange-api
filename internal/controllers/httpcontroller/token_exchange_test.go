@@ -37,6 +37,8 @@ import (
 
 var defaultAudience = []string{"dimo.zone"}
 
+var contractAddressManufacturer = common.HexToAddress("0xAbc")
+
 //go:generate go tool mockgen -source ./token_exchange.go -destination ./token_exchange_mock_test.go -package httpcontroller_test
 //go:generate go tool mockgen -source ../../middleware/valid_dev_license.go -destination ./identity_service_mock_test.go -package httpcontroller_test
 func TestTokenExchangeController_ExchangeToken(t *testing.T) {
@@ -49,7 +51,8 @@ func TestTokenExchangeController_ExchangeToken(t *testing.T) {
 
 	// setup app and route req
 	c, err := httpcontroller.NewTokenExchangeController(&config.Settings{
-		DIMORegistryChainID: 1,
+		DIMORegistryChainID:         1,
+		ContractAddressManufacturer: contractAddressManufacturer,
 	}, dexService, mockAccess)
 	require.NoError(t, err, "Failed to initialize token exchange controller")
 
@@ -144,6 +147,45 @@ func TestTokenExchangeController_ExchangeToken(t *testing.T) {
 							ChainID:         1,
 						},
 						Permissions: []string{tokenclaims.PrivilegeIDToName[4]},
+					},
+					Audience:        defaultAudience,
+					ResponseSubject: devLicenseAddr.Hex(),
+				}).Return("jwt", nil)
+			},
+			expectedCode: fiber.StatusOK,
+		},
+		{
+			name: "valid request from developer license for manufacturer",
+			tokenClaims: jwt.MapClaims{
+				"ethereum_address": devLicenseAddr.Hex(),
+				"nbf":              time.Now().Unix(),
+				"aud":              devLicenseAddr.Hex(),
+				"sub":              devLicenseSub,
+			},
+			userEthAddr: &userEthAddr,
+			permissionTokenRequest: &httpcontroller.TokenRequest{
+				TokenID:            123,
+				Privileges:         []int64{6},
+				NFTContractAddress: contractAddressManufacturer.Hex(),
+			},
+			mockSetup: func() {
+				mockIdent.EXPECT().IsDevLicense(gomock.Any(), devLicenseAddr).Return(true, nil)
+				mockAccess.EXPECT().ValidateAccess(gomock.Any(), &access.NFTAccessRequest{
+					Asset: cloudevent.ERC721DID{
+						ContractAddress: contractAddressManufacturer,
+						TokenID:         big.NewInt(123),
+						ChainID:         1,
+					},
+					Permissions: []string{tokenclaims.ManufacturerPrivilegeIDToName[6]},
+				}, devLicenseAddr).Return(nil)
+				dexService.EXPECT().SignPrivilegePayload(gomock.Any(), services.PrivilegeTokenDTO{
+					NFTAccessRequest: &access.NFTAccessRequest{
+						Asset: cloudevent.ERC721DID{
+							ContractAddress: contractAddressManufacturer,
+							TokenID:         big.NewInt(123),
+							ChainID:         1,
+						},
+						Permissions: []string{tokenclaims.ManufacturerPrivilegeIDToName[6]},
 					},
 					Audience:        defaultAudience,
 					ResponseSubject: devLicenseAddr.Hex(),

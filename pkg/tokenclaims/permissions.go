@@ -42,3 +42,35 @@ var PrivilegeNameToID = func() map[string]int64 {
 	}
 	return privMap
 }()
+
+var ManufacturerPrivilegeIDToName = map[int64]string{
+	1: PermissionManufacturerMintDevice,
+	2: PermissionManufacturerDistributeDevice,
+	3: PermissionManufacturerFactoryReset,
+	4: PermissionManufacturerDeviceReprovision,
+	5: PermissionManufacturerDeviceDefinitionInsert,
+	6: PermissionManufacturerDeviceLastSeen,
+}
+
+var ManufacturerPrivilegeNameToID = func() map[string]int64 {
+	privMap := make(map[string]int64, len(ManufacturerPrivilegeIDToName))
+	for id, name := range ManufacturerPrivilegeIDToName {
+		privMap[name] = id
+	}
+	return privMap
+}()
+
+const (
+	// PermissionManufacturerMintDevice provides access to minting a device.
+	PermissionManufacturerMintDevice = "privilege:ManufacturerMintDevice"
+	// PermissionManufacturerDistributeDevice provides access to distributing a device.
+	PermissionManufacturerDistributeDevice = "privilege:ManufacturerDistributeDevice"
+	// PermissionManufacturerFactoryReset provides access to factory resetting a device.
+	PermissionManufacturerFactoryReset = "privilege:ManufacturerFactoryReset"
+	// PermissionManufacturerDeviceReprovision provides access to force remint aftermarket device.
+	PermissionManufacturerDeviceReprovision = "privilege:ManufacturerDeviceReprovision"
+	// PermissionManufacturerDeviceDefinitionInsert provides access to add device definitions on chain.
+	PermissionManufacturerDeviceDefinitionInsert = "privilege:ManufacturerDeviceDefinitionInsert"
+	// PermissionManufacturerDeviceLastSeen provides access start of time block when device last transmitted data.
+	PermissionManufacturerDeviceLastSeen = "privilege:ManufacturerDeviceLastSeen"
+)
