@@ -13,9 +13,9 @@ import (
 	"github.com/DIMO-Network/token-exchange-api/internal/contracts/sacd"
 	"github.com/DIMO-Network/token-exchange-api/internal/contracts/template"
 	"github.com/DIMO-Network/token-exchange-api/internal/models"
-	models1 "github.com/DIMO-Network/token-exchange-api/internal/models"
 	templatesvs "github.com/DIMO-Network/token-exchange-api/internal/services/template"
 	"github.com/DIMO-Network/token-exchange-api/internal/signature"
+	"github.com/DIMO-Network/token-exchange-api/pkg/tokenclaims"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -55,7 +55,7 @@ type NFTAccessRequest struct {
 	// Permissions is a list of the desired permissions.
 	Permissions []string
 	// EventFilters contains requests for access to CloudEvents attached to the specified NFT.
-	EventFilters []models1.EventFilter `json:"eventFilters"`
+	EventFilters []models.EventFilter `json:"eventFilters"`
 }
 type Service struct {
 	sacdContract    SACDInterface
@@ -172,7 +172,7 @@ func (s *Service) ValidateAccessViaRecord(ctx context.Context, accessReq *NFTAcc
 	missing := make([]string, 0)
 	for i, p := range accessReq.Permissions {
 		var ok bool
-		permBits[i], ok = models1.PrivilegeNameToID[p]
+		permBits[i], ok = tokenclaims.PrivilegeNameToID[p]
 		if !ok {
 			missing = append(missing, p)
 		}

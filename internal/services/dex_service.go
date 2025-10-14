@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/DIMO-Network/shared/pkg/privileges"
-	"github.com/DIMO-Network/token-exchange-api/internal/models"
 	"github.com/DIMO-Network/token-exchange-api/internal/services/access"
 	"github.com/DIMO-Network/token-exchange-api/pkg/tokenclaims"
 	dgrpc "github.com/dexidp/dex/api/v2"
@@ -40,7 +39,7 @@ func NewDexClient(log *zerolog.Logger, dexgRPCAddr string) (*DexClient, error) {
 func (d *DexClient) SignPrivilegePayload(ctx context.Context, req PrivilegeTokenDTO) (string, error) {
 	privs := make([]privileges.Privilege, len(req.Permissions))
 	for i, perm := range req.Permissions {
-		permID, ok := models.PrivilegeNameToID[perm]
+		permID, ok := tokenclaims.PrivilegeNameToID[perm]
 		if ok {
 			privs[i] = privileges.Privilege(permID)
 		}

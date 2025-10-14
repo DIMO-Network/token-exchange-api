@@ -95,7 +95,7 @@ func TestTokenExchangeController_ExchangeToken(t *testing.T) {
 						TokenID:         big.NewInt(123),
 						ChainID:         1,
 					},
-					Permissions: []string{models.PrivilegeIDToName[4]},
+					Permissions: []string{tokenclaims.PrivilegeIDToName[4]},
 				}, userEthAddr).Return(nil)
 				dexService.EXPECT().SignPrivilegePayload(gomock.Any(), services.PrivilegeTokenDTO{
 					NFTAccessRequest: &access.NFTAccessRequest{
@@ -104,7 +104,7 @@ func TestTokenExchangeController_ExchangeToken(t *testing.T) {
 							TokenID:         big.NewInt(123),
 							ChainID:         1,
 						},
-						Permissions: []string{models.PrivilegeIDToName[4]},
+						Permissions: []string{tokenclaims.PrivilegeIDToName[4]},
 					},
 					Audience:        defaultAudience,
 					ResponseSubject: "dimo-driver",
@@ -134,7 +134,7 @@ func TestTokenExchangeController_ExchangeToken(t *testing.T) {
 						TokenID:         big.NewInt(123),
 						ChainID:         1,
 					},
-					Permissions: []string{models.PrivilegeIDToName[4]},
+					Permissions: []string{tokenclaims.PrivilegeIDToName[4]},
 				}, devLicenseAddr).Return(nil)
 				dexService.EXPECT().SignPrivilegePayload(gomock.Any(), services.PrivilegeTokenDTO{
 					NFTAccessRequest: &access.NFTAccessRequest{
@@ -143,7 +143,7 @@ func TestTokenExchangeController_ExchangeToken(t *testing.T) {
 							TokenID:         big.NewInt(123),
 							ChainID:         1,
 						},
-						Permissions: []string{models.PrivilegeIDToName[4]},
+						Permissions: []string{tokenclaims.PrivilegeIDToName[4]},
 					},
 					Audience:        defaultAudience,
 					ResponseSubject: devLicenseAddr.Hex(),
@@ -171,7 +171,7 @@ func TestTokenExchangeController_ExchangeToken(t *testing.T) {
 						TokenID:         big.NewInt(123),
 						ChainID:         1,
 					},
-					Permissions: []string{models.PrivilegeIDToName[1], models.PrivilegeIDToName[2], models.PrivilegeIDToName[4], models.PrivilegeIDToName[5]},
+					Permissions: []string{tokenclaims.PrivilegeIDToName[1], tokenclaims.PrivilegeIDToName[2], tokenclaims.PrivilegeIDToName[4], tokenclaims.PrivilegeIDToName[5]},
 				}, userEthAddr).Return(nil)
 				dexService.EXPECT().SignPrivilegePayload(gomock.Any(), services.PrivilegeTokenDTO{
 					NFTAccessRequest: &access.NFTAccessRequest{
@@ -180,7 +180,7 @@ func TestTokenExchangeController_ExchangeToken(t *testing.T) {
 							TokenID:         big.NewInt(123),
 							ChainID:         1,
 						},
-						Permissions: []string{models.PrivilegeIDToName[1], models.PrivilegeIDToName[2], models.PrivilegeIDToName[4], models.PrivilegeIDToName[5]},
+						Permissions: []string{tokenclaims.PrivilegeIDToName[1], tokenclaims.PrivilegeIDToName[2], tokenclaims.PrivilegeIDToName[4], tokenclaims.PrivilegeIDToName[5]},
 					},
 					Audience:        defaultAudience,
 					ResponseSubject: "dimo-driver",
@@ -225,7 +225,7 @@ func TestTokenExchangeController_ExchangeToken(t *testing.T) {
 						TokenID:         big.NewInt(123),
 						ChainID:         1,
 					},
-					Permissions: []string{models.PrivilegeIDToName[4]},
+					Permissions: []string{tokenclaims.PrivilegeIDToName[4]},
 				}, userEthAddr).Return(nil)
 				dexService.EXPECT().SignPrivilegePayload(gomock.Any(), services.PrivilegeTokenDTO{
 					NFTAccessRequest: &access.NFTAccessRequest{
@@ -234,7 +234,7 @@ func TestTokenExchangeController_ExchangeToken(t *testing.T) {
 							TokenID:         big.NewInt(123),
 							ChainID:         1,
 						},
-						Permissions: []string{models.PrivilegeIDToName[4]},
+						Permissions: []string{tokenclaims.PrivilegeIDToName[4]},
 					},
 					Audience:        []string{"my-app", "foo"},
 					ResponseSubject: "dimo-driver",

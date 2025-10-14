@@ -182,7 +182,7 @@ func getPermissionsFromPrivileges(privileges []int64) ([]string, error) {
 	permNames := make([]string, len(privileges))
 	unknownPrivs := make([]int64, 0)
 	for i, privID := range privileges {
-		permName, exists := models.PrivilegeIDToName[privID]
+		permName, exists := tokenclaims.PrivilegeIDToName[privID]
 		if !exists {
 			// If we don't have a mapping for this privilege ID, consider it missing
 			unknownPrivs = append(unknownPrivs, privID)

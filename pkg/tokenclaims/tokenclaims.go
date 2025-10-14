@@ -47,10 +47,10 @@ type Token struct {
 
 // Proto converts the CustomClaims to a protobuf struct.
 func (c *CustomClaims) Proto() (*structpb.Struct, error) {
-	privIds := make([]any, len(c.PrivilegeIDs))
+	privIDs := make([]any, len(c.PrivilegeIDs))
 	permNames := make([]any, len(c.Permissions))
 	for i, perm := range c.Permissions {
-		privIds[i] = models.PrivilegeNameToID[perm]
+		privIDs[i] = PrivilegeNameToID[perm]
 		permNames[i] = perm
 	}
 
@@ -61,7 +61,7 @@ func (c *CustomClaims) Proto() (*structpb.Struct, error) {
 		// TODO: Remove these fields once we switch over our internal services.
 		"contract_address": hexutil.Encode(c.ContractAddress[:]),
 		"token_id":         c.TokenID,
-		"privilege_ids":    privIds,
+		"privilege_ids":    privIDs,
 	}
 
 	if c.CloudEvents != nil {

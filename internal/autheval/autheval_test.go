@@ -9,7 +9,6 @@ import (
 
 	"github.com/DIMO-Network/cloudevent"
 	"github.com/DIMO-Network/token-exchange-api/internal/models"
-	models1 "github.com/DIMO-Network/token-exchange-api/internal/models"
 	"github.com/DIMO-Network/token-exchange-api/internal/services/template"
 	"github.com/DIMO-Network/token-exchange-api/pkg/tokenclaims"
 	"github.com/ethereum/go-ethereum/common"
@@ -37,21 +36,21 @@ func TestEvaluateCloudEvents_Attestations(t *testing.T) {
 	tests := []struct {
 		name      string
 		agreement []models.Agreement
-		request   []models1.EventFilter
+		request   []models.EventFilter
 		expectErr bool
 	}{
 		{
 			name: "Pass: request matches grant, all attestations",
 			agreement: []models.Agreement{
 				{
-					Type:      models1.TypeCloudEvent,
+					Type:      models.TypeCloudEvent,
 					EventType: "dimo.attestation",
 					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
 					IDs:       []string{"*"},
 					Source:    "*",
 				},
 			},
-			request: []models1.EventFilter{
+			request: []models.EventFilter{
 				{
 					EventType: cloudevent.TypeAttestation,
 					Source:    "*",
@@ -63,14 +62,14 @@ func TestEvaluateCloudEvents_Attestations(t *testing.T) {
 			name: "Pass: granted all attestations, asking for specific source",
 			agreement: []models.Agreement{
 				{
-					Type:      models1.TypeCloudEvent,
+					Type:      models.TypeCloudEvent,
 					EventType: "dimo.attestation",
 					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
 					IDs:       []string{"*"},
 					Source:    "*",
 				},
 			},
-			request: []models1.EventFilter{
+			request: []models.EventFilter{
 				{
 					EventType: cloudevent.TypeAttestation,
 					Source:    common.BigToAddress(big.NewInt(1)).Hex(),
@@ -82,14 +81,14 @@ func TestEvaluateCloudEvents_Attestations(t *testing.T) {
 			name: "Pass: granted all attestations, asking for specific source and ids",
 			agreement: []models.Agreement{
 				{
-					Type:      models1.TypeCloudEvent,
+					Type:      models.TypeCloudEvent,
 					EventType: "dimo.attestation",
 					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
 					IDs:       []string{"*"},
 					Source:    "*",
 				},
 			},
-			request: []models1.EventFilter{
+			request: []models.EventFilter{
 				{
 					EventType: cloudevent.TypeAttestation,
 					Source:    common.BigToAddress(big.NewInt(1)).Hex(),
@@ -101,14 +100,14 @@ func TestEvaluateCloudEvents_Attestations(t *testing.T) {
 			name: "Fail: not requesting any ids",
 			agreement: []models.Agreement{
 				{
-					Type:      models1.TypeCloudEvent,
+					Type:      models.TypeCloudEvent,
 					EventType: "dimo.attestation",
 					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
 					IDs:       []string{"1"},
 					Source:    common.BigToAddress(big.NewInt(1)).Hex(),
 				},
 			},
-			request: []models1.EventFilter{
+			request: []models.EventFilter{
 				{
 					EventType: cloudevent.TypeAttestation,
 					Source:    common.BigToAddress(big.NewInt(1)).Hex(),
@@ -120,14 +119,14 @@ func TestEvaluateCloudEvents_Attestations(t *testing.T) {
 			name: "Fail: not requesting source",
 			agreement: []models.Agreement{
 				{
-					Type:      models1.TypeCloudEvent,
+					Type:      models.TypeCloudEvent,
 					EventType: "dimo.attestation",
 					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
 					IDs:       []string{"1"},
 					Source:    common.BigToAddress(big.NewInt(1)).Hex(),
 				},
 			},
-			request: []models1.EventFilter{
+			request: []models.EventFilter{
 				{
 					EventType: cloudevent.TypeAttestation,
 					IDs:       []string{"1"},
@@ -139,14 +138,14 @@ func TestEvaluateCloudEvents_Attestations(t *testing.T) {
 			name: "Fail: source not valid hex address",
 			agreement: []models.Agreement{
 				{
-					Type:      models1.TypeCloudEvent,
+					Type:      models.TypeCloudEvent,
 					EventType: cloudevent.TypeAttestation,
 					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
 					IDs:       []string{"1"},
 					Source:    "0xcce4eF41A67E28C3CF3dbc51a6CD3d004F53aCBd",
 				},
 			},
-			request: []models1.EventFilter{
+			request: []models.EventFilter{
 				{
 					EventType: cloudevent.TypeAttestation,
 					IDs:       []string{"1"},
@@ -159,14 +158,14 @@ func TestEvaluateCloudEvents_Attestations(t *testing.T) {
 			name: "Fail: permission not granted, address must match exactly",
 			agreement: []models.Agreement{
 				{
-					Type:      models1.TypeCloudEvent,
+					Type:      models.TypeCloudEvent,
 					EventType: cloudevent.TypeAttestation,
 					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
 					IDs:       []string{"1"},
 					Source:    "0xcce4eF41A67E28C3CF3dbc51a6CD3d004F53aCBd",
 				},
 			},
-			request: []models1.EventFilter{
+			request: []models.EventFilter{
 				{
 					EventType: cloudevent.TypeAttestation,
 					IDs:       []string{"1"},
@@ -179,28 +178,28 @@ func TestEvaluateCloudEvents_Attestations(t *testing.T) {
 			name: "Pass: Asking for implicit grant (global) ",
 			agreement: []models.Agreement{
 				{
-					Type:      models1.TypeCloudEvent,
+					Type:      models.TypeCloudEvent,
 					EventType: cloudevent.TypeAttestation,
 					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
 					IDs:       []string{"5", "6", "7"},
 					Source:    tokenclaims.GlobalIdentifier,
 				},
 				{
-					Type:      models1.TypeCloudEvent,
+					Type:      models.TypeCloudEvent,
 					EventType: cloudevent.TypeAttestation,
 					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
 					IDs:       []string{"1"},
 					Source:    common.BigToAddress(big.NewInt(1)).Hex(),
 				},
 				{
-					Type:      models1.TypeCloudEvent,
+					Type:      models.TypeCloudEvent,
 					EventType: cloudevent.TypeAttestation,
 					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
 					IDs:       []string{"2"},
 					Source:    common.BigToAddress(big.NewInt(2)).Hex(),
 				},
 			},
-			request: []models1.EventFilter{
+			request: []models.EventFilter{
 				{
 					EventType: cloudevent.TypeAttestation,
 					IDs:       []string{"5"},
@@ -212,28 +211,28 @@ func TestEvaluateCloudEvents_Attestations(t *testing.T) {
 			name: "Pass: Asking for a source not specifically granted (global)",
 			agreement: []models.Agreement{
 				{
-					Type:      models1.TypeCloudEvent,
+					Type:      models.TypeCloudEvent,
 					EventType: cloudevent.TypeAttestation,
 					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
 					IDs:       []string{"5", "6", "7"},
 					Source:    tokenclaims.GlobalIdentifier,
 				},
 				{
-					Type:      models1.TypeCloudEvent,
+					Type:      models.TypeCloudEvent,
 					EventType: cloudevent.TypeAttestation,
 					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
 					IDs:       []string{"1"},
 					Source:    common.BigToAddress(big.NewInt(1)).Hex(),
 				},
 				{
-					Type:      models1.TypeCloudEvent,
+					Type:      models.TypeCloudEvent,
 					EventType: cloudevent.TypeAttestation,
 					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
 					IDs:       []string{"2"},
 					Source:    common.BigToAddress(big.NewInt(2)).Hex(),
 				},
 			},
-			request: []models1.EventFilter{
+			request: []models.EventFilter{
 				{
 					EventType: cloudevent.TypeAttestation,
 					IDs:       []string{"5"},
@@ -274,11 +273,11 @@ func TestEvaluatePermissionsOnlySACD(t *testing.T) {
 		{
 			name: "valid permissions - all granted",
 			userPermissions: map[string]bool{
-				models1.PrivilegeIDToName[1]: true,
-				models1.PrivilegeIDToName[2]: true,
-				models1.PrivilegeIDToName[3]: true,
+				tokenclaims.PrivilegeIDToName[1]: true,
+				tokenclaims.PrivilegeIDToName[2]: true,
+				tokenclaims.PrivilegeIDToName[3]: true,
 			},
-			requestedPrivileges: []string{models1.PrivilegeIDToName[1], models1.PrivilegeIDToName[2], models1.PrivilegeIDToName[3]},
+			requestedPrivileges: []string{tokenclaims.PrivilegeIDToName[1], tokenclaims.PrivilegeIDToName[2], tokenclaims.PrivilegeIDToName[3]},
 			tokenID:             123,
 			nftContractAddress:  "0x123",
 			missingPermissions:  nil,
@@ -286,13 +285,13 @@ func TestEvaluatePermissionsOnlySACD(t *testing.T) {
 		{
 			name: "missing permission",
 			userPermissions: map[string]bool{
-				models1.PrivilegeIDToName[1]: true,
-				models1.PrivilegeIDToName[2]: true,
+				tokenclaims.PrivilegeIDToName[1]: true,
+				tokenclaims.PrivilegeIDToName[2]: true,
 			},
-			requestedPrivileges: []string{models1.PrivilegeIDToName[1], models1.PrivilegeIDToName[2], models1.PrivilegeIDToName[3]}, // 3 is missing
+			requestedPrivileges: []string{tokenclaims.PrivilegeIDToName[1], tokenclaims.PrivilegeIDToName[2], tokenclaims.PrivilegeIDToName[3]}, // 3 is missing
 			tokenID:             123,
 			nftContractAddress:  "0x123",
-			missingPermissions:  []string{models1.PrivilegeIDToName[3]},
+			missingPermissions:  []string{tokenclaims.PrivilegeIDToName[3]},
 		},
 		{
 			name:                "unknown privilege ID",
@@ -350,21 +349,21 @@ func TestEvaluatePermissionsWithTemplate(t *testing.T) {
 		{
 			name: "ACTIVE template with all permissions, matching template and sacd assets",
 			userPermissions: map[string]bool{
-				models1.PrivilegeIDToName[1]: true,
-				models1.PrivilegeIDToName[2]: true,
-				models1.PrivilegeIDToName[3]: true,
+				tokenclaims.PrivilegeIDToName[1]: true,
+				tokenclaims.PrivilegeIDToName[2]: true,
+				tokenclaims.PrivilegeIDToName[3]: true,
 			},
 			templateSetup: func() *template.PermissionsResult {
 				return &template.PermissionsResult{
 					Permissions: map[string]bool{
-						models1.PrivilegeIDToName[1]: true,
-						models1.PrivilegeIDToName[2]: true,
-						models1.PrivilegeIDToName[3]: true,
+						tokenclaims.PrivilegeIDToName[1]: true,
+						tokenclaims.PrivilegeIDToName[2]: true,
+						tokenclaims.PrivilegeIDToName[3]: true,
 					},
 					IsActive: true,
 				}
 			},
-			requestedPrivileges: []string{models1.PrivilegeIDToName[1], models1.PrivilegeIDToName[2], models1.PrivilegeIDToName[3]},
+			requestedPrivileges: []string{tokenclaims.PrivilegeIDToName[1], tokenclaims.PrivilegeIDToName[2], tokenclaims.PrivilegeIDToName[3]},
 			tokenID:             123,
 			nftContractAddress:  "0x123",
 			missingPermissions:  nil,
@@ -372,30 +371,30 @@ func TestEvaluatePermissionsWithTemplate(t *testing.T) {
 		{
 			name: "ACTIVE template with some permissions, matching template and sacd assets",
 			userPermissions: map[string]bool{
-				models1.PrivilegeIDToName[1]: true,
-				models1.PrivilegeIDToName[2]: true,
+				tokenclaims.PrivilegeIDToName[1]: true,
+				tokenclaims.PrivilegeIDToName[2]: true,
 			},
 			templateSetup: func() *template.PermissionsResult {
 				return &template.PermissionsResult{
 					Permissions: map[string]bool{
-						models1.PrivilegeIDToName[1]: true,
-						models1.PrivilegeIDToName[2]: true,
-						models1.PrivilegeIDToName[3]: true,
+						tokenclaims.PrivilegeIDToName[1]: true,
+						tokenclaims.PrivilegeIDToName[2]: true,
+						tokenclaims.PrivilegeIDToName[3]: true,
 					},
 					IsActive: true,
 				}
 			},
-			requestedPrivileges: []string{models1.PrivilegeIDToName[1], models1.PrivilegeIDToName[2], models1.PrivilegeIDToName[3]},
+			requestedPrivileges: []string{tokenclaims.PrivilegeIDToName[1], tokenclaims.PrivilegeIDToName[2], tokenclaims.PrivilegeIDToName[3]},
 			tokenID:             123,
 			nftContractAddress:  "0x123",
-			missingPermissions:  []string{models1.PrivilegeIDToName[1], models1.PrivilegeIDToName[2], models1.PrivilegeIDToName[3]},
+			missingPermissions:  []string{tokenclaims.PrivilegeIDToName[1], tokenclaims.PrivilegeIDToName[2], tokenclaims.PrivilegeIDToName[3]},
 		},
 		{
 			name: "ACTIVE template with all permissions, NOT matching template and sacd assets",
 			userPermissions: map[string]bool{
-				models1.PrivilegeIDToName[1]: true,
-				models1.PrivilegeIDToName[2]: true,
-				models1.PrivilegeIDToName[3]: true,
+				tokenclaims.PrivilegeIDToName[1]: true,
+				tokenclaims.PrivilegeIDToName[2]: true,
+				tokenclaims.PrivilegeIDToName[3]: true,
 			},
 			templateSetup: func() *template.PermissionsResult {
 				return &template.PermissionsResult{
@@ -403,71 +402,71 @@ func TestEvaluatePermissionsWithTemplate(t *testing.T) {
 					IsActive:    false,
 				}
 			},
-			requestedPrivileges: []string{models1.PrivilegeIDToName[1], models1.PrivilegeIDToName[2], models1.PrivilegeIDToName[3]},
+			requestedPrivileges: []string{tokenclaims.PrivilegeIDToName[1], tokenclaims.PrivilegeIDToName[2], tokenclaims.PrivilegeIDToName[3]},
 			tokenID:             123,
 			nftContractAddress:  "0x123",
-			missingPermissions:  []string{models1.PrivilegeIDToName[1], models1.PrivilegeIDToName[2], models1.PrivilegeIDToName[3]},
+			missingPermissions:  []string{tokenclaims.PrivilegeIDToName[1], tokenclaims.PrivilegeIDToName[2], tokenclaims.PrivilegeIDToName[3]},
 		},
 		{
 			name: "INACTIVE template with all permissions, matching template and sacd assets",
 			userPermissions: map[string]bool{
-				models1.PrivilegeIDToName[1]: true,
-				models1.PrivilegeIDToName[2]: true,
-				models1.PrivilegeIDToName[3]: true,
+				tokenclaims.PrivilegeIDToName[1]: true,
+				tokenclaims.PrivilegeIDToName[2]: true,
+				tokenclaims.PrivilegeIDToName[3]: true,
 			},
 			templateSetup: func() *template.PermissionsResult {
 				return &template.PermissionsResult{
 					Permissions: map[string]bool{
-						models1.PrivilegeIDToName[1]: true,
-						models1.PrivilegeIDToName[2]: true,
-						models1.PrivilegeIDToName[3]: true,
+						tokenclaims.PrivilegeIDToName[1]: true,
+						tokenclaims.PrivilegeIDToName[2]: true,
+						tokenclaims.PrivilegeIDToName[3]: true,
 					},
 					IsActive: false,
 				}
 			},
-			requestedPrivileges: []string{models1.PrivilegeIDToName[1], models1.PrivilegeIDToName[2], models1.PrivilegeIDToName[3]},
+			requestedPrivileges: []string{tokenclaims.PrivilegeIDToName[1], tokenclaims.PrivilegeIDToName[2], tokenclaims.PrivilegeIDToName[3]},
 			tokenID:             123,
 			nftContractAddress:  "0x123",
-			missingPermissions:  []string{models1.PrivilegeIDToName[1], models1.PrivilegeIDToName[2], models1.PrivilegeIDToName[3]},
+			missingPermissions:  []string{tokenclaims.PrivilegeIDToName[1], tokenclaims.PrivilegeIDToName[2], tokenclaims.PrivilegeIDToName[3]},
 		},
 		{
 			name: "INACTIVE template with permissions not in SACD, matching template and sacd assets",
 			userPermissions: map[string]bool{
-				models1.PrivilegeIDToName[1]: true,
+				tokenclaims.PrivilegeIDToName[1]: true,
 			},
 			templateSetup: func() *template.PermissionsResult {
 				return &template.PermissionsResult{
 					Permissions: map[string]bool{
-						models1.PrivilegeIDToName[2]: true,
-						models1.PrivilegeIDToName[3]: true,
+						tokenclaims.PrivilegeIDToName[2]: true,
+						tokenclaims.PrivilegeIDToName[3]: true,
 					},
 					IsActive: false,
 				}
 			},
-			requestedPrivileges: []string{models1.PrivilegeIDToName[1], models1.PrivilegeIDToName[2], models1.PrivilegeIDToName[3]},
+			requestedPrivileges: []string{tokenclaims.PrivilegeIDToName[1], tokenclaims.PrivilegeIDToName[2], tokenclaims.PrivilegeIDToName[3]},
 			tokenID:             123,
 			nftContractAddress:  "0x123",
-			missingPermissions:  []string{models1.PrivilegeIDToName[1], models1.PrivilegeIDToName[2], models1.PrivilegeIDToName[3]},
+			missingPermissions:  []string{tokenclaims.PrivilegeIDToName[1], tokenclaims.PrivilegeIDToName[2], tokenclaims.PrivilegeIDToName[3]},
 		},
 		{
 			name: "SACD and template with only complementary permissions",
 			userPermissions: map[string]bool{
-				models1.PrivilegeIDToName[1]:     true,
+				tokenclaims.PrivilegeIDToName[1]: true,
 				"privilege:AdditionalPermission": true,
 			},
 			templateSetup: func() *template.PermissionsResult {
 				return &template.PermissionsResult{
 					Permissions: map[string]bool{
-						models1.PrivilegeIDToName[2]: true,
-						models1.PrivilegeIDToName[3]: true,
+						tokenclaims.PrivilegeIDToName[2]: true,
+						tokenclaims.PrivilegeIDToName[3]: true,
 					},
 					IsActive: true,
 				}
 			},
-			requestedPrivileges: []string{models1.PrivilegeIDToName[1], "privilege:AdditionalPermission"},
+			requestedPrivileges: []string{tokenclaims.PrivilegeIDToName[1], "privilege:AdditionalPermission"},
 			tokenID:             123,
 			nftContractAddress:  "0x123",
-			missingPermissions:  []string{models1.PrivilegeIDToName[1], "privilege:AdditionalPermission"},
+			missingPermissions:  []string{tokenclaims.PrivilegeIDToName[1], "privilege:AdditionalPermission"},
 		},
 	}
 
@@ -627,7 +626,7 @@ func TestEvaluateCloudEvents_Comprehensive(t *testing.T) {
 	tests := []struct {
 		name      string
 		agreement []models.Agreement
-		request   []models1.EventFilter
+		request   []models.EventFilter
 		expectErr bool
 	}{
 		// === WILDCARD/GLOBAL MATCHING TESTS ===
@@ -635,14 +634,14 @@ func TestEvaluateCloudEvents_Comprehensive(t *testing.T) {
 			name: "Pass: wildcard tags grant covers specific tag requests",
 			agreement: []models.Agreement{
 				{
-					Type:      models1.TypeCloudEvent,
+					Type:      models.TypeCloudEvent,
 					EventType: "dimo.attestation",
 					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
 					Source:    "*",
 					Tags:      []string{"*"},
 				},
 			},
-			request: []models1.EventFilter{
+			request: []models.EventFilter{
 				{
 					EventType: cloudevent.TypeAttestation,
 					Source:    "*",
@@ -655,7 +654,7 @@ func TestEvaluateCloudEvents_Comprehensive(t *testing.T) {
 			name: "Pass: global event type grant covers any event type",
 			agreement: []models.Agreement{
 				{
-					Type:      models1.TypeCloudEvent,
+					Type:      models.TypeCloudEvent,
 					EventType: "*", // Global grant
 					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
 					IDs:       []string{"*"},
@@ -663,7 +662,7 @@ func TestEvaluateCloudEvents_Comprehensive(t *testing.T) {
 					Tags:      []string{"*"},
 				},
 			},
-			request: []models1.EventFilter{
+			request: []models.EventFilter{
 				{
 					EventType: "any.custom.event.type",
 					Source:    "*",
@@ -676,7 +675,7 @@ func TestEvaluateCloudEvents_Comprehensive(t *testing.T) {
 			name: "Pass: empty fields default to global wildcards",
 			agreement: []models.Agreement{
 				{
-					Type:      models1.TypeCloudEvent,
+					Type:      models.TypeCloudEvent,
 					EventType: "*",
 					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
 					IDs:       []string{"*"},
@@ -684,7 +683,7 @@ func TestEvaluateCloudEvents_Comprehensive(t *testing.T) {
 					Tags:      []string{"*"},
 				},
 			},
-			request: []models1.EventFilter{
+			request: []models.EventFilter{
 				{
 					EventType: "", // Should default to "*"
 					Source:    "", // Should default to "*"
@@ -699,7 +698,7 @@ func TestEvaluateCloudEvents_Comprehensive(t *testing.T) {
 			name: "Pass: specific tags match specific grants",
 			agreement: []models.Agreement{
 				{
-					Type:      models1.TypeCloudEvent,
+					Type:      models.TypeCloudEvent,
 					EventType: "dimo.fingerprint",
 					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
 					IDs:       []string{"*"},
@@ -707,7 +706,7 @@ func TestEvaluateCloudEvents_Comprehensive(t *testing.T) {
 					Tags:      []string{"security", "identity", "diagnostics"},
 				},
 			},
-			request: []models1.EventFilter{
+			request: []models.EventFilter{
 				{
 					EventType: "dimo.fingerprint",
 					Source:    "*",
@@ -720,7 +719,7 @@ func TestEvaluateCloudEvents_Comprehensive(t *testing.T) {
 			name: "Fail: requesting tag not granted",
 			agreement: []models.Agreement{
 				{
-					Type:      models1.TypeCloudEvent,
+					Type:      models.TypeCloudEvent,
 					EventType: "custom.vehicle.status",
 					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
 					IDs:       []string{"*"},
@@ -728,7 +727,7 @@ func TestEvaluateCloudEvents_Comprehensive(t *testing.T) {
 					Tags:      []string{"engine"},
 				},
 			},
-			request: []models1.EventFilter{
+			request: []models.EventFilter{
 				{
 					EventType: "custom.vehicle.status",
 					Source:    "*",
@@ -742,7 +741,7 @@ func TestEvaluateCloudEvents_Comprehensive(t *testing.T) {
 			name: "Fail: requesting event type not granted",
 			agreement: []models.Agreement{
 				{
-					Type:      models1.TypeCloudEvent,
+					Type:      models.TypeCloudEvent,
 					EventType: "dimo.attestation",
 					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
 					IDs:       []string{"*"},
@@ -750,7 +749,7 @@ func TestEvaluateCloudEvents_Comprehensive(t *testing.T) {
 					Tags:      []string{"*"},
 				},
 			},
-			request: []models1.EventFilter{
+			request: []models.EventFilter{
 				{
 					EventType: "dimo.fingerprint", // Not granted
 					Source:    "*",
@@ -766,7 +765,7 @@ func TestEvaluateCloudEvents_Comprehensive(t *testing.T) {
 			name: "Pass: tags and IDs spanning multiple agreements",
 			agreement: []models.Agreement{
 				{
-					Type:      models1.TypeCloudEvent,
+					Type:      models.TypeCloudEvent,
 					EventType: "dimo.attestation",
 					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
 					IDs:       []string{"1", "3"},
@@ -774,7 +773,7 @@ func TestEvaluateCloudEvents_Comprehensive(t *testing.T) {
 					Tags:      []string{"diagnostics"},
 				},
 				{
-					Type:      models1.TypeCloudEvent,
+					Type:      models.TypeCloudEvent,
 					EventType: "dimo.attestation",
 					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
 					IDs:       []string{"1", "3"},
@@ -782,7 +781,7 @@ func TestEvaluateCloudEvents_Comprehensive(t *testing.T) {
 					Tags:      []string{"location"},
 				},
 			},
-			request: []models1.EventFilter{
+			request: []models.EventFilter{
 				{
 					EventType: cloudevent.TypeAttestation,
 					Source:    "*",
@@ -795,7 +794,7 @@ func TestEvaluateCloudEvents_Comprehensive(t *testing.T) {
 			name: "Fail: missing tag-id combination across agreements",
 			agreement: []models.Agreement{
 				{
-					Type:      models1.TypeCloudEvent,
+					Type:      models.TypeCloudEvent,
 					EventType: "dimo.attestation",
 					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
 					IDs:       []string{"1"},
@@ -803,7 +802,7 @@ func TestEvaluateCloudEvents_Comprehensive(t *testing.T) {
 					Tags:      []string{"diagnostics"},
 				},
 				{
-					Type:      models1.TypeCloudEvent,
+					Type:      models.TypeCloudEvent,
 					EventType: "dimo.attestation",
 					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
 					IDs:       []string{"2"},
@@ -811,7 +810,7 @@ func TestEvaluateCloudEvents_Comprehensive(t *testing.T) {
 					Tags:      []string{"location"},
 				},
 			},
-			request: []models1.EventFilter{
+			request: []models.EventFilter{
 				{
 					EventType: cloudevent.TypeAttestation,
 					Source:    "*",
@@ -827,7 +826,7 @@ func TestEvaluateCloudEvents_Comprehensive(t *testing.T) {
 			name: "Pass: multiple event types in single request",
 			agreement: []models.Agreement{
 				{
-					Type:      models1.TypeCloudEvent,
+					Type:      models.TypeCloudEvent,
 					EventType: "dimo.attestation",
 					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
 					IDs:       []string{"*"},
@@ -835,7 +834,7 @@ func TestEvaluateCloudEvents_Comprehensive(t *testing.T) {
 					Tags:      []string{"diagnostics", "location"},
 				},
 				{
-					Type:      models1.TypeCloudEvent,
+					Type:      models.TypeCloudEvent,
 					EventType: "dimo.fingerprint",
 					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
 					IDs:       []string{"*"},
@@ -843,7 +842,7 @@ func TestEvaluateCloudEvents_Comprehensive(t *testing.T) {
 					Tags:      []string{"security", "identity"},
 				},
 			},
-			request: []models1.EventFilter{
+			request: []models.EventFilter{
 				{
 					EventType: cloudevent.TypeAttestation,
 					Source:    "*",
@@ -862,7 +861,7 @@ func TestEvaluateCloudEvents_Comprehensive(t *testing.T) {
 			name: "Fail: one request in batch fails",
 			agreement: []models.Agreement{
 				{
-					Type:      models1.TypeCloudEvent,
+					Type:      models.TypeCloudEvent,
 					EventType: "dimo.attestation",
 					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
 					IDs:       []string{"*"},
@@ -870,7 +869,7 @@ func TestEvaluateCloudEvents_Comprehensive(t *testing.T) {
 					Tags:      []string{"diagnostics"},
 				},
 				{
-					Type:      models1.TypeCloudEvent,
+					Type:      models.TypeCloudEvent,
 					EventType: "dimo.fingerprint",
 					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
 					IDs:       []string{"*"},
@@ -878,7 +877,7 @@ func TestEvaluateCloudEvents_Comprehensive(t *testing.T) {
 					Tags:      []string{"security"},
 				},
 			},
-			request: []models1.EventFilter{
+			request: []models.EventFilter{
 				{
 					EventType: cloudevent.TypeAttestation,
 					Source:    "*",
@@ -900,7 +899,7 @@ func TestEvaluateCloudEvents_Comprehensive(t *testing.T) {
 			name: "Pass: empty request array",
 			agreement: []models.Agreement{
 				{
-					Type:      models1.TypeCloudEvent,
+					Type:      models.TypeCloudEvent,
 					EventType: "dimo.attestation",
 					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
 					IDs:       []string{"*"},
@@ -908,12 +907,12 @@ func TestEvaluateCloudEvents_Comprehensive(t *testing.T) {
 					Tags:      []string{"*"},
 				},
 			},
-			request: []models1.EventFilter{}, // Empty request should pass
+			request: []models.EventFilter{}, // Empty request should pass
 		},
 		{
 			name:      "Fail: no agreements provided",
 			agreement: []models.Agreement{}, // No agreements
-			request: []models1.EventFilter{
+			request: []models.EventFilter{
 				{
 					EventType: cloudevent.TypeAttestation,
 					Source:    "*",
@@ -927,7 +926,7 @@ func TestEvaluateCloudEvents_Comprehensive(t *testing.T) {
 			name: "Pass: case sensitivity exact match",
 			agreement: []models.Agreement{
 				{
-					Type:      models1.TypeCloudEvent,
+					Type:      models.TypeCloudEvent,
 					EventType: "dimo.attestation",
 					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
 					IDs:       []string{"ABC123"},
@@ -935,7 +934,7 @@ func TestEvaluateCloudEvents_Comprehensive(t *testing.T) {
 					Tags:      []string{"DiAgNoStIcS"},
 				},
 			},
-			request: []models1.EventFilter{
+			request: []models.EventFilter{
 				{
 					EventType: cloudevent.TypeAttestation,
 					Source:    "*",
@@ -948,7 +947,7 @@ func TestEvaluateCloudEvents_Comprehensive(t *testing.T) {
 			name: "Fail: case sensitivity mismatch",
 			agreement: []models.Agreement{
 				{
-					Type:      models1.TypeCloudEvent,
+					Type:      models.TypeCloudEvent,
 					EventType: "dimo.attestation",
 					Asset:     "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
 					IDs:       []string{"ABC123"},
@@ -956,7 +955,7 @@ func TestEvaluateCloudEvents_Comprehensive(t *testing.T) {
 					Tags:      []string{"diagnostics"},
 				},
 			},
-			request: []models1.EventFilter{
+			request: []models.EventFilter{
 				{
 					EventType: cloudevent.TypeAttestation,
 					Source:    "*",
