@@ -48,13 +48,13 @@ type SignatureValidator interface {
 	ValidateSignature(ctx context.Context, payload json.RawMessage, signature string, ethAddr common.Address) (bool, error)
 }
 
-// NFTAccessRequest is a request to check access to an NFT.
-type NFTAccessRequest struct {
+// AccessRequest is a request to check access to an asset (NFT or regular user address).
+type AccessRequest struct { //nolint:revive
 	// Asset is the DID of the asset to check access to.
 	Asset cloudevent.ERC721DID
 	// Permissions is a list of the desired permissions.
 	Permissions []string
-	// EventFilters contains requests for access to CloudEvents attached to the specified NFT.
+	// EventFilters contains requests for access to CloudEvents attached to the specified asset.
 	EventFilters []models.EventFilter `json:"eventFilters"`
 }
 type Service struct {
@@ -79,7 +79,7 @@ func NewAccessService(ipfsService IPFSClient,
 	}, nil
 }
 
-func (s *Service) ValidateAccess(ctx context.Context, accessReq *NFTAccessRequest, ethAddr common.Address) error {
+func (s *Service) ValidateAccess(ctx context.Context, accessReq *AccessRequest, ethAddr common.Address) error {
 	err := s.ValidateAccessViaSourceDoc(ctx, accessReq, ethAddr)
 	if err != nil {
 		if len(accessReq.EventFilters) != 0 {
@@ -93,16 +93,16 @@ func (s *Service) ValidateAccess(ctx context.Context, accessReq *NFTAccessReques
 	return nil
 }
 
-func (s *Service) ValidateAccessViaSourceDoc(ctx context.Context, accessReq *NFTAccessRequest, ethAddr common.Address) error {
+func (s *Service) ValidateAccessViaSourceDoc(ctx context.Context, accessReq *AccessRequest, ethAddr common.Address) error {
 	opts := &bind.CallOpts{
 		Context: ctx,
 	}
 	resPermRecord, err := s.sacdContract.CurrentPermissionRecord(opts, accessReq.Asset.ContractAddress, accessReq.Asset.TokenID, ethAddr)
 	if err != nil {
 		return richerrors.Error{
-			Code:        http.StatusUnauthorized,
-			Err:         fmt.Errorf("failed to get permission record: %w", err),
-			ExternalMsg: "failed to get permission record",
+			Code:        http.StatusInternalServerError,
+			Err:         err,
+			ExternalMsg: "Failed to get permission record",
 		}
 	}
 
@@ -113,28 +113,31 @@ func (s *Service) ValidateAccessViaSourceDoc(ctx context.Context, accessReq *NFT
 	return s.evaluateSacdDoc(ctx, record, accessReq, ethAddr)
 }
 
-func (s *Service) evaluateSacdDoc(ctx context.Context, record *cloudevent.RawEvent, accessReq *NFTAccessRequest, grantee common.Address) error {
+func (s *Service) evaluateSacdDoc(ctx context.Context, record *cloudevent.RawEvent, accessReq *AccessRequest, grantee common.Address) error {
 	var data models.SACDData
 	if err := json.Unmarshal(record.Data, &data); err != nil {
 		return richerrors.Error{
-			Code:        http.StatusUnauthorized,
-			Err:         fmt.Errorf("failed to parse agreement data: %w", err),
+			Code:        http.StatusBadRequest,
+			Err:         err,
 			ExternalMsg: "failed to parse agreement data",
 		}
 	}
 
 	if data.Grantee.Address != grantee.Hex() {
 		return richerrors.Error{
-			Code:        http.StatusUnauthorized,
+			Code:        http.StatusForbidden,
 			ExternalMsg: "Grantee address in permission record doesn't match requester",
 		}
 	}
 
 	valid, err := s.sigValidator.ValidateSignature(ctx, record.Data, record.Signature, common.HexToAddress(data.Grantor.Address))
 	if err != nil {
+		if richerrors.IsRichError(err) {
+			return fmt.Errorf("failed to validate grant signature: %w", err)
+		}
 		return richerrors.Error{
-			Code:        http.StatusUnauthorized,
-			Err:         fmt.Errorf("failed to validate grant signature: %w", err),
+			Code:        http.StatusInternalServerError,
+			Err:         err,
 			ExternalMsg: "failed to validate grant signature",
 		}
 	}
@@ -149,18 +152,17 @@ func (s *Service) evaluateSacdDoc(ctx context.Context, record *cloudevent.RawEve
 	userPermGrants, cloudEvtGrants, err := autheval.UserGrantMap(ctx, &data, accessReq.Asset, s.templateService)
 	if err != nil {
 		return richerrors.Error{
-			Code:        http.StatusUnauthorized,
-			Err:         fmt.Errorf("failed to generate user grant map: %w", err),
+			Code:        http.StatusInternalServerError,
+			Err:         err,
 			ExternalMsg: "failed to generate user grant map",
 		}
 	}
 
 	if err := autheval.EvaluateCloudEvents(cloudEvtGrants, accessReq.EventFilters); err != nil {
-		err = fmt.Errorf("failed to evaluate cloudevents: %w", err)
 		return richerrors.Error{
 			Code:        http.StatusForbidden,
 			Err:         err,
-			ExternalMsg: err.Error(),
+			ExternalMsg: "failed to evaluate cloudevents",
 		}
 	}
 
@@ -170,7 +172,7 @@ func (s *Service) evaluateSacdDoc(ctx context.Context, record *cloudevent.RawEve
 	return nil
 }
 
-func (s *Service) ValidateAccessViaRecord(ctx context.Context, accessReq *NFTAccessRequest, ethAddr common.Address) error {
+func (s *Service) ValidateAccessViaRecord(ctx context.Context, accessReq *AccessRequest, ethAddr common.Address) error {
 	privMap := tokenclaims.PrivilegeNameToID
 	if accessReq.Asset.ContractAddress == s.contractAddressManufacturer {
 		privMap = tokenclaims.ManufacturerPrivilegeNameToID
@@ -216,7 +218,7 @@ func (s *Service) evaluatePermissionsBits(
 	if err != nil {
 		return richerrors.Error{
 			Code:        http.StatusBadRequest,
-			Err:         fmt.Errorf("failed to convert privileges to 2-bit array: %w", err),
+			Err:         err,
 			ExternalMsg: "Failed to convert privileges to 2-bit array",
 		}
 	}
@@ -227,7 +229,7 @@ func (s *Service) evaluatePermissionsBits(
 	if err != nil {
 		return richerrors.Error{
 			Code:        http.StatusInternalServerError,
-			Err:         fmt.Errorf("failed to get permissions: %w", err),
+			Err:         err,
 			ExternalMsg: "Failed to get permissions",
 		}
 	}

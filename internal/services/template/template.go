@@ -78,7 +78,7 @@ func (s *Service) GetTemplatePermissions(ctx context.Context, permissionTemplate
 	if err != nil {
 		return nil, richerrors.Error{
 			Code:        http.StatusInternalServerError,
-			Err:         fmt.Errorf("failed to get template data: %w", err),
+			Err:         err,
 			ExternalMsg: "Failed to get template data",
 		}
 	}
@@ -92,8 +92,8 @@ func (s *Service) GetTemplatePermissions(ctx context.Context, permissionTemplate
 	var data models.TemplateData
 	if err := json.Unmarshal(rawEvent.Data, &data); err != nil {
 		return nil, richerrors.Error{
-			Code:        http.StatusUnauthorized,
-			Err:         fmt.Errorf("failed to parse template data: %w", err),
+			Code:        http.StatusBadRequest,
+			Err:         err,
 			ExternalMsg: "failed to parse template data",
 		}
 	}
@@ -102,8 +102,8 @@ func (s *Service) GetTemplatePermissions(ctx context.Context, permissionTemplate
 	valid, err := s.sigValidator.ValidateSignature(ctx, rawEvent.Data, rawEvent.Signature, common.HexToAddress(data.Owner.Address))
 	if err != nil {
 		return nil, richerrors.Error{
-			Code:        http.StatusUnauthorized,
-			Err:         fmt.Errorf("failed to validate template owner signature: %w", err),
+			Code:        http.StatusBadRequest,
+			Err:         err,
 			ExternalMsg: "failed to validate template owner signature",
 		}
 	}

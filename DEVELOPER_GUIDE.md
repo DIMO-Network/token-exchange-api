@@ -46,7 +46,7 @@ Both interfaces share identical validation logic through a centralized access co
 │  3. Convert to Standard Format                                          │
 │                                                                          │
 │     ┌───────────────────────────────────────┐                          │
-│     │     NFTAccessRequest                   │                          │
+│     │     AccessRequest                      │                          │
 │     │  ─────────────────────────────────    │                          │
 │     │  asset:        ERC721DID              │                          │
 │     │  permissions:  []string               │                          │
@@ -140,19 +140,19 @@ This section walks through each component in the request flow, explaining what i
 
 - Parse incoming requests from HTTP or gRPC
 - Extract the user's Ethereum address from request context
-- Convert everything into a single standardized format: `NFTAccessRequest`
+- Convert everything into a single standardized format: `AccessRequest`
 - Handle backward compatibility between old and new request formats
 
-**Why it matters**: By normalizing all inputs into `NFTAccessRequest`, the controller ensures that everything downstream (validation, signing) works with a single, consistent data structure. This means:
+**Why it matters**: By normalizing all inputs into `AccessRequest`, the controller ensures that everything downstream (validation, signing) works with a single, consistent data structure. This means:
 
 - HTTP and gRPC can share identical validation logic
 - Adding new transport protocols is trivial
 - Testing becomes easier (no need to mock HTTP/gRPC machinery)
 
-### The NFTAccessRequest: Universal Format
+### The AccessRequest: Universal Format
 
 ```go
-type NFTAccessRequest struct {
+type AccessRequest struct {
     Asset        ERC721DID      // The asset being accessed (DID format)
     Permissions  []string       // Requested permission names
     EventFilters []EventFilter  // Requested cloud events (optional)
@@ -269,7 +269,7 @@ This repo underwent a significant API evolution. Understanding this migration is
 
 ### How Backward Compatibility Works
 
-The magic happens in the controller during the conversion to `NFTAccessRequest`:
+The magic happens in the controller during the conversion to `AccessRequest`:
 
 **Asset Extraction**:
 
@@ -439,7 +439,7 @@ make test
 
 When extending or modifying the service, keep these design principles in mind:
 
-1. **Single Conversion Point**: All inputs (HTTP, gRPC, old format, new format) convert to `NFTAccessRequest` in controllers only
+1. **Single Conversion Point**: All inputs (HTTP, gRPC, old format, new format) convert to `AccessRequest` in controllers only
 2. **Centralized Validation**: All authorization logic lives in the access service
 3. **Shared Logic**: HTTP and gRPC use identical validation paths (only I/O differs)
 4. **Backward Compatibility**: Support both old and new request formats through bidirectional conversion
@@ -453,7 +453,7 @@ When extending or modifying the service, keep these design principles in mind:
 - New fields: `asset` (DID string), `permissions` (string array)
 - Deprecated fields: `nftContractAddress`, `tokenId`, `privileges` (numeric array)
 
-**NFTAccessRequest** (internal standard format)
+**AccessRequest** (internal standard format)
 
 - `asset`: ERC721DID struct
 - `permissions`: String array
@@ -470,10 +470,10 @@ When extending or modifying the service, keep these design principles in mind:
 
 The key to understanding this system:
 
-1. **Everything flows through `NFTAccessRequest`** - the universal internal format that enables code reuse
+1. **Everything flows through `AccessRequest`** - the universal internal format that enables code reuse
 2. **Two validation paths exist**: SACD (modern, feature-rich) and legacy (simple, backward compatible)
 3. **Controllers standardize, services validate** - clean separation of I/O and authorization logic
 4. **Backward compatibility through conversion** - old API formats work seamlessly via bidirectional mapping
 5. **Cloud events require SACD** - the legacy path cannot validate multi-dimensional access control
 
-When debugging or extending the service, always trace the request flow: **Controller → NFTAccessRequest → Access Service → Response**. The architecture is straightforward once you internalize these core concepts.
+When debugging or extending the service, always trace the request flow: **Controller → AccessRequest → Access Service → Response**. The architecture is straightforward once you internalize these core concepts.

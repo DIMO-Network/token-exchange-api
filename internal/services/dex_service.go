@@ -19,7 +19,7 @@ type DexClient struct {
 }
 
 type PrivilegeTokenDTO struct {
-	*access.NFTAccessRequest
+	*access.AccessRequest
 	Audience        []string
 	ResponseSubject string
 }

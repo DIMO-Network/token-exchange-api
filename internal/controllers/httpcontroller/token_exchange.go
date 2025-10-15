@@ -23,7 +23,7 @@ type DexService interface {
 	SignPrivilegePayload(ctx context.Context, req services.PrivilegeTokenDTO) (string, error)
 }
 type AccessService interface {
-	ValidateAccess(ctx context.Context, req *access.NFTAccessRequest, ethAddr common.Address) error
+	ValidateAccess(ctx context.Context, req *access.AccessRequest, ethAddr common.Address) error
 }
 
 var defaultAudience = []string{"dimo.zone"}
@@ -117,7 +117,7 @@ func (t *TokenExchangeController) ExchangeToken(c *fiber.Ctx) error {
 }
 
 // Helper function to create and return the token
-func (t *TokenExchangeController) createAndReturnToken(c *fiber.Ctx, aud []string, accessReq *access.NFTAccessRequest) error {
+func (t *TokenExchangeController) createAndReturnToken(c *fiber.Ctx, aud []string, accessReq *access.AccessRequest) error {
 	if len(aud) == 0 {
 		aud = defaultAudience
 	}
@@ -128,9 +128,9 @@ func (t *TokenExchangeController) createAndReturnToken(c *fiber.Ctx, aud []strin
 	}
 
 	privTokenDTO := services.PrivilegeTokenDTO{
-		NFTAccessRequest: accessReq,
-		Audience:         aud,
-		ResponseSubject:  respSub,
+		AccessRequest:   accessReq,
+		Audience:        aud,
+		ResponseSubject: respSub,
 	}
 
 	tk, err := t.dexService.SignPrivilegePayload(c.Context(), privTokenDTO)
@@ -143,7 +143,7 @@ func (t *TokenExchangeController) createAndReturnToken(c *fiber.Ctx, aud []strin
 	})
 }
 
-func (t *TokenExchangeController) tokenReqToAccessReq(tokenReq *TokenRequest) (*access.NFTAccessRequest, error) {
+func (t *TokenExchangeController) tokenReqToAccessReq(tokenReq *TokenRequest) (*access.AccessRequest, error) {
 	assetDID, err := assetDIDFromTokenReq(tokenReq, t.chainID)
 	if err != nil {
 		return nil, err
@@ -154,7 +154,7 @@ func (t *TokenExchangeController) tokenReqToAccessReq(tokenReq *TokenRequest) (*
 			return nil, err
 		}
 	}
-	return &access.NFTAccessRequest{
+	return &access.AccessRequest{
 		Asset:        assetDID,
 		Permissions:  tokenReq.Permissions,
 		EventFilters: tokenReq.CloudEvents.Events,
@@ -162,7 +162,7 @@ func (t *TokenExchangeController) tokenReqToAccessReq(tokenReq *TokenRequest) (*
 }
 
 // addDefaultIdentifiers update tokenReq.CloudEvents.Events so that if any cloud event identifiers are missing assume they want everything.
-func addDefaultIdentifiers(tokenReq *access.NFTAccessRequest) {
+func addDefaultIdentifiers(tokenReq *access.AccessRequest) {
 	for i := range tokenReq.EventFilters {
 		ce := &tokenReq.EventFilters[i]
 		if ce.EventType == "" {

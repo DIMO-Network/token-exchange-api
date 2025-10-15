@@ -157,6 +157,7 @@ type AccessCheckResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	HasAccess     bool                   `protobuf:"varint,1,opt,name=has_access,json=hasAccess,proto3" json:"has_access,omitempty"`
 	Reason        string                 `protobuf:"bytes,2,opt,name=reason,proto3" json:"reason,omitempty"`
+	RichError     *RichError             `protobuf:"bytes,3,opt,name=rich_error,json=richError,proto3" json:"rich_error,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -205,6 +206,73 @@ func (x *AccessCheckResponse) GetReason() string {
 	return ""
 }
 
+func (x *AccessCheckResponse) GetRichError() *RichError {
+	if x != nil {
+		return x.RichError
+	}
+	return nil
+}
+
+type RichError struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Code          int32                  `protobuf:"varint,1,opt,name=code,proto3" json:"code,omitempty"`
+	ExternalMsg   string                 `protobuf:"bytes,2,opt,name=external_msg,json=externalMsg,proto3" json:"external_msg,omitempty"`
+	Err           string                 `protobuf:"bytes,3,opt,name=err,proto3" json:"err,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RichError) Reset() {
+	*x = RichError{}
+	mi := &file_pkg_grpc_token_exchange_api_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RichError) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RichError) ProtoMessage() {}
+
+func (x *RichError) ProtoReflect() protoreflect.Message {
+	mi := &file_pkg_grpc_token_exchange_api_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RichError.ProtoReflect.Descriptor instead.
+func (*RichError) Descriptor() ([]byte, []int) {
+	return file_pkg_grpc_token_exchange_api_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *RichError) GetCode() int32 {
+	if x != nil {
+		return x.Code
+	}
+	return 0
+}
+
+func (x *RichError) GetExternalMsg() string {
+	if x != nil {
+		return x.ExternalMsg
+	}
+	return ""
+}
+
+func (x *RichError) GetErr() string {
+	if x != nil {
+		return x.Err
+	}
+	return ""
+}
+
 var File_pkg_grpc_token_exchange_api_proto protoreflect.FileDescriptor
 
 const file_pkg_grpc_token_exchange_api_proto_rawDesc = "" +
@@ -221,11 +289,17 @@ const file_pkg_grpc_token_exchange_api_proto_rawDesc = "" +
 	"\n" +
 	"event_type\x18\x01 \x01(\tR\teventType\x12\x16\n" +
 	"\x06source\x18\x02 \x01(\tR\x06source\x12\x10\n" +
-	"\x03ids\x18\x03 \x03(\tR\x03ids\"L\n" +
+	"\x03ids\x18\x03 \x03(\tR\x03ids\"|\n" +
 	"\x13AccessCheckResponse\x12\x1d\n" +
 	"\n" +
 	"has_access\x18\x01 \x01(\bR\thasAccess\x12\x16\n" +
-	"\x06reason\x18\x02 \x01(\tR\x06reason2Z\n" +
+	"\x06reason\x18\x02 \x01(\tR\x06reason\x12.\n" +
+	"\n" +
+	"rich_error\x18\x03 \x01(\v2\x0f.grpc.RichErrorR\trichError\"T\n" +
+	"\tRichError\x12\x12\n" +
+	"\x04code\x18\x01 \x01(\x05R\x04code\x12!\n" +
+	"\fexternal_msg\x18\x02 \x01(\tR\vexternalMsg\x12\x10\n" +
+	"\x03err\x18\x03 \x01(\tR\x03err2Z\n" +
 	"\x14TokenExchangeService\x12B\n" +
 	"\vAccessCheck\x12\x18.grpc.AccessCheckRequest\x1a\x19.grpc.AccessCheckResponseB5Z3github.com/DIMO-Network/token-exchange-api/pkg/grpcb\x06proto3"
 
@@ -241,21 +315,23 @@ func file_pkg_grpc_token_exchange_api_proto_rawDescGZIP() []byte {
 	return file_pkg_grpc_token_exchange_api_proto_rawDescData
 }
 
-var file_pkg_grpc_token_exchange_api_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_pkg_grpc_token_exchange_api_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_pkg_grpc_token_exchange_api_proto_goTypes = []any{
 	(*AccessCheckRequest)(nil),  // 0: grpc.AccessCheckRequest
 	(*EventFilter)(nil),         // 1: grpc.EventFilter
 	(*AccessCheckResponse)(nil), // 2: grpc.AccessCheckResponse
+	(*RichError)(nil),           // 3: grpc.RichError
 }
 var file_pkg_grpc_token_exchange_api_proto_depIdxs = []int32{
 	1, // 0: grpc.AccessCheckRequest.events:type_name -> grpc.EventFilter
-	0, // 1: grpc.TokenExchangeService.AccessCheck:input_type -> grpc.AccessCheckRequest
-	2, // 2: grpc.TokenExchangeService.AccessCheck:output_type -> grpc.AccessCheckResponse
-	2, // [2:3] is the sub-list for method output_type
-	1, // [1:2] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	3, // 1: grpc.AccessCheckResponse.rich_error:type_name -> grpc.RichError
+	0, // 2: grpc.TokenExchangeService.AccessCheck:input_type -> grpc.AccessCheckRequest
+	2, // 3: grpc.TokenExchangeService.AccessCheck:output_type -> grpc.AccessCheckResponse
+	3, // [3:4] is the sub-list for method output_type
+	2, // [2:3] is the sub-list for method input_type
+	2, // [2:2] is the sub-list for extension type_name
+	2, // [2:2] is the sub-list for extension extendee
+	0, // [0:2] is the sub-list for field type_name
 }
 
 func init() { file_pkg_grpc_token_exchange_api_proto_init() }
@@ -269,7 +345,7 @@ func file_pkg_grpc_token_exchange_api_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_pkg_grpc_token_exchange_api_proto_rawDesc), len(file_pkg_grpc_token_exchange_api_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   3,
+			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

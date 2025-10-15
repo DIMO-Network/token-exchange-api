@@ -107,7 +107,7 @@ func (i *IPFSClient) GetValidSacdDoc(ctx context.Context, source string) (*cloud
 	sacdDoc, err := i.Fetch(ctx, source)
 	if err != nil {
 		return nil, richerrors.Error{
-			Code:        http.StatusUnauthorized,
+			Code:        http.StatusBadRequest,
 			Err:         fmt.Errorf("failed to fetch source document from IPFS: %w", err),
 			ExternalMsg: "failed to fetch source document from IPFS",
 		}
@@ -116,7 +116,7 @@ func (i *IPFSClient) GetValidSacdDoc(ctx context.Context, source string) (*cloud
 	var record cloudevent.RawEvent
 	if err := json.Unmarshal(sacdDoc, &record); err != nil {
 		return nil, richerrors.Error{
-			Code:        http.StatusUnauthorized,
+			Code:        http.StatusBadRequest,
 			Err:         fmt.Errorf("failed to parse sacd data: %w", err),
 			ExternalMsg: "failed to parse sacd data",
 		}
@@ -124,7 +124,7 @@ func (i *IPFSClient) GetValidSacdDoc(ctx context.Context, source string) (*cloud
 
 	if record.Type != cloudevent.TypeSACD && record.Type != cloudevent.TypeSACDTemplate {
 		return nil, richerrors.Error{
-			Code:        http.StatusUnauthorized,
+			Code:        http.StatusBadRequest,
 			ExternalMsg: fmt.Sprintf("invalid type: expected '%s' or '%s', got '%s'", cloudevent.TypeSACD, cloudevent.TypeSACDTemplate, record.Type),
 		}
 	}

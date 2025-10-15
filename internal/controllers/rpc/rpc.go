@@ -4,8 +4,10 @@ package rpc
 import (
 	"context"
 	"fmt"
+	"net/http"
 
 	"github.com/DIMO-Network/cloudevent"
+	"github.com/DIMO-Network/server-garage/pkg/richerrors"
 	"github.com/DIMO-Network/token-exchange-api/internal/models"
 	"github.com/DIMO-Network/token-exchange-api/internal/services/access"
 	"github.com/DIMO-Network/token-exchange-api/pkg/grpc"
@@ -40,7 +42,7 @@ func (s *TokenExchangeServer) AccessCheck(ctx context.Context, req *grpc.AccessC
 		}
 	}
 
-	accessReq := &access.NFTAccessRequest{
+	accessReq := &access.AccessRequest{
 		Asset:        assetDID,
 		Permissions:  req.GetPrivileges(),
 		EventFilters: events,
@@ -50,9 +52,21 @@ func (s *TokenExchangeServer) AccessCheck(ctx context.Context, req *grpc.AccessC
 	}
 	err = s.accessService.ValidateAccess(ctx, accessReq, common.HexToAddress(req.GetGrantee()))
 	if err != nil {
+		richErr, ok := richerrors.AsRichError(err)
+		if !ok {
+			richErr = richerrors.Error{
+				Code: http.StatusInternalServerError,
+				Err:  err,
+			}
+		}
 		return &grpc.AccessCheckResponse{
 			HasAccess: false,
 			Reason:    err.Error(),
+			RichError: &grpc.RichError{
+				Code:        int32(richErr.Code),
+				ExternalMsg: richErr.ExternalMsg,
+				Err:         richErr.Err.Error(),
+			},
 		}, nil
 	}
 

@@ -92,7 +92,7 @@ func TestTokenExchangeController_ExchangeToken(t *testing.T) {
 				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
 			},
 			mockSetup: func() {
-				mockAccess.EXPECT().ValidateAccess(gomock.Any(), &access.NFTAccessRequest{
+				mockAccess.EXPECT().ValidateAccess(gomock.Any(), &access.AccessRequest{
 					Asset: cloudevent.ERC721DID{
 						ContractAddress: common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"),
 						TokenID:         big.NewInt(123),
@@ -101,7 +101,7 @@ func TestTokenExchangeController_ExchangeToken(t *testing.T) {
 					Permissions: []string{tokenclaims.PrivilegeIDToName[4]},
 				}, userEthAddr).Return(nil)
 				dexService.EXPECT().SignPrivilegePayload(gomock.Any(), services.PrivilegeTokenDTO{
-					NFTAccessRequest: &access.NFTAccessRequest{
+					AccessRequest: &access.AccessRequest{
 						Asset: cloudevent.ERC721DID{
 							ContractAddress: common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"),
 							TokenID:         big.NewInt(123),
@@ -131,7 +131,7 @@ func TestTokenExchangeController_ExchangeToken(t *testing.T) {
 			},
 			mockSetup: func() {
 				mockIdent.EXPECT().IsDevLicense(gomock.Any(), devLicenseAddr).Return(true, nil)
-				mockAccess.EXPECT().ValidateAccess(gomock.Any(), &access.NFTAccessRequest{
+				mockAccess.EXPECT().ValidateAccess(gomock.Any(), &access.AccessRequest{
 					Asset: cloudevent.ERC721DID{
 						ContractAddress: common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"),
 						TokenID:         big.NewInt(123),
@@ -140,7 +140,7 @@ func TestTokenExchangeController_ExchangeToken(t *testing.T) {
 					Permissions: []string{tokenclaims.PrivilegeIDToName[4]},
 				}, devLicenseAddr).Return(nil)
 				dexService.EXPECT().SignPrivilegePayload(gomock.Any(), services.PrivilegeTokenDTO{
-					NFTAccessRequest: &access.NFTAccessRequest{
+					AccessRequest: &access.AccessRequest{
 						Asset: cloudevent.ERC721DID{
 							ContractAddress: common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"),
 							TokenID:         big.NewInt(123),
@@ -170,7 +170,7 @@ func TestTokenExchangeController_ExchangeToken(t *testing.T) {
 			},
 			mockSetup: func() {
 				mockIdent.EXPECT().IsDevLicense(gomock.Any(), devLicenseAddr).Return(true, nil)
-				mockAccess.EXPECT().ValidateAccess(gomock.Any(), &access.NFTAccessRequest{
+				mockAccess.EXPECT().ValidateAccess(gomock.Any(), &access.AccessRequest{
 					Asset: cloudevent.ERC721DID{
 						ContractAddress: contractAddressManufacturer,
 						TokenID:         big.NewInt(123),
@@ -179,7 +179,7 @@ func TestTokenExchangeController_ExchangeToken(t *testing.T) {
 					Permissions: []string{tokenclaims.ManufacturerPrivilegeIDToName[6]},
 				}, devLicenseAddr).Return(nil)
 				dexService.EXPECT().SignPrivilegePayload(gomock.Any(), services.PrivilegeTokenDTO{
-					NFTAccessRequest: &access.NFTAccessRequest{
+					AccessRequest: &access.AccessRequest{
 						Asset: cloudevent.ERC721DID{
 							ContractAddress: contractAddressManufacturer,
 							TokenID:         big.NewInt(123),
@@ -207,7 +207,7 @@ func TestTokenExchangeController_ExchangeToken(t *testing.T) {
 				NFTContractAddress: "0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144",
 			},
 			mockSetup: func() {
-				mockAccess.EXPECT().ValidateAccess(gomock.Any(), &access.NFTAccessRequest{
+				mockAccess.EXPECT().ValidateAccess(gomock.Any(), &access.AccessRequest{
 					Asset: cloudevent.ERC721DID{
 						ContractAddress: common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"),
 						TokenID:         big.NewInt(123),
@@ -216,7 +216,7 @@ func TestTokenExchangeController_ExchangeToken(t *testing.T) {
 					Permissions: []string{tokenclaims.PrivilegeIDToName[1], tokenclaims.PrivilegeIDToName[2], tokenclaims.PrivilegeIDToName[4], tokenclaims.PrivilegeIDToName[5]},
 				}, userEthAddr).Return(nil)
 				dexService.EXPECT().SignPrivilegePayload(gomock.Any(), services.PrivilegeTokenDTO{
-					NFTAccessRequest: &access.NFTAccessRequest{
+					AccessRequest: &access.AccessRequest{
 						Asset: cloudevent.ERC721DID{
 							ContractAddress: common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"),
 							TokenID:         big.NewInt(123),
@@ -261,7 +261,7 @@ func TestTokenExchangeController_ExchangeToken(t *testing.T) {
 				Audience:           []string{"my-app", "foo"},
 			},
 			mockSetup: func() {
-				mockAccess.EXPECT().ValidateAccess(gomock.Any(), &access.NFTAccessRequest{
+				mockAccess.EXPECT().ValidateAccess(gomock.Any(), &access.AccessRequest{
 					Asset: cloudevent.ERC721DID{
 						ContractAddress: common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"),
 						TokenID:         big.NewInt(123),
@@ -270,7 +270,7 @@ func TestTokenExchangeController_ExchangeToken(t *testing.T) {
 					Permissions: []string{tokenclaims.PrivilegeIDToName[4]},
 				}, userEthAddr).Return(nil)
 				dexService.EXPECT().SignPrivilegePayload(gomock.Any(), services.PrivilegeTokenDTO{
-					NFTAccessRequest: &access.NFTAccessRequest{
+					AccessRequest: &access.AccessRequest{
 						Asset: cloudevent.ERC721DID{
 							ContractAddress: common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"),
 							TokenID:         big.NewInt(123),
