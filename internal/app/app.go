@@ -64,7 +64,7 @@ func CreateServers(logger zerolog.Logger, settings *config.Settings) (*fiber.App
 		return nil, nil, fmt.Errorf("failed to create template service: %w", err)
 	}
 
-	accessService, err := access.NewAccessService(ipfsService, sacdContract, templateService, ethClient)
+	accessService, err := access.NewAccessService(ipfsService, sacdContract, templateService, ethClient, settings.ContractAddressManufacturer)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to create access service: %w", err)
 	}

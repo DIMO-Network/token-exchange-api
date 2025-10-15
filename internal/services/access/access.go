@@ -58,21 +58,24 @@ type NFTAccessRequest struct {
 	EventFilters []models.EventFilter `json:"eventFilters"`
 }
 type Service struct {
-	sacdContract    SACDInterface
-	ipfsClient      IPFSClient
-	templateService TemplateService
-	sigValidator    SignatureValidator
+	sacdContract                SACDInterface
+	ipfsClient                  IPFSClient
+	templateService             TemplateService
+	sigValidator                SignatureValidator
+	contractAddressManufacturer common.Address
 }
 
 func NewAccessService(ipfsService IPFSClient,
 	sacd SACDInterface,
 	templateService TemplateService,
-	ethClient *ethclient.Client) (*Service, error) {
+	ethClient *ethclient.Client,
+	contractAddressManufacturer common.Address) (*Service, error) {
 	return &Service{
-		sacdContract:    sacd,
-		ipfsClient:      ipfsService,
-		sigValidator:    signature.NewValidator(ethClient),
-		templateService: templateService,
+		sacdContract:                sacd,
+		ipfsClient:                  ipfsService,
+		sigValidator:                signature.NewValidator(ethClient),
+		templateService:             templateService,
+		contractAddressManufacturer: contractAddressManufacturer,
 	}, nil
 }
 
@@ -168,11 +171,15 @@ func (s *Service) evaluateSacdDoc(ctx context.Context, record *cloudevent.RawEve
 }
 
 func (s *Service) ValidateAccessViaRecord(ctx context.Context, accessReq *NFTAccessRequest, ethAddr common.Address) error {
+	privMap := tokenclaims.PrivilegeNameToID
+	if accessReq.Asset.ContractAddress == s.contractAddressManufacturer {
+		privMap = tokenclaims.ManufacturerPrivilegeNameToID
+	}
 	permBits := make([]int64, len(accessReq.Permissions))
 	missing := make([]string, 0)
 	for i, p := range accessReq.Permissions {
 		var ok bool
-		permBits[i], ok = tokenclaims.PrivilegeNameToID[p]
+		permBits[i], ok = privMap[p]
 		if !ok {
 			missing = append(missing, p)
 		}

@@ -22,6 +22,8 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
+var contractAddressManufacturer = common.HexToAddress("0xAbc")
+
 //go:generate go tool mockgen -source ./access.go -destination ./access_mock_test.go -package access
 func TestAccessService_ValidateAccess_WithoutTemplateId(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
@@ -35,7 +37,7 @@ func TestAccessService_ValidateAccess_WithoutTemplateId(t *testing.T) {
 	templateService, err := template.NewTemplateService(mockTemplate, mockipfs, nil)
 	require.NoError(t, err)
 
-	accessService, err := NewAccessService(mockipfs, mockSacd, templateService, nil)
+	accessService, err := NewAccessService(mockipfs, mockSacd, templateService, nil, contractAddressManufacturer)
 	require.NoError(t, err)
 	accessService.sigValidator = mockSigValidator
 
@@ -274,7 +276,7 @@ func TestAccessService_ValidateAccess_WithTemplateId(t *testing.T) {
 	mockSigValidator := NewMockSignatureValidator(mockCtrl)
 	mockTemplateService := NewMockTemplateService(mockCtrl)
 
-	accessService, err := NewAccessService(mockipfs, mockSacd, mockTemplateService, nil)
+	accessService, err := NewAccessService(mockipfs, mockSacd, mockTemplateService, nil, contractAddressManufacturer)
 	require.NoError(t, err)
 	accessService.sigValidator = mockSigValidator
 

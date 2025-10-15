@@ -29,9 +29,10 @@ type AccessService interface {
 var defaultAudience = []string{"dimo.zone"}
 
 type TokenExchangeController struct {
-	chainID       uint64
-	dexService    DexService
-	accessService AccessService
+	chainID                     uint64
+	contractAddressManufacturer common.Address
+	dexService                  DexService
+	accessService               AccessService
 }
 
 type TokenRequest struct {
@@ -69,9 +70,10 @@ type TokenResponse struct {
 
 func NewTokenExchangeController(settings *config.Settings, dexService DexService, accessService AccessService) (*TokenExchangeController, error) {
 	return &TokenExchangeController{
-		chainID:       settings.DIMORegistryChainID,
-		dexService:    dexService,
-		accessService: accessService,
+		chainID:                     settings.DIMORegistryChainID,
+		contractAddressManufacturer: settings.ContractAddressManufacturer,
+		dexService:                  dexService,
+		accessService:               accessService,
 	}, nil
 }
 
@@ -90,7 +92,7 @@ func (t *TokenExchangeController) ExchangeToken(c *fiber.Ctx) error {
 	if err := c.BodyParser(tokenReq); err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "Couldn't parse request body.")
 	}
-	accessReq, err := tokenReqToAccessReq(tokenReq, t.chainID)
+	accessReq, err := t.tokenReqToAccessReq(tokenReq)
 	if err != nil {
 		return err
 	}
@@ -141,13 +143,13 @@ func (t *TokenExchangeController) createAndReturnToken(c *fiber.Ctx, aud []strin
 	})
 }
 
-func tokenReqToAccessReq(tokenReq *TokenRequest, chainID uint64) (*access.NFTAccessRequest, error) {
-	assetDID, err := assetDIDFromTokenReq(tokenReq, chainID)
+func (t *TokenExchangeController) tokenReqToAccessReq(tokenReq *TokenRequest) (*access.NFTAccessRequest, error) {
+	assetDID, err := assetDIDFromTokenReq(tokenReq, t.chainID)
 	if err != nil {
 		return nil, err
 	}
 	if len(tokenReq.Permissions) == 0 {
-		tokenReq.Permissions, err = getPermissionsFromPrivileges(tokenReq.Privileges)
+		tokenReq.Permissions, err = t.getPermissionsFromPrivileges(tokenReq.Privileges, assetDID.ContractAddress)
 		if err != nil {
 			return nil, err
 		}
@@ -178,11 +180,15 @@ func addDefaultIdentifiers(tokenReq *access.NFTAccessRequest) {
 	}
 }
 
-func getPermissionsFromPrivileges(privileges []int64) ([]string, error) {
+func (t *TokenExchangeController) getPermissionsFromPrivileges(privileges []int64, contractAddress common.Address) ([]string, error) {
+	privMap := tokenclaims.PrivilegeIDToName
+	if contractAddress == t.contractAddressManufacturer {
+		privMap = tokenclaims.ManufacturerPrivilegeIDToName
+	}
 	permNames := make([]string, len(privileges))
 	unknownPrivs := make([]int64, 0)
 	for i, privID := range privileges {
-		permName, exists := tokenclaims.PrivilegeIDToName[privID]
+		permName, exists := privMap[privID]
 		if !exists {
 			// If we don't have a mapping for this privilege ID, consider it missing
 			unknownPrivs = append(unknownPrivs, privID)
