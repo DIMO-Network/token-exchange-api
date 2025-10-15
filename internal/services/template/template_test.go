@@ -241,7 +241,7 @@ func TestGetTemplatePermissions(t *testing.T) {
 			},
 			expectedResult: nil,
 			expectedError:  true,
-			errorContains:  "failed to get template data",
+			errorContains:  "Failed to get template data",
 		},
 		{
 			name: "IPFS fetch error",

@@ -28,7 +28,8 @@ message EventFilter {
 
 message AccessCheckResponse { 
   bool has_access = 1;
-  RichError rich_error = 2;
+  string reason = 2;
+  RichError rich_error = 3;
 }
 
 message RichError {

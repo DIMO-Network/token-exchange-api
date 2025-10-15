@@ -156,7 +156,8 @@ func (x *EventFilter) GetIds() []string {
 type AccessCheckResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	HasAccess     bool                   `protobuf:"varint,1,opt,name=has_access,json=hasAccess,proto3" json:"has_access,omitempty"`
-	RichError     *RichError             `protobuf:"bytes,2,opt,name=rich_error,json=richError,proto3" json:"rich_error,omitempty"`
+	Reason        string                 `protobuf:"bytes,2,opt,name=reason,proto3" json:"reason,omitempty"`
+	RichError     *RichError             `protobuf:"bytes,3,opt,name=rich_error,json=richError,proto3" json:"rich_error,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -196,6 +197,13 @@ func (x *AccessCheckResponse) GetHasAccess() bool {
 		return x.HasAccess
 	}
 	return false
+}
+
+func (x *AccessCheckResponse) GetReason() string {
+	if x != nil {
+		return x.Reason
+	}
+	return ""
 }
 
 func (x *AccessCheckResponse) GetRichError() *RichError {
@@ -281,12 +289,13 @@ const file_pkg_grpc_token_exchange_api_proto_rawDesc = "" +
 	"\n" +
 	"event_type\x18\x01 \x01(\tR\teventType\x12\x16\n" +
 	"\x06source\x18\x02 \x01(\tR\x06source\x12\x10\n" +
-	"\x03ids\x18\x03 \x03(\tR\x03ids\"d\n" +
+	"\x03ids\x18\x03 \x03(\tR\x03ids\"|\n" +
 	"\x13AccessCheckResponse\x12\x1d\n" +
 	"\n" +
-	"has_access\x18\x01 \x01(\bR\thasAccess\x12.\n" +
+	"has_access\x18\x01 \x01(\bR\thasAccess\x12\x16\n" +
+	"\x06reason\x18\x02 \x01(\tR\x06reason\x12.\n" +
 	"\n" +
-	"rich_error\x18\x02 \x01(\v2\x0f.grpc.RichErrorR\trichError\"T\n" +
+	"rich_error\x18\x03 \x01(\v2\x0f.grpc.RichErrorR\trichError\"T\n" +
 	"\tRichError\x12\x12\n" +
 	"\x04code\x18\x01 \x01(\x05R\x04code\x12!\n" +
 	"\fexternal_msg\x18\x02 \x01(\tR\vexternalMsg\x12\x10\n" +

@@ -100,9 +100,9 @@ func (s *Service) ValidateAccessViaSourceDoc(ctx context.Context, accessReq *Acc
 	resPermRecord, err := s.sacdContract.CurrentPermissionRecord(opts, accessReq.Asset.ContractAddress, accessReq.Asset.TokenID, ethAddr)
 	if err != nil {
 		return richerrors.Error{
-			Code:        http.StatusUnauthorized,
-			Err:         fmt.Errorf("failed to get permission record: %w", err),
-			ExternalMsg: "failed to get permission record",
+			Code:        http.StatusInternalServerError,
+			Err:         err,
+			ExternalMsg: "Failed to get permission record",
 		}
 	}
 
@@ -117,24 +117,27 @@ func (s *Service) evaluateSacdDoc(ctx context.Context, record *cloudevent.RawEve
 	var data models.SACDData
 	if err := json.Unmarshal(record.Data, &data); err != nil {
 		return richerrors.Error{
-			Code:        http.StatusUnauthorized,
-			Err:         fmt.Errorf("failed to parse agreement data: %w", err),
+			Code:        http.StatusBadRequest,
+			Err:         err,
 			ExternalMsg: "failed to parse agreement data",
 		}
 	}
 
 	if data.Grantee.Address != grantee.Hex() {
 		return richerrors.Error{
-			Code:        http.StatusUnauthorized,
+			Code:        http.StatusForbidden,
 			ExternalMsg: "Grantee address in permission record doesn't match requester",
 		}
 	}
 
 	valid, err := s.sigValidator.ValidateSignature(ctx, record.Data, record.Signature, common.HexToAddress(data.Grantor.Address))
 	if err != nil {
+		if richerrors.IsRichError(err) {
+			return fmt.Errorf("failed to validate grant signature: %w", err)
+		}
 		return richerrors.Error{
-			Code:        http.StatusUnauthorized,
-			Err:         fmt.Errorf("failed to validate grant signature: %w", err),
+			Code:        http.StatusInternalServerError,
+			Err:         err,
 			ExternalMsg: "failed to validate grant signature",
 		}
 	}
@@ -149,18 +152,17 @@ func (s *Service) evaluateSacdDoc(ctx context.Context, record *cloudevent.RawEve
 	userPermGrants, cloudEvtGrants, err := autheval.UserGrantMap(ctx, &data, accessReq.Asset, s.templateService)
 	if err != nil {
 		return richerrors.Error{
-			Code:        http.StatusUnauthorized,
-			Err:         fmt.Errorf("failed to generate user grant map: %w", err),
+			Code:        http.StatusInternalServerError,
+			Err:         err,
 			ExternalMsg: "failed to generate user grant map",
 		}
 	}
 
 	if err := autheval.EvaluateCloudEvents(cloudEvtGrants, accessReq.EventFilters); err != nil {
-		err = fmt.Errorf("failed to evaluate cloudevents: %w", err)
 		return richerrors.Error{
 			Code:        http.StatusForbidden,
 			Err:         err,
-			ExternalMsg: err.Error(),
+			ExternalMsg: "failed to evaluate cloudevents",
 		}
 	}
 
@@ -216,7 +218,7 @@ func (s *Service) evaluatePermissionsBits(
 	if err != nil {
 		return richerrors.Error{
 			Code:        http.StatusBadRequest,
-			Err:         fmt.Errorf("failed to convert privileges to 2-bit array: %w", err),
+			Err:         err,
 			ExternalMsg: "Failed to convert privileges to 2-bit array",
 		}
 	}
@@ -227,7 +229,7 @@ func (s *Service) evaluatePermissionsBits(
 	if err != nil {
 		return richerrors.Error{
 			Code:        http.StatusInternalServerError,
-			Err:         fmt.Errorf("failed to get permissions: %w", err),
+			Err:         err,
 			ExternalMsg: "Failed to get permissions",
 		}
 	}

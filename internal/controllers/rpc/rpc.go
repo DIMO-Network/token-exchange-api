@@ -61,6 +61,7 @@ func (s *TokenExchangeServer) AccessCheck(ctx context.Context, req *grpc.AccessC
 		}
 		return &grpc.AccessCheckResponse{
 			HasAccess: false,
+			Reason:    err.Error(),
 			RichError: &grpc.RichError{
 				Code:        int32(richErr.Code),
 				ExternalMsg: richErr.ExternalMsg,
