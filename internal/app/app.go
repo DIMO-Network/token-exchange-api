@@ -18,7 +18,6 @@ import (
 	"github.com/DIMO-Network/token-exchange-api/internal/services/access"
 	templatesvs "github.com/DIMO-Network/token-exchange-api/internal/services/template"
 	txgrpc "github.com/DIMO-Network/token-exchange-api/pkg/grpc"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 	jwtware "github.com/gofiber/contrib/jwt"
 	"github.com/gofiber/fiber/v2"
@@ -87,13 +86,6 @@ func createHTTPServer(logger zerolog.Logger, settings *config.Settings, dexSvc *
 	idSvc := services.NewIdentityController(&logger, settings)
 
 	devLicenseMiddleware := middleware.NewDevLicenseValidator(idSvc, logger)
-	ctrAddressesWhitelist, err := getContractWhitelistedAddresses(settings.ContractAddressWhitelist)
-	if err != nil {
-		logger.Fatal().
-			Err(err).
-			Str("settings.ContractAddressWhitelist", settings.ContractAddressWhitelist).
-			Msg("Error occurred. Invalid contract whitelist addresses")
-	}
 
 	app := fiber.New(fiber.Config{
 		ErrorHandler:          ErrorHandler,
@@ -123,9 +115,8 @@ func createHTTPServer(logger zerolog.Logger, settings *config.Settings, dexSvc *
 	v1Route := app.Group("/v1")
 	// Token routes
 	tokenRoutes := v1Route.Group("/tokens", handlers...)
-	ctrWhitelistWare := middleware.NewContractWhiteList(settings, logger, ctrAddressesWhitelist)
 
-	tokenRoutes.Post("/exchange", ctrWhitelistWare, httpCtrl.ExchangeToken)
+	tokenRoutes.Post("/exchange", httpCtrl.ExchangeToken)
 
 	return app, nil
 }
@@ -190,20 +181,4 @@ func ErrorHandler(ctx *fiber.Ctx, err error) error {
 	}
 
 	return ctx.Status(code).JSON(codeResp{Code: code, Message: message})
-}
-
-func getContractWhitelistedAddresses(wAddrs string) ([]string, error) {
-	if wAddrs == "" {
-		return nil, errors.New("empty whitelist")
-	}
-
-	w := strings.Split(wAddrs, ",")
-
-	for _, v := range w {
-		if !common.IsHexAddress(v) {
-			return nil, fmt.Errorf("invalid contract address %q", v)
-		}
-	}
-
-	return w, nil
 }

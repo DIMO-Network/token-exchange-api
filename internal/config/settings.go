@@ -15,7 +15,6 @@ type Settings struct {
 	BlockchainNodeURL           string         `yaml:"BLOCKCHAIN_NODE_URL"`
 	DexGRPCAdddress             string         `yaml:"DEX_GRPC_ADDRESS"`
 	UsersAPIGRPCAddress         string         `yaml:"USERS_API_GRPC_ADDRESS"`
-	ContractAddressWhitelist    string         `yaml:"CONTRACT_ADDRESS_WHITELIST"`
 	ContractAddressSacd         common.Address `yaml:"CONTRACT_ADDRESS_SACD"`
 	ContractAddressTemplate     common.Address `yaml:"CONTRACT_ADDRESS_TEMPLATE"`
 	ContractAddressManufacturer common.Address `yaml:"CONTRACT_ADDRESS_MANUFACTURER"`
