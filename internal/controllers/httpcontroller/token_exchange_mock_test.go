@@ -83,7 +83,7 @@ func (m *MockAccessService) EXPECT() *MockAccessServiceMockRecorder {
 }
 
 // ValidateAccess mocks base method.
-func (m *MockAccessService) ValidateAccess(ctx context.Context, req *access.NFTAccessRequest, ethAddr common.Address) error {
+func (m *MockAccessService) ValidateAccess(ctx context.Context, req *access.AccessRequest, ethAddr common.Address) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ValidateAccess", ctx, req, ethAddr)
 	ret0, _ := ret[0].(error)

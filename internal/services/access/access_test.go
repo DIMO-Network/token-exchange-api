@@ -81,14 +81,14 @@ func TestAccessService_ValidateAccess_WithoutTemplateId(t *testing.T) {
 	tests := []struct {
 		name            string
 		ethAddr         common.Address
-		accessRequest   *NFTAccessRequest
+		accessRequest   *AccessRequest
 		mockSetup       func(t *testing.T)
 		expectedErrCode int
 	}{
 		{
 			name:    "valid request with single privilege and no SACD document or event filters",
 			ethAddr: devLicenseAddr,
-			accessRequest: &NFTAccessRequest{
+			accessRequest: &AccessRequest{
 				Asset: cloudevent.ERC721DID{
 					ContractAddress: common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"),
 					TokenID:         big.NewInt(123),
@@ -104,7 +104,7 @@ func TestAccessService_ValidateAccess_WithoutTemplateId(t *testing.T) {
 		{
 			name:    "valid request with multiple privileges and no SACD document or event filters",
 			ethAddr: userEthAddr,
-			accessRequest: &NFTAccessRequest{
+			accessRequest: &AccessRequest{
 				Asset: cloudevent.ERC721DID{
 					ContractAddress: common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"),
 					TokenID:         big.NewInt(123),
@@ -120,7 +120,7 @@ func TestAccessService_ValidateAccess_WithoutTemplateId(t *testing.T) {
 		{
 			name:    "missing privilege request with multiple privileges and no SACD document or event filters",
 			ethAddr: userEthAddr,
-			accessRequest: &NFTAccessRequest{
+			accessRequest: &AccessRequest{
 				Asset: cloudevent.ERC721DID{
 					ContractAddress: common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"),
 					TokenID:         big.NewInt(123),
@@ -139,7 +139,7 @@ func TestAccessService_ValidateAccess_WithoutTemplateId(t *testing.T) {
 		{
 			name:    "valid sacd",
 			ethAddr: userEthAddr,
-			accessRequest: &NFTAccessRequest{
+			accessRequest: &AccessRequest{
 				Asset: cloudevent.ERC721DID{
 					ContractAddress: common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"),
 					TokenID:         big.NewInt(123),
@@ -168,7 +168,7 @@ func TestAccessService_ValidateAccess_WithoutTemplateId(t *testing.T) {
 		{
 			name:    "invalid sacd signature",
 			ethAddr: userEthAddr,
-			accessRequest: &NFTAccessRequest{
+			accessRequest: &AccessRequest{
 				Asset: cloudevent.ERC721DID{
 					ContractAddress: common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"),
 					TokenID:         big.NewInt(123),
@@ -201,7 +201,7 @@ func TestAccessService_ValidateAccess_WithoutTemplateId(t *testing.T) {
 		{
 			name:    "invalid recover signature valid erc1271",
 			ethAddr: userEthAddr,
-			accessRequest: &NFTAccessRequest{
+			accessRequest: &AccessRequest{
 				Asset: cloudevent.ERC721DID{
 					ContractAddress: common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"),
 					TokenID:         big.NewInt(123),
@@ -233,7 +233,7 @@ func TestAccessService_ValidateAccess_WithoutTemplateId(t *testing.T) {
 		{
 			name:    "Fail: must pass privilege or cloud event request",
 			ethAddr: userEthAddr,
-			accessRequest: &NFTAccessRequest{
+			accessRequest: &AccessRequest{
 				Asset: cloudevent.ERC721DID{
 					ContractAddress: common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"),
 					TokenID:         big.NewInt(123),
@@ -322,14 +322,14 @@ func TestAccessService_ValidateAccess_WithTemplateId(t *testing.T) {
 	tests := []struct {
 		name            string
 		ethAddr         common.Address
-		accessRequest   *NFTAccessRequest
+		accessRequest   *AccessRequest
 		mockSetup       func(t *testing.T)
 		expectedErrCode int
 	}{
 		{
 			name:    "valid request with single privilege and no SACD document or event filters",
 			ethAddr: devLicenseAddr,
-			accessRequest: &NFTAccessRequest{
+			accessRequest: &AccessRequest{
 				Asset: cloudevent.ERC721DID{
 					ContractAddress: common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"),
 					TokenID:         big.NewInt(123),
@@ -345,7 +345,7 @@ func TestAccessService_ValidateAccess_WithTemplateId(t *testing.T) {
 		{
 			name:    "valid request with multiple privileges and no SACD document or event filters",
 			ethAddr: userEthAddr,
-			accessRequest: &NFTAccessRequest{
+			accessRequest: &AccessRequest{
 				Asset: cloudevent.ERC721DID{
 					ContractAddress: common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"),
 					TokenID:         big.NewInt(123),
@@ -361,7 +361,7 @@ func TestAccessService_ValidateAccess_WithTemplateId(t *testing.T) {
 		{
 			name:    "missing privilege request with multiple privileges and no SACD document or event filters",
 			ethAddr: userEthAddr,
-			accessRequest: &NFTAccessRequest{
+			accessRequest: &AccessRequest{
 				Asset: cloudevent.ERC721DID{
 					ContractAddress: common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"),
 					TokenID:         big.NewInt(123),
@@ -380,7 +380,7 @@ func TestAccessService_ValidateAccess_WithTemplateId(t *testing.T) {
 		{
 			name:    "valid request with permission template",
 			ethAddr: userEthAddr,
-			accessRequest: &NFTAccessRequest{
+			accessRequest: &AccessRequest{
 				Asset: cloudevent.ERC721DID{
 					ContractAddress: common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"),
 					TokenID:         big.NewInt(123),
@@ -422,7 +422,7 @@ func TestAccessService_ValidateAccess_WithTemplateId(t *testing.T) {
 		{
 			name:    "inactive permission template",
 			ethAddr: userEthAddr,
-			accessRequest: &NFTAccessRequest{
+			accessRequest: &AccessRequest{
 				Asset: cloudevent.ERC721DID{
 					ContractAddress: common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"),
 					TokenID:         big.NewInt(123),
@@ -464,7 +464,7 @@ func TestAccessService_ValidateAccess_WithTemplateId(t *testing.T) {
 		{
 			name:    "template service error",
 			ethAddr: userEthAddr,
-			accessRequest: &NFTAccessRequest{
+			accessRequest: &AccessRequest{
 				Asset: cloudevent.ERC721DID{
 					ContractAddress: common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"),
 					TokenID:         big.NewInt(123),

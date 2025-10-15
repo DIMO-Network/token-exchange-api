@@ -40,7 +40,7 @@ func (s *TokenExchangeServer) AccessCheck(ctx context.Context, req *grpc.AccessC
 		}
 	}
 
-	accessReq := &access.NFTAccessRequest{
+	accessReq := &access.AccessRequest{
 		Asset:        assetDID,
 		Permissions:  req.GetPrivileges(),
 		EventFilters: events,

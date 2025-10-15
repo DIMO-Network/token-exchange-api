@@ -48,13 +48,13 @@ type SignatureValidator interface {
 	ValidateSignature(ctx context.Context, payload json.RawMessage, signature string, ethAddr common.Address) (bool, error)
 }
 
-// NFTAccessRequest is a request to check access to an NFT.
-type NFTAccessRequest struct {
+// AccessRequest is a request to check access to an asset (NFT or regular user address).
+type AccessRequest struct { //nolint:revive
 	// Asset is the DID of the asset to check access to.
 	Asset cloudevent.ERC721DID
 	// Permissions is a list of the desired permissions.
 	Permissions []string
-	// EventFilters contains requests for access to CloudEvents attached to the specified NFT.
+	// EventFilters contains requests for access to CloudEvents attached to the specified asset.
 	EventFilters []models.EventFilter `json:"eventFilters"`
 }
 type Service struct {
@@ -79,7 +79,7 @@ func NewAccessService(ipfsService IPFSClient,
 	}, nil
 }
 
-func (s *Service) ValidateAccess(ctx context.Context, accessReq *NFTAccessRequest, ethAddr common.Address) error {
+func (s *Service) ValidateAccess(ctx context.Context, accessReq *AccessRequest, ethAddr common.Address) error {
 	err := s.ValidateAccessViaSourceDoc(ctx, accessReq, ethAddr)
 	if err != nil {
 		if len(accessReq.EventFilters) != 0 {
@@ -93,7 +93,7 @@ func (s *Service) ValidateAccess(ctx context.Context, accessReq *NFTAccessReques
 	return nil
 }
 
-func (s *Service) ValidateAccessViaSourceDoc(ctx context.Context, accessReq *NFTAccessRequest, ethAddr common.Address) error {
+func (s *Service) ValidateAccessViaSourceDoc(ctx context.Context, accessReq *AccessRequest, ethAddr common.Address) error {
 	opts := &bind.CallOpts{
 		Context: ctx,
 	}
@@ -113,7 +113,7 @@ func (s *Service) ValidateAccessViaSourceDoc(ctx context.Context, accessReq *NFT
 	return s.evaluateSacdDoc(ctx, record, accessReq, ethAddr)
 }
 
-func (s *Service) evaluateSacdDoc(ctx context.Context, record *cloudevent.RawEvent, accessReq *NFTAccessRequest, grantee common.Address) error {
+func (s *Service) evaluateSacdDoc(ctx context.Context, record *cloudevent.RawEvent, accessReq *AccessRequest, grantee common.Address) error {
 	var data models.SACDData
 	if err := json.Unmarshal(record.Data, &data); err != nil {
 		return richerrors.Error{
@@ -170,7 +170,7 @@ func (s *Service) evaluateSacdDoc(ctx context.Context, record *cloudevent.RawEve
 	return nil
 }
 
-func (s *Service) ValidateAccessViaRecord(ctx context.Context, accessReq *NFTAccessRequest, ethAddr common.Address) error {
+func (s *Service) ValidateAccessViaRecord(ctx context.Context, accessReq *AccessRequest, ethAddr common.Address) error {
 	privMap := tokenclaims.PrivilegeNameToID
 	if accessReq.Asset.ContractAddress == s.contractAddressManufacturer {
 		privMap = tokenclaims.ManufacturerPrivilegeNameToID
