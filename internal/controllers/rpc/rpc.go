@@ -65,7 +65,7 @@ func (s *TokenExchangeServer) AccessCheck(ctx context.Context, req *grpc.AccessC
 			RichError: &grpc.RichError{
 				Code:        int32(richErr.Code),
 				ExternalMsg: richErr.ExternalMsg,
-				Err:         richErr.Err.Error(),
+				Err:         fmt.Sprintf("%v", richErr.Err),
 			},
 		}, nil
 	}
