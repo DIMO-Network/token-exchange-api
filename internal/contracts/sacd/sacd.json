@@ -95,6 +95,35 @@
                 "internalType": "address",
                 "name": "grantee",
                 "type": "address"
+            },
+            {
+                "internalType": "uint256",
+                "name": "permissions",
+                "type": "uint256"
+            }
+        ],
+        "name": "getAccountPermissions",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "grantor",
+                "type": "address"
+            },
+            {
+                "internalType": "address",
+                "name": "grantee",
+                "type": "address"
             }
         ],
         "name": "accountPermissionRecords",
