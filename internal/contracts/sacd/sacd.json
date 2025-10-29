@@ -35,6 +35,11 @@
                         "internalType": "string",
                         "name": "source",
                         "type": "string"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "templateId",
+                        "type": "uint256"
                     }
                 ],
                 "internalType": "struct ISacd.PermissionRecord",
@@ -74,6 +79,52 @@
                 "internalType": "uint256",
                 "name": "",
                 "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "grantor",
+                "type": "address"
+            },
+            {
+                "internalType": "address",
+                "name": "grantee",
+                "type": "address"
+            }
+        ],
+        "name": "accountPermissionRecords",
+        "outputs": [
+            {
+                "components": [
+                    {
+                        "internalType": "uint256",
+                        "name": "permissions",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "expiration",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "string",
+                        "name": "source",
+                        "type": "string"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "templateId",
+                        "type": "uint256"
+                    }
+                ],
+                "internalType": "struct ISacd.PermissionRecord",
+                "name": "permissionRecord",
+                "type": "tuple"
             }
         ],
         "stateMutability": "view",

@@ -34,11 +34,12 @@ type ISacdPermissionRecord struct {
 	Permissions *big.Int
 	Expiration  *big.Int
 	Source      string
+	TemplateId  *big.Int
 }
 
 // SacdMetaData contains all meta data concerning the Sacd contract.
 var SacdMetaData = &bind.MetaData{
-	ABI: "[{\"inputs\":[{\"internalType\":\"address\",\"name\":\"asset\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"tokenId\",\"type\":\"uint256\"},{\"internalType\":\"address\",\"name\":\"grantee\",\"type\":\"address\"}],\"name\":\"currentPermissionRecord\",\"outputs\":[{\"components\":[{\"internalType\":\"uint256\",\"name\":\"permissions\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"expiration\",\"type\":\"uint256\"},{\"internalType\":\"string\",\"name\":\"source\",\"type\":\"string\"}],\"internalType\":\"structISacd.PermissionRecord\",\"name\":\"permissionRecord\",\"type\":\"tuple\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"asset\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"tokenId\",\"type\":\"uint256\"},{\"internalType\":\"address\",\"name\":\"grantee\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"permissions\",\"type\":\"uint256\"}],\"name\":\"getPermissions\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"}]",
+	ABI: "[{\"inputs\":[{\"internalType\":\"address\",\"name\":\"asset\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"tokenId\",\"type\":\"uint256\"},{\"internalType\":\"address\",\"name\":\"grantee\",\"type\":\"address\"}],\"name\":\"currentPermissionRecord\",\"outputs\":[{\"components\":[{\"internalType\":\"uint256\",\"name\":\"permissions\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"expiration\",\"type\":\"uint256\"},{\"internalType\":\"string\",\"name\":\"source\",\"type\":\"string\"},{\"internalType\":\"uint256\",\"name\":\"templateId\",\"type\":\"uint256\"}],\"internalType\":\"structISacd.PermissionRecord\",\"name\":\"permissionRecord\",\"type\":\"tuple\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"asset\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"tokenId\",\"type\":\"uint256\"},{\"internalType\":\"address\",\"name\":\"grantee\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"permissions\",\"type\":\"uint256\"}],\"name\":\"getPermissions\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"grantor\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"grantee\",\"type\":\"address\"}],\"name\":\"accountPermissionRecords\",\"outputs\":[{\"components\":[{\"internalType\":\"uint256\",\"name\":\"permissions\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"expiration\",\"type\":\"uint256\"},{\"internalType\":\"string\",\"name\":\"source\",\"type\":\"string\"},{\"internalType\":\"uint256\",\"name\":\"templateId\",\"type\":\"uint256\"}],\"internalType\":\"structISacd.PermissionRecord\",\"name\":\"permissionRecord\",\"type\":\"tuple\"}],\"stateMutability\":\"view\",\"type\":\"function\"}]",
 }
 
 // SacdABI is the input ABI used to generate the binding from.
@@ -187,9 +188,40 @@ func (_Sacd *SacdTransactorRaw) Transact(opts *bind.TransactOpts, method string,
 	return _Sacd.Contract.contract.Transact(opts, method, params...)
 }
 
+// AccountPermissionRecords is a free data retrieval call binding the contract method 0x30eaba75.
+//
+// Solidity: function accountPermissionRecords(address grantor, address grantee) view returns((uint256,uint256,string,uint256) permissionRecord)
+func (_Sacd *SacdCaller) AccountPermissionRecords(opts *bind.CallOpts, grantor common.Address, grantee common.Address) (ISacdPermissionRecord, error) {
+	var out []interface{}
+	err := _Sacd.contract.Call(opts, &out, "accountPermissionRecords", grantor, grantee)
+
+	if err != nil {
+		return *new(ISacdPermissionRecord), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(ISacdPermissionRecord)).(*ISacdPermissionRecord)
+
+	return out0, err
+
+}
+
+// AccountPermissionRecords is a free data retrieval call binding the contract method 0x30eaba75.
+//
+// Solidity: function accountPermissionRecords(address grantor, address grantee) view returns((uint256,uint256,string,uint256) permissionRecord)
+func (_Sacd *SacdSession) AccountPermissionRecords(grantor common.Address, grantee common.Address) (ISacdPermissionRecord, error) {
+	return _Sacd.Contract.AccountPermissionRecords(&_Sacd.CallOpts, grantor, grantee)
+}
+
+// AccountPermissionRecords is a free data retrieval call binding the contract method 0x30eaba75.
+//
+// Solidity: function accountPermissionRecords(address grantor, address grantee) view returns((uint256,uint256,string,uint256) permissionRecord)
+func (_Sacd *SacdCallerSession) AccountPermissionRecords(grantor common.Address, grantee common.Address) (ISacdPermissionRecord, error) {
+	return _Sacd.Contract.AccountPermissionRecords(&_Sacd.CallOpts, grantor, grantee)
+}
+
 // CurrentPermissionRecord is a free data retrieval call binding the contract method 0x426d9e4a.
 //
-// Solidity: function currentPermissionRecord(address asset, uint256 tokenId, address grantee) view returns((uint256,uint256,string) permissionRecord)
+// Solidity: function currentPermissionRecord(address asset, uint256 tokenId, address grantee) view returns((uint256,uint256,string,uint256) permissionRecord)
 func (_Sacd *SacdCaller) CurrentPermissionRecord(opts *bind.CallOpts, asset common.Address, tokenId *big.Int, grantee common.Address) (ISacdPermissionRecord, error) {
 	var out []interface{}
 	err := _Sacd.contract.Call(opts, &out, "currentPermissionRecord", asset, tokenId, grantee)
@@ -206,14 +238,14 @@ func (_Sacd *SacdCaller) CurrentPermissionRecord(opts *bind.CallOpts, asset comm
 
 // CurrentPermissionRecord is a free data retrieval call binding the contract method 0x426d9e4a.
 //
-// Solidity: function currentPermissionRecord(address asset, uint256 tokenId, address grantee) view returns((uint256,uint256,string) permissionRecord)
+// Solidity: function currentPermissionRecord(address asset, uint256 tokenId, address grantee) view returns((uint256,uint256,string,uint256) permissionRecord)
 func (_Sacd *SacdSession) CurrentPermissionRecord(asset common.Address, tokenId *big.Int, grantee common.Address) (ISacdPermissionRecord, error) {
 	return _Sacd.Contract.CurrentPermissionRecord(&_Sacd.CallOpts, asset, tokenId, grantee)
 }
 
 // CurrentPermissionRecord is a free data retrieval call binding the contract method 0x426d9e4a.
 //
-// Solidity: function currentPermissionRecord(address asset, uint256 tokenId, address grantee) view returns((uint256,uint256,string) permissionRecord)
+// Solidity: function currentPermissionRecord(address asset, uint256 tokenId, address grantee) view returns((uint256,uint256,string,uint256) permissionRecord)
 func (_Sacd *SacdCallerSession) CurrentPermissionRecord(asset common.Address, tokenId *big.Int, grantee common.Address) (ISacdPermissionRecord, error) {
 	return _Sacd.Contract.CurrentPermissionRecord(&_Sacd.CallOpts, asset, tokenId, grantee)
 }
