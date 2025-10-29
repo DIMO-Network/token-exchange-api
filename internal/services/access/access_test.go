@@ -23,6 +23,7 @@ import (
 )
 
 var contractAddressManufacturer = common.HexToAddress("0xAbc")
+var assetContractAddress = common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144")
 
 //go:generate go tool mockgen -source ./access.go -destination ./access_mock_test.go -package access
 func TestAccessService_ValidateAccess_WithoutTemplateId(t *testing.T) {
@@ -54,7 +55,7 @@ func TestAccessService_ValidateAccess_WithoutTemplateId(t *testing.T) {
 		},
 		EffectiveAt: time.Now().Add(-5 * time.Hour),
 		ExpiresAt:   time.Now().Add(5 * time.Hour),
-		Asset:       "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
+		Asset:       makeDid("erc721", "1", assetContractAddress.String(), "123"),
 		Agreements: []models.Agreement{
 			{
 				Type:        "cloudevent",
@@ -63,7 +64,7 @@ func TestAccessService_ValidateAccess_WithoutTemplateId(t *testing.T) {
 				EventType:   cloudevent.TypeAttestation,
 				Source:      common.BigToAddress(big.NewInt(1)).Hex(),
 				IDs:         []string{"1"},
-				Asset:       "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
+				Asset:       makeDid("erc721", "1", assetContractAddress.String(), "123"),
 			},
 		},
 	}
@@ -90,23 +91,23 @@ func TestAccessService_ValidateAccess_WithoutTemplateId(t *testing.T) {
 			ethAddr: devLicenseAddr,
 			accessRequest: &AccessRequest{
 				Asset: cloudevent.ERC721DID{
-					ContractAddress: common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"),
+					ContractAddress: assetContractAddress,
 					TokenID:         big.NewInt(123),
 					ChainID:         1,
 				},
 				Permissions: []string{tokenclaims.PrivilegeIDToName[4]},
 			},
 			mockSetup: func(*testing.T) {
-				mockSacd.EXPECT().CurrentPermissionRecord(gomock.Any(), common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), devLicenseAddr).Return(emptyPermRecord, nil)
+				mockSacd.EXPECT().CurrentPermissionRecord(gomock.Any(), assetContractAddress, big.NewInt(123), devLicenseAddr).Return(emptyPermRecord, nil)
 				mockipfs.EXPECT().GetValidSacdDoc(gomock.Any(), gomock.Any()).Return(nil, errors.New("no valid doc"))
-				mockSacd.EXPECT().GetPermissions(gomock.Any(), common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), devLicenseAddr, big.NewInt(0b1100000000)).Return(big.NewInt(0b1100000000), nil)
+				mockSacd.EXPECT().GetPermissions(gomock.Any(), assetContractAddress, big.NewInt(123), devLicenseAddr, big.NewInt(0b1100000000)).Return(big.NewInt(0b1100000000), nil)
 			}},
 		{
 			name:    "valid request with multiple privileges and no SACD document or event filters",
 			ethAddr: userEthAddr,
 			accessRequest: &AccessRequest{
 				Asset: cloudevent.ERC721DID{
-					ContractAddress: common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"),
+					ContractAddress: assetContractAddress,
 					TokenID:         big.NewInt(123),
 					ChainID:         1,
 				},
@@ -114,15 +115,15 @@ func TestAccessService_ValidateAccess_WithoutTemplateId(t *testing.T) {
 			},
 			mockSetup: func(*testing.T) {
 				mockipfs.EXPECT().GetValidSacdDoc(gomock.Any(), gomock.Any()).Return(nil, errors.New("no valid doc"))
-				mockSacd.EXPECT().CurrentPermissionRecord(gomock.Any(), common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr).Return(emptyPermRecord, nil)
-				mockSacd.EXPECT().GetPermissions(gomock.Any(), common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr, big.NewInt(0b111100111100)).Return(big.NewInt(0b111100111100), nil)
+				mockSacd.EXPECT().CurrentPermissionRecord(gomock.Any(), assetContractAddress, big.NewInt(123), userEthAddr).Return(emptyPermRecord, nil)
+				mockSacd.EXPECT().GetPermissions(gomock.Any(), assetContractAddress, big.NewInt(123), userEthAddr, big.NewInt(0b111100111100)).Return(big.NewInt(0b111100111100), nil)
 			}},
 		{
 			name:    "missing privilege request with multiple privileges and no SACD document or event filters",
 			ethAddr: userEthAddr,
 			accessRequest: &AccessRequest{
 				Asset: cloudevent.ERC721DID{
-					ContractAddress: common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"),
+					ContractAddress: assetContractAddress,
 					TokenID:         big.NewInt(123),
 					ChainID:         1,
 				},
@@ -130,8 +131,8 @@ func TestAccessService_ValidateAccess_WithoutTemplateId(t *testing.T) {
 			},
 			mockSetup: func(*testing.T) {
 				mockipfs.EXPECT().GetValidSacdDoc(gomock.Any(), gomock.Any()).Return(nil, errors.New("no valid doc"))
-				mockSacd.EXPECT().CurrentPermissionRecord(gomock.Any(), common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr).Return(emptyPermRecord, nil)
-				mockSacd.EXPECT().GetPermissions(gomock.Any(), common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr, big.NewInt(0b111100111100)).Return(big.NewInt(0b111100001100), nil)
+				mockSacd.EXPECT().CurrentPermissionRecord(gomock.Any(), assetContractAddress, big.NewInt(123), userEthAddr).Return(emptyPermRecord, nil)
+				mockSacd.EXPECT().GetPermissions(gomock.Any(), assetContractAddress, big.NewInt(123), userEthAddr, big.NewInt(0b111100111100)).Return(big.NewInt(0b111100001100), nil)
 
 			},
 			expectedErrCode: fiber.StatusForbidden,
@@ -141,7 +142,7 @@ func TestAccessService_ValidateAccess_WithoutTemplateId(t *testing.T) {
 			ethAddr: userEthAddr,
 			accessRequest: &AccessRequest{
 				Asset: cloudevent.ERC721DID{
-					ContractAddress: common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"),
+					ContractAddress: assetContractAddress,
 					TokenID:         big.NewInt(123),
 					ChainID:         1,
 				},
@@ -160,7 +161,7 @@ func TestAccessService_ValidateAccess_WithoutTemplateId(t *testing.T) {
 					Expiration:  big.NewInt(0),
 					Source:      "test-source",
 				}
-				mockSacd.EXPECT().CurrentPermissionRecord(gomock.Any(), common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr).Return(permRecord, nil)
+				mockSacd.EXPECT().CurrentPermissionRecord(gomock.Any(), assetContractAddress, big.NewInt(123), userEthAddr).Return(permRecord, nil)
 				mockipfs.EXPECT().GetValidSacdDoc(gomock.Any(), permRecord.Source).Return(ipfsRecord, nil)
 				mockSigValidator.EXPECT().ValidateSignature(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil)
 			},
@@ -170,7 +171,7 @@ func TestAccessService_ValidateAccess_WithoutTemplateId(t *testing.T) {
 			ethAddr: userEthAddr,
 			accessRequest: &AccessRequest{
 				Asset: cloudevent.ERC721DID{
-					ContractAddress: common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"),
+					ContractAddress: assetContractAddress,
 					TokenID:         big.NewInt(123),
 					ChainID:         1,
 				},
@@ -192,7 +193,7 @@ func TestAccessService_ValidateAccess_WithoutTemplateId(t *testing.T) {
 				record := *ipfsRecord
 				record.Signature = "0xbad-signature"
 				require.NoError(t, err)
-				mockSacd.EXPECT().CurrentPermissionRecord(gomock.Any(), common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr).Return(permRecord, nil)
+				mockSacd.EXPECT().CurrentPermissionRecord(gomock.Any(), assetContractAddress, big.NewInt(123), userEthAddr).Return(permRecord, nil)
 				mockipfs.EXPECT().GetValidSacdDoc(gomock.Any(), permRecord.Source).Return(&record, nil)
 				mockSigValidator.EXPECT().ValidateSignature(gomock.Any(), gomock.Any(), "0xbad-signature", gomock.Any()).Return(false, nil)
 			},
@@ -203,7 +204,7 @@ func TestAccessService_ValidateAccess_WithoutTemplateId(t *testing.T) {
 			ethAddr: userEthAddr,
 			accessRequest: &AccessRequest{
 				Asset: cloudevent.ERC721DID{
-					ContractAddress: common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"),
+					ContractAddress: assetContractAddress,
 					TokenID:         big.NewInt(123),
 					ChainID:         1,
 				},
@@ -225,7 +226,7 @@ func TestAccessService_ValidateAccess_WithoutTemplateId(t *testing.T) {
 				record := *ipfsRecord
 				record.Signature = "0xbad-signature"
 				require.NoError(t, err)
-				mockSacd.EXPECT().CurrentPermissionRecord(gomock.Any(), common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr).Return(permRecord, nil)
+				mockSacd.EXPECT().CurrentPermissionRecord(gomock.Any(), assetContractAddress, big.NewInt(123), userEthAddr).Return(permRecord, nil)
 				mockipfs.EXPECT().GetValidSacdDoc(gomock.Any(), permRecord.Source).Return(&record, nil)
 				mockSigValidator.EXPECT().ValidateSignature(gomock.Any(), gomock.Any(), "0xbad-signature", gomock.Any()).Return(true, nil)
 			},
@@ -235,7 +236,7 @@ func TestAccessService_ValidateAccess_WithoutTemplateId(t *testing.T) {
 			ethAddr: userEthAddr,
 			accessRequest: &AccessRequest{
 				Asset: cloudevent.ERC721DID{
-					ContractAddress: common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"),
+					ContractAddress: assetContractAddress,
 					TokenID:         big.NewInt(123),
 					ChainID:         1,
 				},
@@ -244,7 +245,7 @@ func TestAccessService_ValidateAccess_WithoutTemplateId(t *testing.T) {
 				},
 			},
 			mockSetup: func(*testing.T) {
-				mockSacd.EXPECT().CurrentPermissionRecord(gomock.Any(), common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr).Return(emptyPermRecord, nil)
+				mockSacd.EXPECT().CurrentPermissionRecord(gomock.Any(), assetContractAddress, big.NewInt(123), userEthAddr).Return(emptyPermRecord, nil)
 				mockipfs.EXPECT().GetValidSacdDoc(gomock.Any(), gomock.Any()).Return(ipfsRecord, nil)
 				mockSigValidator.EXPECT().ValidateSignature(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil)
 			},
@@ -293,14 +294,14 @@ func TestAccessService_ValidateAccess_WithTemplateId(t *testing.T) {
 		},
 		EffectiveAt:          time.Now().Add(-5 * time.Hour),
 		ExpiresAt:            time.Now().Add(5 * time.Hour),
-		Asset:                "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
+		Asset:                makeDid("erc721", "1", assetContractAddress.String(), "123"),
 		PermissionTemplateID: "123",
 		Agreements: []models.Agreement{
 			{
 				Type:        "permission",
 				EffectiveAt: effectiveAt,
 				ExpiresAt:   expiresAt,
-				Asset:       "did:erc721:1:0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144:123",
+				Asset:       makeDid("erc721", "1", assetContractAddress.String(), "123"),
 				Permissions: []models.Permission{
 					{Name: tokenclaims.PrivilegeIDToName[1]},
 					{Name: tokenclaims.PrivilegeIDToName[2]},
@@ -331,23 +332,23 @@ func TestAccessService_ValidateAccess_WithTemplateId(t *testing.T) {
 			ethAddr: devLicenseAddr,
 			accessRequest: &AccessRequest{
 				Asset: cloudevent.ERC721DID{
-					ContractAddress: common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"),
+					ContractAddress: assetContractAddress,
 					TokenID:         big.NewInt(123),
 					ChainID:         1,
 				},
 				Permissions: []string{tokenclaims.PrivilegeIDToName[4]},
 			},
 			mockSetup: func(*testing.T) {
-				mockSacd.EXPECT().CurrentPermissionRecord(gomock.Any(), common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), devLicenseAddr).Return(emptyPermRecord, nil)
+				mockSacd.EXPECT().CurrentPermissionRecord(gomock.Any(), assetContractAddress, big.NewInt(123), devLicenseAddr).Return(emptyPermRecord, nil)
 				mockipfs.EXPECT().GetValidSacdDoc(gomock.Any(), gomock.Any()).Return(nil, errors.New("no valid doc"))
-				mockSacd.EXPECT().GetPermissions(gomock.Any(), common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), devLicenseAddr, big.NewInt(0b1100000000)).Return(big.NewInt(0b1100000000), nil)
+				mockSacd.EXPECT().GetPermissions(gomock.Any(), assetContractAddress, big.NewInt(123), devLicenseAddr, big.NewInt(0b1100000000)).Return(big.NewInt(0b1100000000), nil)
 			}},
 		{
 			name:    "valid request with multiple privileges and no SACD document or event filters",
 			ethAddr: userEthAddr,
 			accessRequest: &AccessRequest{
 				Asset: cloudevent.ERC721DID{
-					ContractAddress: common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"),
+					ContractAddress: assetContractAddress,
 					TokenID:         big.NewInt(123),
 					ChainID:         1,
 				},
@@ -355,15 +356,15 @@ func TestAccessService_ValidateAccess_WithTemplateId(t *testing.T) {
 			},
 			mockSetup: func(*testing.T) {
 				mockipfs.EXPECT().GetValidSacdDoc(gomock.Any(), gomock.Any()).Return(nil, errors.New("no valid doc"))
-				mockSacd.EXPECT().CurrentPermissionRecord(gomock.Any(), common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr).Return(emptyPermRecord, nil)
-				mockSacd.EXPECT().GetPermissions(gomock.Any(), common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr, big.NewInt(0b111100111100)).Return(big.NewInt(0b111100111100), nil)
+				mockSacd.EXPECT().CurrentPermissionRecord(gomock.Any(), assetContractAddress, big.NewInt(123), userEthAddr).Return(emptyPermRecord, nil)
+				mockSacd.EXPECT().GetPermissions(gomock.Any(), assetContractAddress, big.NewInt(123), userEthAddr, big.NewInt(0b111100111100)).Return(big.NewInt(0b111100111100), nil)
 			}},
 		{
 			name:    "missing privilege request with multiple privileges and no SACD document or event filters",
 			ethAddr: userEthAddr,
 			accessRequest: &AccessRequest{
 				Asset: cloudevent.ERC721DID{
-					ContractAddress: common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"),
+					ContractAddress: assetContractAddress,
 					TokenID:         big.NewInt(123),
 					ChainID:         1,
 				},
@@ -371,8 +372,8 @@ func TestAccessService_ValidateAccess_WithTemplateId(t *testing.T) {
 			},
 			mockSetup: func(*testing.T) {
 				mockipfs.EXPECT().GetValidSacdDoc(gomock.Any(), gomock.Any()).Return(nil, errors.New("no valid doc"))
-				mockSacd.EXPECT().CurrentPermissionRecord(gomock.Any(), common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr).Return(emptyPermRecord, nil)
-				mockSacd.EXPECT().GetPermissions(gomock.Any(), common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"), big.NewInt(123), userEthAddr, big.NewInt(0b111100111100)).Return(big.NewInt(0b111100001100), nil)
+				mockSacd.EXPECT().CurrentPermissionRecord(gomock.Any(), assetContractAddress, big.NewInt(123), userEthAddr).Return(emptyPermRecord, nil)
+				mockSacd.EXPECT().GetPermissions(gomock.Any(), assetContractAddress, big.NewInt(123), userEthAddr, big.NewInt(0b111100111100)).Return(big.NewInt(0b111100001100), nil)
 
 			},
 			expectedErrCode: fiber.StatusForbidden,
@@ -382,7 +383,7 @@ func TestAccessService_ValidateAccess_WithTemplateId(t *testing.T) {
 			ethAddr: userEthAddr,
 			accessRequest: &AccessRequest{
 				Asset: cloudevent.ERC721DID{
-					ContractAddress: common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"),
+					ContractAddress: assetContractAddress,
 					TokenID:         big.NewInt(123),
 					ChainID:         1,
 				},
@@ -396,7 +397,7 @@ func TestAccessService_ValidateAccess_WithTemplateId(t *testing.T) {
 				}
 
 				mockSacd.EXPECT().CurrentPermissionRecord(gomock.Any(),
-					common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"),
+					assetContractAddress,
 					big.NewInt(123),
 					userEthAddr).Return(permRecord, nil)
 				mockipfs.EXPECT().GetValidSacdDoc(gomock.Any(), permRecord.Source).Return(ipfsRecord, nil)
@@ -404,7 +405,7 @@ func TestAccessService_ValidateAccess_WithTemplateId(t *testing.T) {
 				mockSigValidator.EXPECT().ValidateSignature(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil)
 
 				assetDID := cloudevent.ERC721DID{
-					ContractAddress: common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"),
+					ContractAddress: assetContractAddress,
 					TokenID:         big.NewInt(123),
 					ChainID:         1,
 				}
@@ -424,7 +425,7 @@ func TestAccessService_ValidateAccess_WithTemplateId(t *testing.T) {
 			ethAddr: userEthAddr,
 			accessRequest: &AccessRequest{
 				Asset: cloudevent.ERC721DID{
-					ContractAddress: common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"),
+					ContractAddress: assetContractAddress,
 					TokenID:         big.NewInt(123),
 					ChainID:         1,
 				},
@@ -438,7 +439,7 @@ func TestAccessService_ValidateAccess_WithTemplateId(t *testing.T) {
 				}
 
 				mockSacd.EXPECT().CurrentPermissionRecord(gomock.Any(),
-					common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"),
+					assetContractAddress,
 					big.NewInt(123),
 					userEthAddr).Return(permRecord, nil)
 				mockipfs.EXPECT().GetValidSacdDoc(gomock.Any(), permRecord.Source).Return(ipfsRecord, nil)
@@ -446,7 +447,7 @@ func TestAccessService_ValidateAccess_WithTemplateId(t *testing.T) {
 				mockSigValidator.EXPECT().ValidateSignature(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil)
 
 				assetDID := cloudevent.ERC721DID{
-					ContractAddress: common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"),
+					ContractAddress: assetContractAddress,
 					TokenID:         big.NewInt(123),
 					ChainID:         1,
 				}
@@ -466,7 +467,7 @@ func TestAccessService_ValidateAccess_WithTemplateId(t *testing.T) {
 			ethAddr: userEthAddr,
 			accessRequest: &AccessRequest{
 				Asset: cloudevent.ERC721DID{
-					ContractAddress: common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"),
+					ContractAddress: assetContractAddress,
 					TokenID:         big.NewInt(123),
 					ChainID:         1,
 				},
@@ -480,14 +481,14 @@ func TestAccessService_ValidateAccess_WithTemplateId(t *testing.T) {
 				}
 
 				mockSacd.EXPECT().CurrentPermissionRecord(gomock.Any(),
-					common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"),
+					assetContractAddress,
 					big.NewInt(123),
 					userEthAddr).Return(permRecord, nil)
 				mockipfs.EXPECT().GetValidSacdDoc(gomock.Any(), permRecord.Source).Return(ipfsRecord, nil)
 				mockSigValidator.EXPECT().ValidateSignature(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil)
 
 				assetDID := cloudevent.ERC721DID{
-					ContractAddress: common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144"),
+					ContractAddress: assetContractAddress,
 					TokenID:         big.NewInt(123),
 					ChainID:         1,
 				}
@@ -553,4 +554,12 @@ func signSACDHelper(grantData *models.SACDData) (*cloudevent.RawEvent, error) {
 	final.Data = msgBytes
 	final.Type = cloudevent.TypeSACD
 	return &final, nil
+}
+
+func makeDid(method string, chainId string, address string, tokenId string) string {
+	did := "did:" + method + ":" + chainId + ":" + address
+	if tokenId != "" {
+		return did + ":" + tokenId
+	}
+	return did
 }
