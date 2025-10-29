@@ -23,7 +23,9 @@ import (
 )
 
 type SACDInterface interface {
+	AccountPermissionRecords(opts *bind.CallOpts, grantor common.Address, grantee common.Address) (sacd.ISacdPermissionRecord, error)
 	CurrentPermissionRecord(opts *bind.CallOpts, asset common.Address, tokenID *big.Int, grantee common.Address) (sacd.ISacdPermissionRecord, error)
+	GetAccountPermissions(opts *bind.CallOpts, grantor common.Address, grantee common.Address, permissions *big.Int) (*big.Int, error)
 	GetPermissions(opts *bind.CallOpts, asset common.Address, tokenID *big.Int, grantee common.Address, permissions *big.Int) (*big.Int, error)
 }
 
@@ -97,7 +99,14 @@ func (s *Service) ValidateAccessViaSourceDoc(ctx context.Context, accessReq *Acc
 	opts := &bind.CallOpts{
 		Context: ctx,
 	}
-	resPermRecord, err := s.sacdContract.CurrentPermissionRecord(opts, accessReq.Asset.ContractAddress, accessReq.Asset.TokenID, ethAddr)
+
+	var resPermRecord sacd.ISacdPermissionRecord
+	var err error
+	if accessReq.Asset.TokenID == big.NewInt(0) {
+		resPermRecord, err = s.sacdContract.AccountPermissionRecords(opts, accessReq.Asset.ContractAddress, ethAddr)
+	} else {
+		resPermRecord, err = s.sacdContract.CurrentPermissionRecord(opts, accessReq.Asset.ContractAddress, accessReq.Asset.TokenID, ethAddr)
+	}
 	if err != nil {
 		return richerrors.Error{
 			Code:        http.StatusInternalServerError,
@@ -225,7 +234,13 @@ func (s *Service) evaluatePermissionsBits(
 	opts := &bind.CallOpts{
 		Context: ctx,
 	}
-	ret, err := s.sacdContract.GetPermissions(opts, asset.ContractAddress, asset.TokenID, ethAddr, mask)
+
+	var ret *big.Int
+	if asset.TokenID == big.NewInt(0) {
+		ret, err = s.sacdContract.GetAccountPermissions(opts, asset.ContractAddress, ethAddr, mask)
+	} else {
+		ret, err = s.sacdContract.GetPermissions(opts, asset.ContractAddress, asset.TokenID, ethAddr, mask)
+	}
 	if err != nil {
 		return richerrors.Error{
 			Code:        http.StatusInternalServerError,
