@@ -43,7 +43,7 @@ type IPFSClient interface {
 }
 
 type TemplateService interface {
-	GetTemplatePermissions(ctx context.Context, permissionTemplateID string, assetDID cloudevent.ERC721DID) (*templatesvs.PermissionsResult, error)
+	GetTemplatePermissions(ctx context.Context, permissionTemplateID string, assetDID models.AssetDID) (*templatesvs.PermissionsResult, error)
 }
 
 type SignatureValidator interface {
@@ -52,8 +52,8 @@ type SignatureValidator interface {
 
 // AccessRequest is a request to check access to an asset (NFT or regular user address).
 type AccessRequest struct { //nolint:revive
-	// Asset is the DID of the asset to check access to.
-	Asset cloudevent.ERC721DID
+	// Asset is the DID of the asset to check access to (either ERC721 or Ethr)
+	Asset models.AssetDID
 	// Permissions is a list of the desired permissions.
 	Permissions []string
 	// EventFilters contains requests for access to CloudEvents attached to the specified asset.
@@ -102,10 +102,10 @@ func (s *Service) ValidateAccessViaSourceDoc(ctx context.Context, accessReq *Acc
 
 	var resPermRecord sacd.ISacdPermissionRecord
 	var err error
-	if accessReq.Asset.TokenID == big.NewInt(0) {
-		resPermRecord, err = s.sacdContract.AccountPermissionRecords(opts, accessReq.Asset.ContractAddress, ethAddr)
+	if accessReq.Asset.IsAccountLevel() {
+		resPermRecord, err = s.sacdContract.AccountPermissionRecords(opts, accessReq.Asset.GetContractAddress(), ethAddr)
 	} else {
-		resPermRecord, err = s.sacdContract.CurrentPermissionRecord(opts, accessReq.Asset.ContractAddress, accessReq.Asset.TokenID, ethAddr)
+		resPermRecord, err = s.sacdContract.CurrentPermissionRecord(opts, accessReq.Asset.GetContractAddress(), accessReq.Asset.GetTokenID(), ethAddr)
 	}
 	if err != nil {
 		return richerrors.Error{
@@ -183,7 +183,7 @@ func (s *Service) evaluateSacdDoc(ctx context.Context, record *cloudevent.RawEve
 
 func (s *Service) ValidateAccessViaRecord(ctx context.Context, accessReq *AccessRequest, ethAddr common.Address) error {
 	privMap := tokenclaims.PrivilegeNameToID
-	if accessReq.Asset.ContractAddress == s.contractAddressManufacturer {
+	if accessReq.Asset.GetContractAddress() == s.contractAddressManufacturer {
 		privMap = tokenclaims.ManufacturerPrivilegeNameToID
 	}
 	permBits := make([]int64, len(accessReq.Permissions))
@@ -218,7 +218,7 @@ func (s *Service) ValidateAccessViaRecord(ctx context.Context, accessReq *Access
 //     otherwise nil if the token is successfully created and returned
 func (s *Service) evaluatePermissionsBits(
 	ctx context.Context,
-	asset cloudevent.ERC721DID,
+	asset models.AssetDID,
 	permissions []int64,
 	ethAddr common.Address,
 ) error {
@@ -236,10 +236,10 @@ func (s *Service) evaluatePermissionsBits(
 	}
 
 	var ret *big.Int
-	if asset.TokenID == big.NewInt(0) {
-		ret, err = s.sacdContract.GetAccountPermissions(opts, asset.ContractAddress, ethAddr, mask)
+	if asset.IsAccountLevel() {
+		ret, err = s.sacdContract.GetAccountPermissions(opts, asset.GetContractAddress(), ethAddr, mask)
 	} else {
-		ret, err = s.sacdContract.GetPermissions(opts, asset.ContractAddress, asset.TokenID, ethAddr, mask)
+		ret, err = s.sacdContract.GetPermissions(opts, asset.GetContractAddress(), asset.GetTokenID(), ethAddr, mask)
 	}
 	if err != nil {
 		return richerrors.Error{
@@ -259,7 +259,7 @@ func (s *Service) evaluatePermissionsBits(
 	return nil
 }
 
-func missingPermissionsError[T any](ethAddr common.Address, asset cloudevent.ERC721DID, lack []T) richerrors.Error {
+func missingPermissionsError[T any](ethAddr common.Address, asset models.AssetDID, lack []T) richerrors.Error {
 	return richerrors.Error{
 		Code:        http.StatusForbidden,
 		ExternalMsg: fmt.Sprintf("Address %s lacks permissions %v for asset %s.", ethAddr.Hex(), lack, asset.String()),

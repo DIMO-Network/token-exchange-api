@@ -60,8 +60,8 @@ func (d *DexClient) SignPrivilegePayload(ctx context.Context, req PrivilegeToken
 		CloudEvents: &tokenclaims.CloudEvents{Events: events},
 
 		// Old fields
-		ContractAddress: req.Asset.ContractAddress,
-		TokenID:         req.Asset.TokenID.String(),
+		ContractAddress: req.Asset.GetContractAddress(),
+		TokenID:         req.Asset.GetTokenID().String(),
 		PrivilegeIDs:    privs,
 	}
 

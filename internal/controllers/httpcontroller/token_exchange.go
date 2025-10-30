@@ -149,7 +149,7 @@ func (t *TokenExchangeController) tokenReqToAccessReq(tokenReq *TokenRequest) (*
 		return nil, err
 	}
 	if len(tokenReq.Permissions) == 0 {
-		tokenReq.Permissions, err = t.getPermissionsFromPrivileges(tokenReq.Privileges, assetDID.ContractAddress)
+		tokenReq.Permissions, err = t.getPermissionsFromPrivileges(tokenReq.Privileges, assetDID.GetContractAddress())
 		if err != nil {
 			return nil, err
 		}
@@ -207,32 +207,22 @@ func (t *TokenExchangeController) getPermissionsFromPrivileges(privileges []int6
 	return permNames, nil
 }
 
-func assetDIDFromTokenReq(tokenReq *TokenRequest, chainID uint64) (cloudevent.ERC721DID, error) {
+func assetDIDFromTokenReq(tokenReq *TokenRequest, chainID uint64) (models.AssetDID, error) {
 	if tokenReq.Asset != "" {
-		erc721DID, err := cloudevent.DecodeERC721DID(tokenReq.Asset)
-		if err == nil {
-			return erc721DID, nil
+		assetDID, err := models.DecodeAssetDID(tokenReq.Asset)
+		if err != nil {
+			return nil, fiber.NewError(fiber.StatusBadRequest, fmt.Sprintf("Invalid asset DID %q: %v.", tokenReq.Asset, err))
 		}
-
-		ethrDID, err := cloudevent.DecodeEthrDID(tokenReq.Asset)
-		if err == nil {
-			// If the asset is an EthrDID, we need to convert it to an ERC721DID with a token ID of 0
-			return cloudevent.ERC721DID{
-				ChainID:         chainID,
-				ContractAddress: ethrDID.ContractAddress,
-				TokenID:         big.NewInt(0),
-			}, nil
-		}
-
-		return cloudevent.ERC721DID{}, fiber.NewError(fiber.StatusBadRequest, fmt.Sprintf("Invalid asset DID %q.", tokenReq.Asset))
+		return assetDID, nil
 	}
 	if !common.IsHexAddress(tokenReq.NFTContractAddress) {
-		return cloudevent.ERC721DID{}, fiber.NewError(fiber.StatusBadRequest, fmt.Sprintf("Invalid NFT contract address %q.", tokenReq.NFTContractAddress))
+		return nil, fiber.NewError(fiber.StatusBadRequest, fmt.Sprintf("Invalid NFT contract address %q.", tokenReq.NFTContractAddress))
 	}
-
-	return cloudevent.ERC721DID{
-		ChainID:         chainID,
-		ContractAddress: common.HexToAddress(tokenReq.NFTContractAddress),
-		TokenID:         big.NewInt(tokenReq.TokenID),
+	return models.ERC721Asset{
+		ERC721DID: cloudevent.ERC721DID{
+			ChainID:         chainID,
+			ContractAddress: common.HexToAddress(tokenReq.NFTContractAddress),
+			TokenID:         big.NewInt(tokenReq.TokenID),
+		},
 	}, nil
 }

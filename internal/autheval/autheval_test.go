@@ -244,11 +244,16 @@ func TestEvaluateCloudEvents_Attestations(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			permData.Agreements = tc.agreement
-			_, ceGrants, err := UserGrantMap(t.Context(), &permData, cloudevent.ERC721DID{
-				ContractAddress: common.HexToAddress(nftCtrAddr),
-				TokenID:         big.NewInt(123),
-				ChainID:         1,
-			}, nil)
+			_, ceGrants, err := UserGrantMap(
+				t.Context(),
+				&permData,
+				models.ERC721Asset{
+					ERC721DID: cloudevent.ERC721DID{
+						ContractAddress: common.HexToAddress(nftCtrAddr),
+						TokenID:         big.NewInt(123),
+						ChainID:         1,
+					},
+				}, nil)
 			require.Nil(t, err)
 
 			err = EvaluateCloudEvents(ceGrants, tc.request)
@@ -494,10 +499,12 @@ func TestEvaluatePermissionsWithTemplate(t *testing.T) {
 				},
 			}
 
-			assetDID := cloudevent.ERC721DID{
-				ChainID:         1,
-				ContractAddress: common.HexToAddress(tc.nftContractAddress),
-				TokenID:         big.NewInt(tc.tokenID),
+			assetDID := models.ERC721Asset{
+				ERC721DID: cloudevent.ERC721DID{
+					ChainID:         1,
+					ContractAddress: common.HexToAddress(tc.nftContractAddress),
+					TokenID:         big.NewInt(tc.tokenID),
+				},
 			}
 
 			userPermGrants, _, err := UserGrantMap(t.Context(), sacdData, assetDID, mockTemplateService)
@@ -970,10 +977,12 @@ func TestEvaluateCloudEvents_Comprehensive(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			permData.Agreements = tc.agreement
-			_, ceGrants, err := UserGrantMap(t.Context(), &permData, cloudevent.ERC721DID{
-				ContractAddress: common.HexToAddress(nftCtrAddr),
-				TokenID:         big.NewInt(123),
-				ChainID:         1,
+			_, ceGrants, err := UserGrantMap(t.Context(), &permData, models.ERC721Asset{
+				ERC721DID: cloudevent.ERC721DID{
+					ContractAddress: common.HexToAddress(nftCtrAddr),
+					TokenID:         big.NewInt(123),
+					ChainID:         1,
+				},
 			}, nil)
 			require.Nil(t, err)
 
@@ -992,7 +1001,7 @@ type MockTemplateService struct {
 	shouldError    bool
 }
 
-func (m *MockTemplateService) GetTemplatePermissions(_ context.Context, _ string, _ cloudevent.ERC721DID) (*template.PermissionsResult, error) {
+func (m *MockTemplateService) GetTemplatePermissions(_ context.Context, _ string, _ models.AssetDID) (*template.PermissionsResult, error) {
 	if m.shouldError {
 		return nil, fmt.Errorf("template service error")
 	}

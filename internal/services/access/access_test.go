@@ -26,7 +26,7 @@ var contractAddressManufacturer = common.HexToAddress("0xAbc")
 var assetContractAddress = common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144")
 
 //go:generate go tool mockgen -source ./access.go -destination ./access_mock_test.go -package access
-func TestAccessService_ValidateAccess_WithoutTemplateId(t *testing.T) {
+func TestAccessService_ValidateAccess_WithAsset_WithoutTemplateId(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
@@ -90,10 +90,12 @@ func TestAccessService_ValidateAccess_WithoutTemplateId(t *testing.T) {
 			name:    "valid request with single privilege and no SACD document or event filters",
 			ethAddr: devLicenseAddr,
 			accessRequest: &AccessRequest{
-				Asset: cloudevent.ERC721DID{
-					ContractAddress: assetContractAddress,
-					TokenID:         big.NewInt(123),
-					ChainID:         1,
+				Asset: models.ERC721Asset{
+					ERC721DID: cloudevent.ERC721DID{
+						ContractAddress: assetContractAddress,
+						TokenID:         big.NewInt(123),
+						ChainID:         1,
+					},
 				},
 				Permissions: []string{tokenclaims.PrivilegeIDToName[4]},
 			},
@@ -106,10 +108,12 @@ func TestAccessService_ValidateAccess_WithoutTemplateId(t *testing.T) {
 			name:    "valid request with multiple privileges and no SACD document or event filters",
 			ethAddr: userEthAddr,
 			accessRequest: &AccessRequest{
-				Asset: cloudevent.ERC721DID{
-					ContractAddress: assetContractAddress,
-					TokenID:         big.NewInt(123),
-					ChainID:         1,
+				Asset: models.ERC721Asset{
+					ERC721DID: cloudevent.ERC721DID{
+						ContractAddress: assetContractAddress,
+						TokenID:         big.NewInt(123),
+						ChainID:         1,
+					},
 				},
 				Permissions: []string{tokenclaims.PrivilegeIDToName[1], tokenclaims.PrivilegeIDToName[2], tokenclaims.PrivilegeIDToName[4], tokenclaims.PrivilegeIDToName[5]},
 			},
@@ -122,10 +126,12 @@ func TestAccessService_ValidateAccess_WithoutTemplateId(t *testing.T) {
 			name:    "missing privilege request with multiple privileges and no SACD document or event filters",
 			ethAddr: userEthAddr,
 			accessRequest: &AccessRequest{
-				Asset: cloudevent.ERC721DID{
-					ContractAddress: assetContractAddress,
-					TokenID:         big.NewInt(123),
-					ChainID:         1,
+				Asset: models.ERC721Asset{
+					ERC721DID: cloudevent.ERC721DID{
+						ContractAddress: assetContractAddress,
+						TokenID:         big.NewInt(123),
+						ChainID:         1,
+					},
 				},
 				Permissions: []string{tokenclaims.PrivilegeIDToName[1], tokenclaims.PrivilegeIDToName[2], tokenclaims.PrivilegeIDToName[4], tokenclaims.PrivilegeIDToName[5]},
 			},
@@ -141,10 +147,12 @@ func TestAccessService_ValidateAccess_WithoutTemplateId(t *testing.T) {
 			name:    "valid sacd",
 			ethAddr: userEthAddr,
 			accessRequest: &AccessRequest{
-				Asset: cloudevent.ERC721DID{
-					ContractAddress: assetContractAddress,
-					TokenID:         big.NewInt(123),
-					ChainID:         1,
+				Asset: models.ERC721Asset{
+					ERC721DID: cloudevent.ERC721DID{
+						ContractAddress: assetContractAddress,
+						TokenID:         big.NewInt(123),
+						ChainID:         1,
+					},
 				},
 				EventFilters: []models.EventFilter{
 					{
@@ -170,10 +178,12 @@ func TestAccessService_ValidateAccess_WithoutTemplateId(t *testing.T) {
 			name:    "invalid sacd signature",
 			ethAddr: userEthAddr,
 			accessRequest: &AccessRequest{
-				Asset: cloudevent.ERC721DID{
-					ContractAddress: assetContractAddress,
-					TokenID:         big.NewInt(123),
-					ChainID:         1,
+				Asset: models.ERC721Asset{
+					ERC721DID: cloudevent.ERC721DID{
+						ContractAddress: assetContractAddress,
+						TokenID:         big.NewInt(123),
+						ChainID:         1,
+					},
 				},
 				EventFilters: []models.EventFilter{
 					{
@@ -203,10 +213,12 @@ func TestAccessService_ValidateAccess_WithoutTemplateId(t *testing.T) {
 			name:    "invalid recover signature valid erc1271",
 			ethAddr: userEthAddr,
 			accessRequest: &AccessRequest{
-				Asset: cloudevent.ERC721DID{
-					ContractAddress: assetContractAddress,
-					TokenID:         big.NewInt(123),
-					ChainID:         1,
+				Asset: models.ERC721Asset{
+					ERC721DID: cloudevent.ERC721DID{
+						ContractAddress: assetContractAddress,
+						TokenID:         big.NewInt(123),
+						ChainID:         1,
+					},
 				},
 				EventFilters: []models.EventFilter{
 					{
@@ -235,10 +247,12 @@ func TestAccessService_ValidateAccess_WithoutTemplateId(t *testing.T) {
 			name:    "Fail: must pass privilege or cloud event request",
 			ethAddr: userEthAddr,
 			accessRequest: &AccessRequest{
-				Asset: cloudevent.ERC721DID{
-					ContractAddress: assetContractAddress,
-					TokenID:         big.NewInt(123),
-					ChainID:         1,
+				Asset: models.ERC721Asset{
+					ERC721DID: cloudevent.ERC721DID{
+						ContractAddress: assetContractAddress,
+						TokenID:         big.NewInt(123),
+						ChainID:         1,
+					},
 				},
 				EventFilters: []models.EventFilter{
 					{},
@@ -268,7 +282,7 @@ func TestAccessService_ValidateAccess_WithoutTemplateId(t *testing.T) {
 	}
 }
 
-func TestAccessService_ValidateAccess_WithTemplateId(t *testing.T) {
+func TestAccessService_ValidateAccess_WithAsset_WithTemplateId(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
@@ -331,10 +345,12 @@ func TestAccessService_ValidateAccess_WithTemplateId(t *testing.T) {
 			name:    "valid request with single privilege and no SACD document or event filters",
 			ethAddr: devLicenseAddr,
 			accessRequest: &AccessRequest{
-				Asset: cloudevent.ERC721DID{
-					ContractAddress: assetContractAddress,
-					TokenID:         big.NewInt(123),
-					ChainID:         1,
+				Asset: models.ERC721Asset{
+					ERC721DID: cloudevent.ERC721DID{
+						ContractAddress: assetContractAddress,
+						TokenID:         big.NewInt(123),
+						ChainID:         1,
+					},
 				},
 				Permissions: []string{tokenclaims.PrivilegeIDToName[4]},
 			},
@@ -347,10 +363,12 @@ func TestAccessService_ValidateAccess_WithTemplateId(t *testing.T) {
 			name:    "valid request with multiple privileges and no SACD document or event filters",
 			ethAddr: userEthAddr,
 			accessRequest: &AccessRequest{
-				Asset: cloudevent.ERC721DID{
-					ContractAddress: assetContractAddress,
-					TokenID:         big.NewInt(123),
-					ChainID:         1,
+				Asset: models.ERC721Asset{
+					ERC721DID: cloudevent.ERC721DID{
+						ContractAddress: assetContractAddress,
+						TokenID:         big.NewInt(123),
+						ChainID:         1,
+					},
 				},
 				Permissions: []string{tokenclaims.PrivilegeIDToName[1], tokenclaims.PrivilegeIDToName[2], tokenclaims.PrivilegeIDToName[4], tokenclaims.PrivilegeIDToName[5]},
 			},
@@ -363,10 +381,12 @@ func TestAccessService_ValidateAccess_WithTemplateId(t *testing.T) {
 			name:    "missing privilege request with multiple privileges and no SACD document or event filters",
 			ethAddr: userEthAddr,
 			accessRequest: &AccessRequest{
-				Asset: cloudevent.ERC721DID{
-					ContractAddress: assetContractAddress,
-					TokenID:         big.NewInt(123),
-					ChainID:         1,
+				Asset: models.ERC721Asset{
+					ERC721DID: cloudevent.ERC721DID{
+						ContractAddress: assetContractAddress,
+						TokenID:         big.NewInt(123),
+						ChainID:         1,
+					},
 				},
 				Permissions: []string{tokenclaims.PrivilegeIDToName[1], tokenclaims.PrivilegeIDToName[2], tokenclaims.PrivilegeIDToName[4], tokenclaims.PrivilegeIDToName[5]},
 			},
@@ -382,10 +402,12 @@ func TestAccessService_ValidateAccess_WithTemplateId(t *testing.T) {
 			name:    "valid request with permission template",
 			ethAddr: userEthAddr,
 			accessRequest: &AccessRequest{
-				Asset: cloudevent.ERC721DID{
-					ContractAddress: assetContractAddress,
-					TokenID:         big.NewInt(123),
-					ChainID:         1,
+				Asset: models.ERC721Asset{
+					ERC721DID: cloudevent.ERC721DID{
+						ContractAddress: assetContractAddress,
+						TokenID:         big.NewInt(123),
+						ChainID:         1,
+					},
 				},
 				Permissions: []string{tokenclaims.PrivilegeIDToName[1], tokenclaims.PrivilegeIDToName[2]},
 			},
@@ -404,10 +426,12 @@ func TestAccessService_ValidateAccess_WithTemplateId(t *testing.T) {
 				mockSacd.EXPECT().GetPermissions(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(big.NewInt(0b1100000000), nil)
 				mockSigValidator.EXPECT().ValidateSignature(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil)
 
-				assetDID := cloudevent.ERC721DID{
-					ContractAddress: assetContractAddress,
-					TokenID:         big.NewInt(123),
-					ChainID:         1,
+				assetDID := models.ERC721Asset{
+					ERC721DID: cloudevent.ERC721DID{
+						ContractAddress: assetContractAddress,
+						TokenID:         big.NewInt(123),
+						ChainID:         1,
+					},
 				}
 
 				mockTemplateService.EXPECT().GetTemplatePermissions(gomock.Any(), "123", assetDID).Return(
@@ -424,10 +448,12 @@ func TestAccessService_ValidateAccess_WithTemplateId(t *testing.T) {
 			name:    "inactive permission template",
 			ethAddr: userEthAddr,
 			accessRequest: &AccessRequest{
-				Asset: cloudevent.ERC721DID{
-					ContractAddress: assetContractAddress,
-					TokenID:         big.NewInt(123),
-					ChainID:         1,
+				Asset: models.ERC721Asset{
+					ERC721DID: cloudevent.ERC721DID{
+						ContractAddress: assetContractAddress,
+						TokenID:         big.NewInt(123),
+						ChainID:         1,
+					},
 				},
 				Permissions: []string{tokenclaims.PrivilegeIDToName[1], tokenclaims.PrivilegeIDToName[2]},
 			},
@@ -446,10 +472,12 @@ func TestAccessService_ValidateAccess_WithTemplateId(t *testing.T) {
 				mockSacd.EXPECT().GetPermissions(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(big.NewInt(0b1100000000), nil)
 				mockSigValidator.EXPECT().ValidateSignature(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil)
 
-				assetDID := cloudevent.ERC721DID{
-					ContractAddress: assetContractAddress,
-					TokenID:         big.NewInt(123),
-					ChainID:         1,
+				assetDID := models.ERC721Asset{
+					ERC721DID: cloudevent.ERC721DID{
+						ContractAddress: assetContractAddress,
+						TokenID:         big.NewInt(123),
+						ChainID:         1,
+					},
 				}
 
 				mockTemplateService.EXPECT().GetTemplatePermissions(gomock.Any(), "123", assetDID).Return(
@@ -466,10 +494,12 @@ func TestAccessService_ValidateAccess_WithTemplateId(t *testing.T) {
 			name:    "template service error",
 			ethAddr: userEthAddr,
 			accessRequest: &AccessRequest{
-				Asset: cloudevent.ERC721DID{
-					ContractAddress: assetContractAddress,
-					TokenID:         big.NewInt(123),
-					ChainID:         1,
+				Asset: models.ERC721Asset{
+					ERC721DID: cloudevent.ERC721DID{
+						ContractAddress: assetContractAddress,
+						TokenID:         big.NewInt(123),
+						ChainID:         1,
+					},
 				},
 				Permissions: []string{tokenclaims.PrivilegeIDToName[1], tokenclaims.PrivilegeIDToName[2]},
 			},
@@ -487,10 +517,12 @@ func TestAccessService_ValidateAccess_WithTemplateId(t *testing.T) {
 				mockipfs.EXPECT().GetValidSacdDoc(gomock.Any(), permRecord.Source).Return(ipfsRecord, nil)
 				mockSigValidator.EXPECT().ValidateSignature(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil)
 
-				assetDID := cloudevent.ERC721DID{
-					ContractAddress: assetContractAddress,
-					TokenID:         big.NewInt(123),
-					ChainID:         1,
+				assetDID := models.ERC721Asset{
+					ERC721DID: cloudevent.ERC721DID{
+						ContractAddress: assetContractAddress,
+						TokenID:         big.NewInt(123),
+						ChainID:         1,
+					},
 				}
 
 				mockTemplateService.EXPECT().GetTemplatePermissions(gomock.Any(), "123", assetDID).Return(

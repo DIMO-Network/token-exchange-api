@@ -7,14 +7,13 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/DIMO-Network/cloudevent"
 	"github.com/DIMO-Network/shared/pkg/set"
 	"github.com/DIMO-Network/token-exchange-api/internal/models"
 	"github.com/DIMO-Network/token-exchange-api/internal/services/template"
 )
 
 type TemplateService interface {
-	GetTemplatePermissions(ctx context.Context, permissionTemplateID string, assetDID cloudevent.ERC721DID) (*template.PermissionsResult, error)
+	GetTemplatePermissions(ctx context.Context, permissionTemplateID string, assetDID models.AssetDID) (*template.PermissionsResult, error)
 }
 
 // EvaluatePermissions checks if all requested privileges are present in the user permissions
@@ -133,7 +132,7 @@ func matchTemplatePermissions(sacdPermissions map[string]bool, templateResult *t
 }
 
 // UserGrantMap extracts permission and CloudEvent grants from SACD data
-func UserGrantMap(ctx context.Context, data *models.SACDData, assetDID cloudevent.ERC721DID, templateService TemplateService) (map[string]bool, CloudEventAgreements, error) {
+func UserGrantMap(ctx context.Context, data *models.SACDData, assetDID models.AssetDID, templateService TemplateService) (map[string]bool, CloudEventAgreements, error) {
 	userPermGrants := make(map[string]bool)
 	var cloudEvtAgreements CloudEventAgreements
 
@@ -153,7 +152,7 @@ func UserGrantMap(ctx context.Context, data *models.SACDData, assetDID cloudeven
 		}
 
 		if agreement.Asset != assetDID.String() {
-			return nil, cloudEvtAgreements, fmt.Errorf("asset DID %s does not match request DID %s", agreement.Asset, assetDID.String())
+			return nil, cloudEvtAgreements, fmt.Errorf("asset DID %s does not match request DID %s", agreement.Asset, assetDID.GetContractAddress())
 		}
 
 		switch agreement.Type {
