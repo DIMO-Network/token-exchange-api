@@ -1084,10 +1084,10 @@ func signSACDHelper(grantData *models.SACDData) (*cloudevent.RawEvent, error) {
 	return &final, nil
 }
 
-func makeDid(method string, chainId string, address string, tokenId string) string {
-	did := "did:" + method + ":" + chainId + ":" + address
-	if tokenId != "" {
-		return did + ":" + tokenId
+func makeDid(method string, chainID string, address string, tokenID string) string {
+	did := "did:" + method + ":" + chainID + ":" + address
+	if tokenID != "" {
+		return did + ":" + tokenID
 	}
 	return did
 }
