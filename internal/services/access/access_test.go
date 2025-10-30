@@ -547,6 +547,502 @@ func TestAccessService_ValidateAccess_WithAsset_WithTemplateId(t *testing.T) {
 	}
 }
 
+func TestAccessService_ValidateAccess_WithoutAsset_WithoutTemplateId(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	mockSacd := NewMockSACDInterface(mockCtrl)
+	mockTemplate := NewMockTemplate(mockCtrl)
+	mockipfs := NewMockIPFSClient(mockCtrl)
+	mockSigValidator := NewMockSignatureValidator(mockCtrl)
+
+	templateService, err := template.NewTemplateService(mockTemplate, mockipfs, nil)
+	require.NoError(t, err)
+
+	accessService, err := NewAccessService(mockipfs, mockSacd, templateService, nil, contractAddressManufacturer)
+	require.NoError(t, err)
+	accessService.sigValidator = mockSigValidator
+
+	userEthAddr := common.HexToAddress("0x20Ca3bE69a8B95D3093383375F0473A8c6341727")
+
+	devLicenseAddr := common.HexToAddress("0x69F5C4D08F6bC8cD29fE5f004d46FB566270868d")
+
+	effectiveAt := time.Now().Add(-5 * time.Hour)
+	expiresAt := time.Now().Add(5 * time.Hour)
+
+	permData := models.SACDData{
+		Grantee: models.Address{
+			Address: userEthAddr.Hex(),
+		},
+		EffectiveAt: time.Now().Add(-5 * time.Hour),
+		ExpiresAt:   time.Now().Add(5 * time.Hour),
+		Asset:       makeDid("ethr", "1", devLicenseAddr.String(), ""),
+		Agreements: []models.Agreement{
+			{
+				Type:        "cloudevent",
+				EffectiveAt: effectiveAt,
+				ExpiresAt:   expiresAt,
+				EventType:   cloudevent.TypeAttestation,
+				Source:      common.BigToAddress(big.NewInt(1)).Hex(),
+				IDs:         []string{"1"},
+				Asset:       makeDid("ethr", "1", devLicenseAddr.String(), ""),
+			},
+		},
+	}
+
+	ipfsRecord, err := signSACDHelper(&permData)
+	require.NoError(t, err)
+
+	// Create a mock empty permission record to return
+	emptyPermRecord := sacd.ISacdPermissionRecord{
+		Permissions: big.NewInt(0),
+		Expiration:  big.NewInt(0),
+		Source:      "",
+	}
+
+	tests := []struct {
+		name            string
+		ethAddr         common.Address
+		accessRequest   *AccessRequest
+		mockSetup       func(t *testing.T)
+		expectedErrCode int
+	}{
+		{
+			name:    "valid request with single privilege and no SACD document or event filters",
+			ethAddr: devLicenseAddr,
+			accessRequest: &AccessRequest{
+				Asset: models.EthrAsset{
+					EthrDID: cloudevent.EthrDID{
+						ContractAddress: devLicenseAddr,
+						ChainID:         1,
+					},
+				},
+				Permissions: []string{tokenclaims.PrivilegeIDToName[4]},
+			},
+			mockSetup: func(*testing.T) {
+				mockSacd.EXPECT().AccountPermissionRecords(gomock.Any(), devLicenseAddr, devLicenseAddr).Return(emptyPermRecord, nil)
+				mockipfs.EXPECT().GetValidSacdDoc(gomock.Any(), gomock.Any()).Return(nil, errors.New("no valid doc"))
+				mockSacd.EXPECT().GetAccountPermissions(gomock.Any(), devLicenseAddr, devLicenseAddr, big.NewInt(0b1100000000)).Return(big.NewInt(0b1100000000), nil)
+			}},
+		{
+			name:    "valid request with multiple privileges and no SACD document or event filters",
+			ethAddr: userEthAddr,
+			accessRequest: &AccessRequest{
+				Asset: models.EthrAsset{
+					EthrDID: cloudevent.EthrDID{
+						ContractAddress: devLicenseAddr,
+						ChainID:         1,
+					},
+				},
+				Permissions: []string{tokenclaims.PrivilegeIDToName[1], tokenclaims.PrivilegeIDToName[2], tokenclaims.PrivilegeIDToName[4], tokenclaims.PrivilegeIDToName[5]},
+			},
+			mockSetup: func(*testing.T) {
+				mockipfs.EXPECT().GetValidSacdDoc(gomock.Any(), gomock.Any()).Return(nil, errors.New("no valid doc"))
+				mockSacd.EXPECT().AccountPermissionRecords(gomock.Any(), devLicenseAddr, userEthAddr).Return(emptyPermRecord, nil)
+				mockSacd.EXPECT().GetAccountPermissions(gomock.Any(), devLicenseAddr, userEthAddr, big.NewInt(0b111100111100)).Return(big.NewInt(0b111100111100), nil)
+			}},
+		{
+			name:    "missing privilege request with multiple privileges and no SACD document or event filters",
+			ethAddr: userEthAddr,
+			accessRequest: &AccessRequest{
+				Asset: models.EthrAsset{
+					EthrDID: cloudevent.EthrDID{
+						ContractAddress: devLicenseAddr,
+						ChainID:         1,
+					},
+				},
+				Permissions: []string{tokenclaims.PrivilegeIDToName[1], tokenclaims.PrivilegeIDToName[2], tokenclaims.PrivilegeIDToName[4], tokenclaims.PrivilegeIDToName[5]},
+			},
+			mockSetup: func(*testing.T) {
+				mockipfs.EXPECT().GetValidSacdDoc(gomock.Any(), gomock.Any()).Return(nil, errors.New("no valid doc"))
+				mockSacd.EXPECT().AccountPermissionRecords(gomock.Any(), devLicenseAddr, userEthAddr).Return(emptyPermRecord, nil)
+				mockSacd.EXPECT().GetAccountPermissions(gomock.Any(), devLicenseAddr, userEthAddr, big.NewInt(0b111100111100)).Return(big.NewInt(0b111100001100), nil)
+
+			},
+			expectedErrCode: fiber.StatusForbidden,
+		},
+		{
+			name:    "valid sacd",
+			ethAddr: userEthAddr,
+			accessRequest: &AccessRequest{
+				Asset: models.EthrAsset{
+					EthrDID: cloudevent.EthrDID{
+						ContractAddress: devLicenseAddr,
+						ChainID:         1,
+					},
+				},
+				EventFilters: []models.EventFilter{
+					{
+						EventType: cloudevent.TypeAttestation,
+						Source:    common.BigToAddress(big.NewInt(1)).Hex(),
+						IDs:       []string{"1"},
+					},
+				},
+			},
+
+			mockSetup: func(*testing.T) {
+				permRecord := sacd.ISacdPermissionRecord{
+					Permissions: big.NewInt(0),
+					Expiration:  big.NewInt(0),
+					Source:      "test-source",
+				}
+				mockSacd.EXPECT().AccountPermissionRecords(gomock.Any(), devLicenseAddr, userEthAddr).Return(permRecord, nil)
+				mockipfs.EXPECT().GetValidSacdDoc(gomock.Any(), permRecord.Source).Return(ipfsRecord, nil)
+				mockSigValidator.EXPECT().ValidateSignature(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil)
+			},
+		},
+		{
+			name:    "invalid sacd signature",
+			ethAddr: userEthAddr,
+			accessRequest: &AccessRequest{
+				Asset: models.EthrAsset{
+					EthrDID: cloudevent.EthrDID{
+						ContractAddress: devLicenseAddr,
+						ChainID:         1,
+					},
+				},
+				EventFilters: []models.EventFilter{
+					{
+						EventType: cloudevent.TypeAttestation,
+						Source:    common.BigToAddress(big.NewInt(1)).Hex(),
+						IDs:       []string{"1"},
+					},
+				},
+			},
+
+			mockSetup: func(*testing.T) {
+				permRecord := sacd.ISacdPermissionRecord{
+					Permissions: big.NewInt(0),
+					Expiration:  big.NewInt(0),
+					Source:      "test-source",
+				}
+				record := *ipfsRecord
+				record.Signature = "0xbad-signature"
+				require.NoError(t, err)
+				mockSacd.EXPECT().AccountPermissionRecords(gomock.Any(), devLicenseAddr, userEthAddr).Return(permRecord, nil)
+				mockipfs.EXPECT().GetValidSacdDoc(gomock.Any(), permRecord.Source).Return(&record, nil)
+				mockSigValidator.EXPECT().ValidateSignature(gomock.Any(), gomock.Any(), "0xbad-signature", gomock.Any()).Return(false, nil)
+			},
+			expectedErrCode: fiber.StatusForbidden,
+		},
+		{
+			name:    "invalid recover signature valid erc1271",
+			ethAddr: userEthAddr,
+			accessRequest: &AccessRequest{
+				Asset: models.EthrAsset{
+					EthrDID: cloudevent.EthrDID{
+						ContractAddress: devLicenseAddr,
+						ChainID:         1,
+					},
+				},
+				EventFilters: []models.EventFilter{
+					{
+						EventType: cloudevent.TypeAttestation,
+						Source:    common.BigToAddress(big.NewInt(1)).Hex(),
+						IDs:       []string{"1"},
+					},
+				},
+			},
+
+			mockSetup: func(*testing.T) {
+				permRecord := sacd.ISacdPermissionRecord{
+					Permissions: big.NewInt(0),
+					Expiration:  big.NewInt(0),
+					Source:      "test-source",
+				}
+				record := *ipfsRecord
+				record.Signature = "0xbad-signature"
+				require.NoError(t, err)
+				mockSacd.EXPECT().AccountPermissionRecords(gomock.Any(), devLicenseAddr, userEthAddr).Return(permRecord, nil)
+				mockipfs.EXPECT().GetValidSacdDoc(gomock.Any(), permRecord.Source).Return(&record, nil)
+				mockSigValidator.EXPECT().ValidateSignature(gomock.Any(), gomock.Any(), "0xbad-signature", gomock.Any()).Return(true, nil)
+			},
+		},
+		{
+			name:    "Fail: must pass privilege or cloud event request",
+			ethAddr: userEthAddr,
+			accessRequest: &AccessRequest{
+				Asset: models.EthrAsset{
+					EthrDID: cloudevent.EthrDID{
+						ContractAddress: devLicenseAddr,
+						ChainID:         1,
+					},
+				},
+				EventFilters: []models.EventFilter{
+					{},
+				},
+			},
+			mockSetup: func(*testing.T) {
+				mockSacd.EXPECT().AccountPermissionRecords(gomock.Any(), devLicenseAddr, userEthAddr).Return(emptyPermRecord, nil)
+				mockipfs.EXPECT().GetValidSacdDoc(gomock.Any(), gomock.Any()).Return(ipfsRecord, nil)
+				mockSigValidator.EXPECT().ValidateSignature(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil)
+			},
+			expectedErrCode: fiber.StatusForbidden,
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			tc.mockSetup(t)
+			err := accessService.ValidateAccess(t.Context(), tc.accessRequest, tc.ethAddr)
+			if tc.expectedErrCode == 0 {
+				require.NoError(t, err)
+				return
+			}
+			require.Error(t, err)
+			var richErr richerrors.Error
+			require.ErrorAs(t, err, &richErr)
+			require.Equal(t, tc.expectedErrCode, richErr.Code)
+		})
+	}
+}
+
+func TestAccessService_ValidateAccess_WithoutAsset_WithTemplateId(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	mockSacd := NewMockSACDInterface(mockCtrl)
+	mockipfs := NewMockIPFSClient(mockCtrl)
+	mockSigValidator := NewMockSignatureValidator(mockCtrl)
+	mockTemplateService := NewMockTemplateService(mockCtrl)
+
+	accessService, err := NewAccessService(mockipfs, mockSacd, mockTemplateService, nil, contractAddressManufacturer)
+	require.NoError(t, err)
+	accessService.sigValidator = mockSigValidator
+
+	userEthAddr := common.HexToAddress("0x20Ca3bE69a8B95D3093383375F0473A8c6341727")
+
+	devLicenseAddr := common.HexToAddress("0x69F5C4D08F6bC8cD29fE5f004d46FB566270868d")
+
+	effectiveAt := time.Now().Add(-5 * time.Hour)
+	expiresAt := time.Now().Add(5 * time.Hour)
+
+	permData := models.SACDData{
+		Grantee: models.Address{
+			Address: userEthAddr.Hex(),
+		},
+		EffectiveAt:          time.Now().Add(-5 * time.Hour),
+		ExpiresAt:            time.Now().Add(5 * time.Hour),
+		Asset:                makeDid("ethr", "1", devLicenseAddr.String(), ""),
+		PermissionTemplateID: "123",
+		Agreements: []models.Agreement{
+			{
+				Type:        "permission",
+				EffectiveAt: effectiveAt,
+				ExpiresAt:   expiresAt,
+				Asset:       makeDid("ethr", "1", devLicenseAddr.String(), ""),
+				Permissions: []models.Permission{
+					{Name: tokenclaims.PrivilegeIDToName[1]},
+					{Name: tokenclaims.PrivilegeIDToName[2]},
+				},
+			},
+		},
+	}
+
+	ipfsRecord, err := signSACDHelper(&permData)
+	require.NoError(t, err)
+
+	// Create a mock empty permission record to return
+	emptyPermRecord := sacd.ISacdPermissionRecord{
+		Permissions: big.NewInt(0),
+		Expiration:  big.NewInt(0),
+		Source:      "",
+	}
+
+	tests := []struct {
+		name            string
+		ethAddr         common.Address
+		accessRequest   *AccessRequest
+		mockSetup       func(t *testing.T)
+		expectedErrCode int
+	}{
+		{
+			name:    "valid request with single privilege and no SACD document or event filters",
+			ethAddr: devLicenseAddr,
+			accessRequest: &AccessRequest{
+				Asset: models.EthrAsset{
+					EthrDID: cloudevent.EthrDID{
+						ContractAddress: devLicenseAddr,
+						ChainID:         1,
+					},
+				},
+				Permissions: []string{tokenclaims.PrivilegeIDToName[4]},
+			},
+			mockSetup: func(*testing.T) {
+				mockSacd.EXPECT().AccountPermissionRecords(gomock.Any(), devLicenseAddr, devLicenseAddr).Return(emptyPermRecord, nil)
+				mockipfs.EXPECT().GetValidSacdDoc(gomock.Any(), gomock.Any()).Return(nil, errors.New("no valid doc"))
+				mockSacd.EXPECT().GetAccountPermissions(gomock.Any(), devLicenseAddr, devLicenseAddr, big.NewInt(0b1100000000)).Return(big.NewInt(0b1100000000), nil)
+			}},
+		{
+			name:    "valid request with multiple privileges and no SACD document or event filters",
+			ethAddr: userEthAddr,
+			accessRequest: &AccessRequest{
+				Asset: models.EthrAsset{
+					EthrDID: cloudevent.EthrDID{
+						ContractAddress: devLicenseAddr,
+						ChainID:         1,
+					},
+				},
+				Permissions: []string{tokenclaims.PrivilegeIDToName[1], tokenclaims.PrivilegeIDToName[2], tokenclaims.PrivilegeIDToName[4], tokenclaims.PrivilegeIDToName[5]},
+			},
+			mockSetup: func(*testing.T) {
+				mockipfs.EXPECT().GetValidSacdDoc(gomock.Any(), gomock.Any()).Return(nil, errors.New("no valid doc"))
+				mockSacd.EXPECT().AccountPermissionRecords(gomock.Any(), devLicenseAddr, userEthAddr).Return(emptyPermRecord, nil)
+				mockSacd.EXPECT().GetAccountPermissions(gomock.Any(), devLicenseAddr, userEthAddr, big.NewInt(0b111100111100)).Return(big.NewInt(0b111100111100), nil)
+			}},
+		{
+			name:    "missing privilege request with multiple privileges and no SACD document or event filters",
+			ethAddr: userEthAddr,
+			accessRequest: &AccessRequest{
+				Asset: models.EthrAsset{
+					EthrDID: cloudevent.EthrDID{
+						ContractAddress: devLicenseAddr,
+						ChainID:         1,
+					},
+				},
+				Permissions: []string{tokenclaims.PrivilegeIDToName[1], tokenclaims.PrivilegeIDToName[2], tokenclaims.PrivilegeIDToName[4], tokenclaims.PrivilegeIDToName[5]},
+			},
+			mockSetup: func(*testing.T) {
+				mockipfs.EXPECT().GetValidSacdDoc(gomock.Any(), gomock.Any()).Return(nil, errors.New("no valid doc"))
+				mockSacd.EXPECT().AccountPermissionRecords(gomock.Any(), devLicenseAddr, userEthAddr).Return(emptyPermRecord, nil)
+				mockSacd.EXPECT().GetAccountPermissions(gomock.Any(), devLicenseAddr, userEthAddr, big.NewInt(0b111100111100)).Return(big.NewInt(0b111100001100), nil)
+
+			},
+			expectedErrCode: fiber.StatusForbidden,
+		},
+		{
+			name:    "valid request with permission template",
+			ethAddr: userEthAddr,
+			accessRequest: &AccessRequest{
+				Asset: models.EthrAsset{
+					EthrDID: cloudevent.EthrDID{
+						ContractAddress: devLicenseAddr,
+						ChainID:         1,
+					},
+				},
+				Permissions: []string{tokenclaims.PrivilegeIDToName[1], tokenclaims.PrivilegeIDToName[2]},
+			},
+			mockSetup: func(*testing.T) {
+				permRecord := sacd.ISacdPermissionRecord{
+					Permissions: big.NewInt(0),
+					Expiration:  big.NewInt(0),
+					Source:      "test-source",
+				}
+
+				mockSacd.EXPECT().AccountPermissionRecords(gomock.Any(), devLicenseAddr, userEthAddr).Return(permRecord, nil)
+				mockipfs.EXPECT().GetValidSacdDoc(gomock.Any(), permRecord.Source).Return(ipfsRecord, nil)
+				mockSacd.EXPECT().GetAccountPermissions(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(big.NewInt(0b1100000000), nil)
+				mockSigValidator.EXPECT().ValidateSignature(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil)
+
+				assetDID := models.EthrAsset{
+					EthrDID: cloudevent.EthrDID{
+						ContractAddress: devLicenseAddr,
+						ChainID:         1,
+					},
+				}
+
+				mockTemplateService.EXPECT().GetTemplatePermissions(gomock.Any(), "123", assetDID).Return(
+					&template.PermissionsResult{
+						Permissions: map[string]bool{
+							tokenclaims.PrivilegeIDToName[1]: true,
+							tokenclaims.PrivilegeIDToName[2]: true,
+						},
+						IsActive: true,
+					}, nil)
+			},
+		},
+		{
+			name:    "inactive permission template",
+			ethAddr: userEthAddr,
+			accessRequest: &AccessRequest{
+				Asset: models.EthrAsset{
+					EthrDID: cloudevent.EthrDID{
+						ContractAddress: devLicenseAddr,
+						ChainID:         1,
+					},
+				},
+				Permissions: []string{tokenclaims.PrivilegeIDToName[1], tokenclaims.PrivilegeIDToName[2]},
+			},
+			mockSetup: func(*testing.T) {
+				permRecord := sacd.ISacdPermissionRecord{
+					Permissions: big.NewInt(0),
+					Expiration:  big.NewInt(0),
+					Source:      "test-source",
+				}
+
+				mockSacd.EXPECT().AccountPermissionRecords(gomock.Any(), devLicenseAddr, userEthAddr).Return(permRecord, nil)
+				mockipfs.EXPECT().GetValidSacdDoc(gomock.Any(), permRecord.Source).Return(ipfsRecord, nil)
+				mockSacd.EXPECT().GetAccountPermissions(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(big.NewInt(0b1100000000), nil)
+				mockSigValidator.EXPECT().ValidateSignature(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil)
+
+				assetDID := models.EthrAsset{
+					EthrDID: cloudevent.EthrDID{
+						ContractAddress: devLicenseAddr,
+						ChainID:         1,
+					},
+				}
+
+				mockTemplateService.EXPECT().GetTemplatePermissions(gomock.Any(), "123", assetDID).Return(
+					&template.PermissionsResult{
+						Permissions: map[string]bool{
+							tokenclaims.PrivilegeIDToName[2]: true,
+						},
+						IsActive: false,
+					}, nil)
+			},
+			expectedErrCode: fiber.StatusForbidden,
+		},
+		{
+			name:    "template service error",
+			ethAddr: userEthAddr,
+			accessRequest: &AccessRequest{
+				Asset: models.EthrAsset{
+					EthrDID: cloudevent.EthrDID{
+						ContractAddress: devLicenseAddr,
+						ChainID:         1,
+					},
+				},
+				Permissions: []string{tokenclaims.PrivilegeIDToName[1], tokenclaims.PrivilegeIDToName[2]},
+			},
+			mockSetup: func(*testing.T) {
+				permRecord := sacd.ISacdPermissionRecord{
+					Permissions: big.NewInt(0),
+					Expiration:  big.NewInt(0),
+					Source:      "test-source",
+				}
+
+				mockSacd.EXPECT().AccountPermissionRecords(gomock.Any(), devLicenseAddr, userEthAddr).Return(permRecord, nil)
+				mockipfs.EXPECT().GetValidSacdDoc(gomock.Any(), permRecord.Source).Return(ipfsRecord, nil)
+				mockSigValidator.EXPECT().ValidateSignature(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil)
+
+				assetDID := models.EthrAsset{
+					EthrDID: cloudevent.EthrDID{
+						ContractAddress: devLicenseAddr,
+						ChainID:         1,
+					},
+				}
+
+				mockTemplateService.EXPECT().GetTemplatePermissions(gomock.Any(), "123", assetDID).Return(
+					nil, fmt.Errorf("template service error"))
+			},
+			expectedErrCode: fiber.StatusForbidden,
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			tc.mockSetup(t)
+			err := accessService.ValidateAccess(t.Context(), tc.accessRequest, tc.ethAddr)
+			if tc.expectedErrCode == 0 {
+				require.NoError(t, err)
+				return
+			}
+			require.Error(t, err)
+			var richErr richerrors.Error
+			require.ErrorAs(t, err, &richErr)
+			require.Equal(t, tc.expectedErrCode, richErr.Code)
+		})
+	}
+}
+
 func signSACDHelper(grantData *models.SACDData) (*cloudevent.RawEvent, error) {
 	privateKey, err := crypto.GenerateKey()
 	if err != nil {
