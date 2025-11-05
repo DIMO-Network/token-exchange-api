@@ -18,6 +18,7 @@ import (
 	cloudevent "github.com/DIMO-Network/cloudevent"
 	sacd "github.com/DIMO-Network/token-exchange-api/internal/contracts/sacd"
 	template "github.com/DIMO-Network/token-exchange-api/internal/contracts/template"
+	models "github.com/DIMO-Network/token-exchange-api/internal/models"
 	template0 "github.com/DIMO-Network/token-exchange-api/internal/services/template"
 	bind "github.com/ethereum/go-ethereum/accounts/abi/bind"
 	common "github.com/ethereum/go-ethereum/common"
@@ -48,6 +49,21 @@ func (m *MockSACDInterface) EXPECT() *MockSACDInterfaceMockRecorder {
 	return m.recorder
 }
 
+// AccountPermissionRecords mocks base method.
+func (m *MockSACDInterface) AccountPermissionRecords(opts *bind.CallOpts, grantor, grantee common.Address) (sacd.ISacdPermissionRecord, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AccountPermissionRecords", opts, grantor, grantee)
+	ret0, _ := ret[0].(sacd.ISacdPermissionRecord)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// AccountPermissionRecords indicates an expected call of AccountPermissionRecords.
+func (mr *MockSACDInterfaceMockRecorder) AccountPermissionRecords(opts, grantor, grantee any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AccountPermissionRecords", reflect.TypeOf((*MockSACDInterface)(nil).AccountPermissionRecords), opts, grantor, grantee)
+}
+
 // CurrentPermissionRecord mocks base method.
 func (m *MockSACDInterface) CurrentPermissionRecord(opts *bind.CallOpts, asset common.Address, tokenID *big.Int, grantee common.Address) (sacd.ISacdPermissionRecord, error) {
 	m.ctrl.T.Helper()
@@ -61,6 +77,21 @@ func (m *MockSACDInterface) CurrentPermissionRecord(opts *bind.CallOpts, asset c
 func (mr *MockSACDInterfaceMockRecorder) CurrentPermissionRecord(opts, asset, tokenID, grantee any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CurrentPermissionRecord", reflect.TypeOf((*MockSACDInterface)(nil).CurrentPermissionRecord), opts, asset, tokenID, grantee)
+}
+
+// GetAccountPermissions mocks base method.
+func (m *MockSACDInterface) GetAccountPermissions(opts *bind.CallOpts, grantor, grantee common.Address, permissions *big.Int) (*big.Int, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetAccountPermissions", opts, grantor, grantee, permissions)
+	ret0, _ := ret[0].(*big.Int)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetAccountPermissions indicates an expected call of GetAccountPermissions.
+func (mr *MockSACDInterfaceMockRecorder) GetAccountPermissions(opts, grantor, grantee, permissions any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAccountPermissions", reflect.TypeOf((*MockSACDInterface)(nil).GetAccountPermissions), opts, grantor, grantee, permissions)
 }
 
 // GetPermissions mocks base method.
@@ -235,7 +266,7 @@ func (m *MockTemplateService) EXPECT() *MockTemplateServiceMockRecorder {
 }
 
 // GetTemplatePermissions mocks base method.
-func (m *MockTemplateService) GetTemplatePermissions(ctx context.Context, permissionTemplateID string, assetDID cloudevent.ERC721DID) (*template0.PermissionsResult, error) {
+func (m *MockTemplateService) GetTemplatePermissions(ctx context.Context, permissionTemplateID string, assetDID models.AssetDID) (*template0.PermissionsResult, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetTemplatePermissions", ctx, permissionTemplateID, assetDID)
 	ret0, _ := ret[0].(*template0.PermissionsResult)

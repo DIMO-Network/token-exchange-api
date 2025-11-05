@@ -35,10 +35,12 @@ func TestTemplateService_CacheEffectiveness(t *testing.T) {
 	}
 
 	templateID := "123"
-	assetDID := cloudevent.ERC721DID{
-		ContractAddress: common.HexToAddress("0x1234567890123456789012345678901234567890"),
-		TokenID:         big.NewInt(1),
-		ChainID:         1,
+	assetDID := models.ERC721Asset{
+		ERC721DID: cloudevent.ERC721DID{
+			ContractAddress: common.HexToAddress("0x1234567890123456789012345678901234567890"),
+			TokenID:         big.NewInt(1),
+			ChainID:         1,
+		},
 	}
 
 	mockTemplateData := template.ITemplateTemplateData{
@@ -134,10 +136,12 @@ func TestGetTemplatePermissions(t *testing.T) {
 	}
 
 	templateID := "123"
-	assetDID := cloudevent.ERC721DID{
-		ContractAddress: common.HexToAddress("0x1234567890123456789012345678901234567890"),
-		TokenID:         big.NewInt(1),
-		ChainID:         1,
+	assetDID := models.ERC721Asset{
+		ERC721DID: cloudevent.ERC721DID{
+			ContractAddress: common.HexToAddress("0x1234567890123456789012345678901234567890"),
+			TokenID:         big.NewInt(1),
+			ChainID:         1,
+		},
 	}
 
 	mockTemplateData := template.ITemplateTemplateData{
@@ -352,7 +356,7 @@ func TestExtractPermissionsFromAgreements(t *testing.T) {
 	tests := []struct {
 		name       string
 		agreements []models.TemplateAgreement
-		assetDID   cloudevent.ERC721DID
+		assetDID   models.AssetDID
 		expected   map[string]bool
 	}{
 		{
@@ -374,10 +378,12 @@ func TestExtractPermissionsFromAgreements(t *testing.T) {
 					},
 				},
 			},
-			assetDID: cloudevent.ERC721DID{
-				ContractAddress: common.HexToAddress("0x1234567890123456789012345678901234567890"),
-				TokenID:         big.NewInt(123),
-				ChainID:         1,
+			assetDID: models.ERC721Asset{
+				ERC721DID: cloudevent.ERC721DID{
+					ContractAddress: common.HexToAddress("0x1234567890123456789012345678901234567890"),
+					TokenID:         big.NewInt(123),
+					ChainID:         1,
+				},
 			},
 			expected: map[string]bool{
 				"privilege:GetNonLocationHistory": true,
@@ -397,10 +403,12 @@ func TestExtractPermissionsFromAgreements(t *testing.T) {
 					},
 				},
 			},
-			assetDID: cloudevent.ERC721DID{
-				ContractAddress: common.HexToAddress("0x0987654321098765432109876543210987654321"),
-				TokenID:         big.NewInt(123),
-				ChainID:         1,
+			assetDID: models.ERC721Asset{
+				ERC721DID: cloudevent.ERC721DID{
+					ContractAddress: common.HexToAddress("0x0987654321098765432109876543210987654321"),
+					TokenID:         big.NewInt(123),
+					ChainID:         1,
+				},
 			},
 			expected: map[string]bool{},
 		},

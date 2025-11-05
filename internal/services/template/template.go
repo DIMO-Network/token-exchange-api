@@ -57,7 +57,7 @@ func NewTemplateService(templateContract Template, ipfsClient IPFSClient, ethCli
 }
 
 // GetTemplatePermissions fetches template permissions and activation status
-func (s *Service) GetTemplatePermissions(ctx context.Context, permissionTemplateID string, assetDID cloudevent.ERC721DID) (*PermissionsResult, error) {
+func (s *Service) GetTemplatePermissions(ctx context.Context, permissionTemplateID string, assetDID models.AssetDID) (*PermissionsResult, error) {
 	// Check cache first
 	s.cacheMutex.RLock()
 	if cachedAgreements, exists := s.cache[permissionTemplateID]; exists {
@@ -124,7 +124,7 @@ func (s *Service) GetTemplatePermissions(ctx context.Context, permissionTemplate
 }
 
 // getTemplatePermissionsAndStatus gets template permissions and activation status
-func (s *Service) getTemplatePermissionsAndStatus(ctx context.Context, permissionTemplateID string, agreements []models.TemplateAgreement, assetDID cloudevent.ERC721DID) (*PermissionsResult, error) {
+func (s *Service) getTemplatePermissionsAndStatus(ctx context.Context, permissionTemplateID string, agreements []models.TemplateAgreement, assetDID models.AssetDID) (*PermissionsResult, error) {
 	templatePermissions := s.extractPermissionsFromAgreements(agreements, assetDID)
 
 	if len(templatePermissions) == 0 {
@@ -157,11 +157,11 @@ func (s *Service) getTemplatePermissionsAndStatus(ctx context.Context, permissio
 	}, nil
 }
 
-func (s *Service) extractPermissionsFromAgreements(agreements []models.TemplateAgreement, assetDID cloudevent.ERC721DID) map[string]bool {
+func (s *Service) extractPermissionsFromAgreements(agreements []models.TemplateAgreement, assetDID models.AssetDID) map[string]bool {
 	templatePermGrants := make(map[string]bool)
 
 	// Convert did:erc721 to did:ethr without the token ID for comparison
-	assetEthrDID := fmt.Sprintf("did:ethr:%d:%s", assetDID.ChainID, assetDID.ContractAddress.Hex())
+	assetEthrDID := fmt.Sprintf("did:ethr:%d:%s", assetDID.GetChainID(), assetDID.GetContractAddress().Hex())
 
 	for _, agreement := range agreements {
 		if agreement.Asset != assetEthrDID {

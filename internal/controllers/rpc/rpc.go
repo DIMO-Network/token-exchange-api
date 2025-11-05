@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/DIMO-Network/cloudevent"
 	"github.com/DIMO-Network/server-garage/pkg/richerrors"
 	"github.com/DIMO-Network/token-exchange-api/internal/models"
 	"github.com/DIMO-Network/token-exchange-api/internal/services/access"
@@ -29,10 +28,11 @@ func NewTokenExchangeServer(accessService *access.Service) *TokenExchangeServer 
 
 // AccessCheck checks if the grantee has access to the asset.
 func (s *TokenExchangeServer) AccessCheck(ctx context.Context, req *grpc.AccessCheckRequest) (*grpc.AccessCheckResponse, error) {
-	assetDID, err := cloudevent.DecodeERC721DID(req.GetAsset())
+	assetDID, err := models.DecodeAssetDID(req.GetAsset())
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode asset DID: %w", err)
 	}
+
 	events := make([]models.EventFilter, len(req.GetEvents()))
 	for i, event := range req.GetEvents() {
 		events[i] = models.EventFilter{
