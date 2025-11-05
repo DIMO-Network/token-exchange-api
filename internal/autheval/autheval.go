@@ -152,7 +152,7 @@ func UserGrantMap(ctx context.Context, data *models.SACDData, assetDID models.As
 		}
 
 		if agreement.Asset != assetDID.String() {
-			return nil, cloudEvtAgreements, fmt.Errorf("asset DID %s does not match request DID %s", agreement.Asset, assetDID.GetContractAddress())
+			return nil, cloudEvtAgreements, fmt.Errorf("asset DID %s does not match request DID %s", agreement.Asset, assetDID.String())
 		}
 
 		switch agreement.Type {
