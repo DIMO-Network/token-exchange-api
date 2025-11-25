@@ -86,7 +86,7 @@ func (i *IPFSClient) Fetch(ctx context.Context, cid string) ([]byte, error) {
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("invalid ipfs status code: %d, body: %s", resp.StatusCode, string(body))
+		return nil, fmt.Errorf("invalid ipfs status code: %d, body: %q, uri: %q", resp.StatusCode, string(body), ipfsURL)
 	}
 
 	return body, nil
