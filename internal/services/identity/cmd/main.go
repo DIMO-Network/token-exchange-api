@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"math/big"
 	"net/http"
 	"os"
 
@@ -14,6 +15,7 @@ import (
 func main() {
 	tokenID := flag.Int("token-id", 0, "Vehicle token ID")
 	grantee := flag.String("grantee", "", "Grantee address")
+	permissions := flag.String("permissions", "0", "Permissions value (binary, e.g. 1100)")
 	flag.Parse()
 
 	if *tokenID == 0 {
@@ -33,18 +35,34 @@ func main() {
 		os.Exit(1)
 	}
 
-	client := &identity.Client{
-		HTTP: &http.Client{},
-	}
-
-	ctx := context.Background()
-	resp, err := client.GetVehicleSACD(ctx, *tokenID, common.HexToAddress(*grantee))
-	if err != nil {
-		fmt.Printf("Error: %v\n", err)
+	permsBigInt := new(big.Int)
+	_, ok := permsBigInt.SetString(*permissions, 2)
+	if !ok {
+		fmt.Printf("Error: invalid binary permissions value: %s\n", *permissions)
 		os.Exit(1)
 	}
 
-	fmt.Printf("Success!\n")
-	fmt.Printf("Permissions: 0x%s\n", resp.Permissions.Text(16))
-	fmt.Printf("Source: %s\n", resp.Source)
+	client := &identity.Client{
+		HTTP:          &http.Client{},
+		QueryEndpoint: "https://identity-api.dimo.zone/query",
+	}
+
+	ctx := context.Background()
+	granteeAddr := common.HexToAddress(*grantee)
+
+	fmt.Println("=== GetVehicleSACDSource ===")
+	source, err := client.GetVehicleSACDSource(ctx, *tokenID, granteeAddr)
+	if err != nil {
+		fmt.Printf("Error: %v\n", err)
+	} else {
+		fmt.Printf("Source: %s\n", source)
+	}
+
+	fmt.Println("\n=== GetVehicleSACDPermissions ===")
+	resultPerms, err := client.GetVehicleSACDPermissions(ctx, *tokenID, granteeAddr, permsBigInt)
+	if err != nil {
+		fmt.Printf("Error: %v\n", err)
+	} else {
+		fmt.Printf("Calculated Permissions: 0x%s\n", resultPerms.Text(16))
+	}
 }

@@ -50,6 +50,11 @@ type SignatureValidator interface {
 	ValidateSignature(ctx context.Context, payload json.RawMessage, signature string, ethAddr common.Address) (bool, error)
 }
 
+type SACDClient interface {
+	GetVehicleSACDSource(ctx context.Context, tokenID int, grantee common.Address) (string, error)
+	GetPermissions(ctx context.Context, tokenID int, grantee common.Address, permissions *big.Int) (*big.Int, error)
+}
+
 // AccessRequest is a request to check access to an asset (NFT or regular user address).
 type AccessRequest struct { //nolint:revive
 	// Asset is the DID of the asset to check access to (either ERC721 or Ethr)
@@ -65,6 +70,8 @@ type Service struct {
 	templateService             TemplateService
 	sigValidator                SignatureValidator
 	contractAddressManufacturer common.Address
+	sacdClient                  SACDClient
+	vehicleNFTAddr              common.Address
 }
 
 func NewAccessService(ipfsService IPFSClient,
@@ -95,18 +102,32 @@ func (s *Service) ValidateAccess(ctx context.Context, accessReq *AccessRequest, 
 	return nil
 }
 
-func (s *Service) ValidateAccessViaSourceDoc(ctx context.Context, accessReq *AccessRequest, ethAddr common.Address) error {
+func (s *Service) getSourceDocURI(ctx context.Context, accessReq *AccessRequest, ethAddr common.Address) (string, error) {
 	opts := &bind.CallOpts{
 		Context: ctx,
 	}
-
-	var resPermRecord sacd.ISacdPermissionRecord
-	var err error
 	if accessReq.Asset.IsAccountLevel() {
-		resPermRecord, err = s.sacdContract.AccountPermissionRecords(opts, accessReq.Asset.GetContractAddress(), ethAddr)
-	} else {
-		resPermRecord, err = s.sacdContract.CurrentPermissionRecord(opts, accessReq.Asset.GetContractAddress(), accessReq.Asset.GetTokenID(), ethAddr)
+		resPermRecord, err := s.sacdContract.AccountPermissionRecords(opts, accessReq.Asset.GetContractAddress(), ethAddr)
+		return resPermRecord.Source, err
 	}
+
+	// Must be NFT-level.
+
+	// Special case for vehicles: can get it from Identity and save a chain call.
+	if accessReq.Asset.GetContractAddress() == s.vehicleNFTAddr {
+		rpr, err := s.sacdClient.GetVehicleSACDSource(ctx, int(accessReq.Asset.GetTokenID().Int64()), ethAddr)
+		if err == nil {
+			return "", err
+		}
+		return rpr, nil
+	}
+
+	resPermRecord, err := s.sacdContract.CurrentPermissionRecord(opts, accessReq.Asset.GetContractAddress(), accessReq.Asset.GetTokenID(), ethAddr)
+	return resPermRecord.Source, err
+}
+
+func (s *Service) ValidateAccessViaSourceDoc(ctx context.Context, accessReq *AccessRequest, ethAddr common.Address) error {
+	sourceURI, err := s.getSourceDocURI(ctx, accessReq, ethAddr)
 	if err != nil {
 		return richerrors.Error{
 			Code:        http.StatusInternalServerError,
@@ -115,7 +136,7 @@ func (s *Service) ValidateAccessViaSourceDoc(ctx context.Context, accessReq *Acc
 		}
 	}
 
-	record, err := s.ipfsClient.GetValidSacdDoc(ctx, resPermRecord.Source)
+	record, err := s.ipfsClient.GetValidSacdDoc(ctx, sourceURI)
 	if err != nil {
 		return err
 	}
@@ -239,7 +260,11 @@ func (s *Service) evaluatePermissionsBits(
 	if asset.IsAccountLevel() {
 		ret, err = s.sacdContract.GetAccountPermissions(opts, asset.GetContractAddress(), ethAddr, mask)
 	} else {
-		ret, err = s.sacdContract.GetPermissions(opts, asset.GetContractAddress(), asset.GetTokenID(), ethAddr, mask)
+		if asset.GetContractAddress() == s.vehicleNFTAddr {
+			ret, err = s.sacdClient.GetPermissions(ctx, int(asset.GetTokenID().Int64()), ethAddr, mask)
+		} else {
+			ret, err = s.sacdContract.GetPermissions(opts, asset.GetContractAddress(), asset.GetTokenID(), ethAddr, mask)
+		}
 	}
 	if err != nil {
 		return richerrors.Error{

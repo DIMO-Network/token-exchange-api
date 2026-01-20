@@ -15,7 +15,8 @@ import (
 )
 
 type Client struct {
-	HTTP *http.Client
+	HTTP          *http.Client
+	QueryEndpoint string
 }
 
 type QueryBody struct {
@@ -29,6 +30,7 @@ type RawResponseSACD struct {
 }
 
 type Response struct {
+	IsOwner     bool
 	Permissions *big.Int
 	Source      string
 }
@@ -40,12 +42,14 @@ type RawRespon struct {
 }
 
 type Vehicle struct {
-	SACD *RawResponseSACD `json:"sacd"`
+	Owner common.Address   `json:"owner"`
+	SACD  *RawResponseSACD `json:"sacd"`
 }
 
 var query = `
 query ($tokenId: Int!, $grantee: Address!) {
 	vehicle(tokenId: $tokenId) {
+		owner
 		sacd(grantee: $grantee) {
 			permissions
 			source
@@ -54,7 +58,46 @@ query ($tokenId: Int!, $grantee: Address!) {
 }
 `
 
-func (c *Client) GetVehicleSACD(ctx context.Context, tokenID int, grantee common.Address) (*Response, error) {
+func (c *Client) GetVehicleSACDSource(ctx context.Context, tokenID int, grantee common.Address) (string, error) {
+	r, err := c.getVehicleSACD(ctx, tokenID, grantee)
+	if err != nil {
+		return "", err
+	}
+	if r.SACD == nil {
+		return "", errors.New("no SACD with that grantee")
+	}
+	return r.SACD.Source, nil
+}
+
+func (c *Client) GetVehicleSACDPermissions(ctx context.Context, tokenID int, grantee common.Address, permissions *big.Int) (*big.Int, error) {
+	r, err := c.getVehicleSACD(ctx, tokenID, grantee)
+	if err != nil {
+		return nil, err
+	}
+
+	fmt.Printf("ASKED FOR %s\n", permissions.Text(16))
+
+	// What follows recreates the calculations the contract does for getPermissions.
+	if r.Owner == grantee {
+		fmt.Printf("OWNER\n")
+
+		return permissions, nil
+	}
+	if r.SACD == nil {
+		return nil, errors.New("no SACD with that grantee")
+	}
+
+	onChainPerms, err := hexutil.DecodeBig(r.SACD.Permissions)
+	if err != nil {
+		return nil, err
+	}
+
+	fmt.Printf("ONCHAIN %s\n", onChainPerms.Text(16))
+
+	return new(big.Int).And(onChainPerms, permissions), nil
+}
+
+func (c *Client) getVehicleSACD(ctx context.Context, tokenID int, grantee common.Address) (*Vehicle, error) {
 	qb := QueryBody{
 		Query: query,
 		Variables: map[string]any{
@@ -68,7 +111,7 @@ func (c *Client) GetVehicleSACD(ctx context.Context, tokenID int, grantee common
 		return nil, err
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "POST", "https://identity-api.dimo.zone/query", bytes.NewReader(b))
+	req, err := http.NewRequestWithContext(ctx, "POST", c.QueryEndpoint, bytes.NewReader(b))
 	if err != nil {
 		return nil, err
 	}
@@ -86,8 +129,6 @@ func (c *Client) GetVehicleSACD(ctx context.Context, tokenID int, grantee common
 		return nil, err
 	}
 
-	fmt.Println(string(bb))
-
 	if res.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("status code %d", res.StatusCode)
 	}
@@ -103,16 +144,5 @@ func (c *Client) GetVehicleSACD(ctx context.Context, tokenID int, grantee common
 		return nil, errors.New("vehicle not found")
 	}
 
-	if raw.Data.Vehicle.SACD == nil {
-		return nil, errors.New("no SACD found")
-	}
-	p, err := hexutil.DecodeBig(raw.Data.Vehicle.SACD.Permissions)
-	if err != nil {
-		return nil, err
-	}
-	return &Response{
-		Permissions: p,
-		Source:      raw.Data.Vehicle.SACD.Source,
-	}, nil
-
+	return raw.Data.Vehicle, nil
 }
