@@ -19,6 +19,7 @@ env:
   IPFS_BASE_URL: https://assets.dimo.xyz/ipfs
   IPFS_TIMEOUT: 30s
   DIMO_REGISTRY_CHAIN_ID: 137
+  CONTRACT_ADDRESS_VEHICLE: "0xbA5738a18d83D41847dfFbDC6101d37C69c9B0cF"
 resources:
   limits:
     cpu: 1

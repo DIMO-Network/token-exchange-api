@@ -52,7 +52,7 @@ type SignatureValidator interface {
 
 type SACDClient interface {
 	GetVehicleSACDSource(ctx context.Context, tokenID int, grantee common.Address) (string, error)
-	GetPermissions(ctx context.Context, tokenID int, grantee common.Address, permissions *big.Int) (*big.Int, error)
+	GetVehicleSACDPermissions(ctx context.Context, tokenID int, grantee common.Address, permissions *big.Int) (*big.Int, error)
 }
 
 // AccessRequest is a request to check access to an asset (NFT or regular user address).
@@ -71,20 +71,25 @@ type Service struct {
 	sigValidator                SignatureValidator
 	contractAddressManufacturer common.Address
 	sacdClient                  SACDClient
-	vehicleNFTAddr              common.Address
+	contractAddressVehicle      common.Address
 }
 
 func NewAccessService(ipfsService IPFSClient,
 	sacd SACDInterface,
 	templateService TemplateService,
 	ethClient *ethclient.Client,
-	contractAddressManufacturer common.Address) (*Service, error) {
+	contractAddressManufacturer common.Address,
+	contractAddressVehicle common.Address,
+	sacdClient SACDClient,
+) (*Service, error) {
 	return &Service{
 		sacdContract:                sacd,
 		ipfsClient:                  ipfsService,
 		sigValidator:                signature.NewValidator(ethClient),
 		templateService:             templateService,
 		contractAddressManufacturer: contractAddressManufacturer,
+		contractAddressVehicle:      contractAddressVehicle,
+		sacdClient:                  sacdClient,
 	}, nil
 }
 
@@ -114,9 +119,9 @@ func (s *Service) getSourceDocURI(ctx context.Context, accessReq *AccessRequest,
 	// Must be NFT-level.
 
 	// Special case for vehicles: can get it from Identity and save a chain call.
-	if accessReq.Asset.GetContractAddress() == s.vehicleNFTAddr {
+	if accessReq.Asset.GetContractAddress() == s.contractAddressVehicle {
 		rpr, err := s.sacdClient.GetVehicleSACDSource(ctx, int(accessReq.Asset.GetTokenID().Int64()), ethAddr)
-		if err == nil {
+		if err != nil {
 			return "", err
 		}
 		return rpr, nil
@@ -260,8 +265,8 @@ func (s *Service) evaluatePermissionsBits(
 	if asset.IsAccountLevel() {
 		ret, err = s.sacdContract.GetAccountPermissions(opts, asset.GetContractAddress(), ethAddr, mask)
 	} else {
-		if asset.GetContractAddress() == s.vehicleNFTAddr {
-			ret, err = s.sacdClient.GetPermissions(ctx, int(asset.GetTokenID().Int64()), ethAddr, mask)
+		if asset.GetContractAddress() == s.contractAddressVehicle {
+			ret, err = s.sacdClient.GetVehicleSACDPermissions(ctx, int(asset.GetTokenID().Int64()), ethAddr, mask)
 		} else {
 			ret, err = s.sacdContract.GetPermissions(opts, asset.GetContractAddress(), asset.GetTokenID(), ethAddr, mask)
 		}

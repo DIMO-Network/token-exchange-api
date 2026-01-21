@@ -23,6 +23,7 @@ import (
 )
 
 var contractAddressManufacturer = common.HexToAddress("0xAbc")
+var contractAddressVehicle = common.HexToAddress("0xdd")
 var assetContractAddress = common.HexToAddress("0x90C4D6113Ec88dd4BDf12f26DB2b3998fd13A144")
 
 //go:generate go tool mockgen -source ./access.go -destination ./access_mock_test.go -package access
@@ -34,11 +35,12 @@ func TestAccessService_ValidateAccess_WithAsset_WithoutTemplateId(t *testing.T) 
 	mockTemplate := NewMockTemplate(mockCtrl)
 	mockipfs := NewMockIPFSClient(mockCtrl)
 	mockSigValidator := NewMockSignatureValidator(mockCtrl)
+	mockSacdClient := NewMockSACDClient(mockCtrl)
 
 	templateService, err := template.NewTemplateService(mockTemplate, mockipfs, nil)
 	require.NoError(t, err)
 
-	accessService, err := NewAccessService(mockipfs, mockSacd, templateService, nil, contractAddressManufacturer)
+	accessService, err := NewAccessService(mockipfs, mockSacd, templateService, nil, contractAddressManufacturer, contractAddressVehicle, mockSacdClient)
 	require.NoError(t, err)
 	accessService.sigValidator = mockSigValidator
 
@@ -290,8 +292,9 @@ func TestAccessService_ValidateAccess_WithAsset_WithTemplateId(t *testing.T) {
 	mockipfs := NewMockIPFSClient(mockCtrl)
 	mockSigValidator := NewMockSignatureValidator(mockCtrl)
 	mockTemplateService := NewMockTemplateService(mockCtrl)
+	mockSacdClient := NewMockSACDClient(mockCtrl)
 
-	accessService, err := NewAccessService(mockipfs, mockSacd, mockTemplateService, nil, contractAddressManufacturer)
+	accessService, err := NewAccessService(mockipfs, mockSacd, mockTemplateService, nil, contractAddressManufacturer, contractAddressVehicle, mockSacdClient)
 	require.NoError(t, err)
 	accessService.sigValidator = mockSigValidator
 
@@ -555,11 +558,12 @@ func TestAccessService_ValidateAccess_WithoutAsset_WithoutTemplateId(t *testing.
 	mockTemplate := NewMockTemplate(mockCtrl)
 	mockipfs := NewMockIPFSClient(mockCtrl)
 	mockSigValidator := NewMockSignatureValidator(mockCtrl)
+	mockSacdClient := NewMockSACDClient(mockCtrl)
 
 	templateService, err := template.NewTemplateService(mockTemplate, mockipfs, nil)
 	require.NoError(t, err)
 
-	accessService, err := NewAccessService(mockipfs, mockSacd, templateService, nil, contractAddressManufacturer)
+	accessService, err := NewAccessService(mockipfs, mockSacd, templateService, nil, contractAddressManufacturer, contractAddressVehicle, mockSacdClient)
 	require.NoError(t, err)
 	accessService.sigValidator = mockSigValidator
 
@@ -804,8 +808,9 @@ func TestAccessService_ValidateAccess_WithoutAsset_WithTemplateId(t *testing.T) 
 	mockipfs := NewMockIPFSClient(mockCtrl)
 	mockSigValidator := NewMockSignatureValidator(mockCtrl)
 	mockTemplateService := NewMockTemplateService(mockCtrl)
+	mockSacdClient := NewMockSACDClient(mockCtrl)
 
-	accessService, err := NewAccessService(mockipfs, mockSacd, mockTemplateService, nil, contractAddressManufacturer)
+	accessService, err := NewAccessService(mockipfs, mockSacd, mockTemplateService, nil, contractAddressManufacturer, contractAddressVehicle, mockSacdClient)
 	require.NoError(t, err)
 	accessService.sigValidator = mockSigValidator
 

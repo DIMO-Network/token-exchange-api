@@ -3,6 +3,7 @@ package app
 import (
 	"errors"
 	"fmt"
+	"net/http"
 	"strings"
 
 	"github.com/DIMO-Network/server-garage/pkg/richerrors"
@@ -16,6 +17,7 @@ import (
 	"github.com/DIMO-Network/token-exchange-api/internal/middleware"
 	"github.com/DIMO-Network/token-exchange-api/internal/services"
 	"github.com/DIMO-Network/token-exchange-api/internal/services/access"
+	"github.com/DIMO-Network/token-exchange-api/internal/services/identity"
 	templatesvs "github.com/DIMO-Network/token-exchange-api/internal/services/template"
 	txgrpc "github.com/DIMO-Network/token-exchange-api/pkg/grpc"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -63,7 +65,20 @@ func CreateServers(logger zerolog.Logger, settings *config.Settings) (*fiber.App
 		return nil, nil, fmt.Errorf("failed to create template service: %w", err)
 	}
 
-	accessService, err := access.NewAccessService(ipfsService, sacdContract, templateService, ethClient, settings.ContractAddressManufacturer)
+	sacdClient := &identity.Client{
+		HTTP:          &http.Client{},
+		QueryEndpoint: settings.IdentityURL,
+	}
+
+	accessService, err := access.NewAccessService(
+		ipfsService,
+		sacdContract,
+		templateService,
+		ethClient,
+		settings.ContractAddressManufacturer,
+		settings.ContractAddressVehicle,
+		sacdClient,
+	)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to create access service: %w", err)
 	}

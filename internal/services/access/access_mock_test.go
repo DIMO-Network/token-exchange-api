@@ -318,3 +318,57 @@ func (mr *MockSignatureValidatorMockRecorder) ValidateSignature(ctx, payload, si
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateSignature", reflect.TypeOf((*MockSignatureValidator)(nil).ValidateSignature), ctx, payload, signature, ethAddr)
 }
+
+// MockSACDClient is a mock of SACDClient interface.
+type MockSACDClient struct {
+	ctrl     *gomock.Controller
+	recorder *MockSACDClientMockRecorder
+	isgomock struct{}
+}
+
+// MockSACDClientMockRecorder is the mock recorder for MockSACDClient.
+type MockSACDClientMockRecorder struct {
+	mock *MockSACDClient
+}
+
+// NewMockSACDClient creates a new mock instance.
+func NewMockSACDClient(ctrl *gomock.Controller) *MockSACDClient {
+	mock := &MockSACDClient{ctrl: ctrl}
+	mock.recorder = &MockSACDClientMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockSACDClient) EXPECT() *MockSACDClientMockRecorder {
+	return m.recorder
+}
+
+// GetVehicleSACDPermissions mocks base method.
+func (m *MockSACDClient) GetVehicleSACDPermissions(ctx context.Context, tokenID int, grantee common.Address, permissions *big.Int) (*big.Int, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetVehicleSACDPermissions", ctx, tokenID, grantee, permissions)
+	ret0, _ := ret[0].(*big.Int)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetVehicleSACDPermissions indicates an expected call of GetVehicleSACDPermissions.
+func (mr *MockSACDClientMockRecorder) GetVehicleSACDPermissions(ctx, tokenID, grantee, permissions any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetVehicleSACDPermissions", reflect.TypeOf((*MockSACDClient)(nil).GetVehicleSACDPermissions), ctx, tokenID, grantee, permissions)
+}
+
+// GetVehicleSACDSource mocks base method.
+func (m *MockSACDClient) GetVehicleSACDSource(ctx context.Context, tokenID int, grantee common.Address) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetVehicleSACDSource", ctx, tokenID, grantee)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetVehicleSACDSource indicates an expected call of GetVehicleSACDSource.
+func (mr *MockSACDClientMockRecorder) GetVehicleSACDSource(ctx, tokenID, grantee any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetVehicleSACDSource", reflect.TypeOf((*MockSACDClient)(nil).GetVehicleSACDSource), ctx, tokenID, grantee)
+}
