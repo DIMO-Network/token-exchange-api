@@ -75,12 +75,8 @@ func (c *Client) GetVehicleSACDPermissions(ctx context.Context, tokenID int, gra
 		return nil, err
 	}
 
-	fmt.Printf("ASKED FOR %s\n", permissions.Text(16))
-
 	// What follows recreates the calculations the contract does for getPermissions.
 	if r.Owner == grantee {
-		fmt.Printf("OWNER\n")
-
 		return permissions, nil
 	}
 	if r.SACD == nil {
