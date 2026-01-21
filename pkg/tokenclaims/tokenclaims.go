@@ -65,14 +65,14 @@ func (c *CustomClaims) Proto() (*structpb.Struct, error) {
 	}
 
 	if c.CloudEvents != nil {
-		events := []any{}
+		events := make([]any, 0, len(c.CloudEvents.Events))
 		for _, evt := range c.CloudEvents.Events {
-			ids := []any{}
+			ids := make([]any, 0, len(evt.IDs))
 			for _, id := range evt.IDs {
 				ids = append(ids, id)
 			}
 
-			tags := []any{}
+			tags := make([]any, 0, len(evt.Tags))
 			for _, tag := range evt.Tags {
 				tags = append(tags, tag)
 			}
