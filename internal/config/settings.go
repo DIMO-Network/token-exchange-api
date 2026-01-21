@@ -19,9 +19,8 @@ type Settings struct {
 	ContractAddressTemplate     common.Address `yaml:"CONTRACT_ADDRESS_TEMPLATE"`
 	ContractAddressManufacturer common.Address `yaml:"CONTRACT_ADDRESS_MANUFACTURER"`
 	ContractAddressVehicle      common.Address `yaml:"CONTRACT_ADDRESS_VEHICLE"`
-
-	IdentityURL         string `yaml:"IDENTITY_URL"`
-	IPFSBaseURL         string `yaml:"IPFS_BASE_URL"`
-	IPFSTimeout         string `yaml:"IPFS_TIMEOUT"`
-	DIMORegistryChainID uint64 `yaml:"DIMO_REGISTRY_CHAIN_ID"`
+	IdentityURL                 string         `yaml:"IDENTITY_URL"`
+	IPFSBaseURL                 string         `yaml:"IPFS_BASE_URL"`
+	IPFSTimeout                 string         `yaml:"IPFS_TIMEOUT"`
+	DIMORegistryChainID         uint64         `yaml:"DIMO_REGISTRY_CHAIN_ID"`
 }
