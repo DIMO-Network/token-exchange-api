@@ -1096,3 +1096,205 @@ func makeDid(method string, chainID string, address string, tokenID string) stri
 	}
 	return did
 }
+
+// TestAccessService_ValidateAccess_VehicleNFT tests the special code path for vehicle NFTs
+// where we consult the Identity GraphQL service instead of checking the chain directly.
+func TestAccessService_ValidateAccess_VehicleNFT(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	mockSacd := NewMockSACDInterface(mockCtrl)
+	mockTemplate := NewMockTemplate(mockCtrl)
+	mockipfs := NewMockIPFSClient(mockCtrl)
+	mockSigValidator := NewMockSignatureValidator(mockCtrl)
+	mockSacdClient := NewMockSACDClient(mockCtrl)
+
+	templateService, err := template.NewTemplateService(mockTemplate, mockipfs, nil)
+	require.NoError(t, err)
+
+	accessService, err := NewAccessService(mockipfs, mockSacd, templateService, nil, contractAddressManufacturer, contractAddressVehicle, mockSacdClient)
+	require.NoError(t, err)
+	accessService.sigValidator = mockSigValidator
+
+	userEthAddr := common.HexToAddress("0x20Ca3bE69a8B95D3093383375F0473A8c6341727")
+	devLicenseAddr := common.HexToAddress("0x69F5C4D08F6bC8cD29fE5f004d46FB566270868d")
+
+	effectiveAt := time.Now().Add(-5 * time.Hour)
+	expiresAt := time.Now().Add(5 * time.Hour)
+
+	// SACD data for a vehicle NFT
+	permData := models.SACDData{
+		Grantee: models.Address{
+			Address: userEthAddr.Hex(),
+		},
+		EffectiveAt: time.Now().Add(-5 * time.Hour),
+		ExpiresAt:   time.Now().Add(5 * time.Hour),
+		Asset:       makeDid("erc721", "1", contractAddressVehicle.String(), "456"),
+		Agreements: []models.Agreement{
+			{
+				Type:        "cloudevent",
+				EffectiveAt: effectiveAt,
+				ExpiresAt:   expiresAt,
+				EventType:   cloudevent.TypeAttestation,
+				Source:      common.BigToAddress(big.NewInt(1)).Hex(),
+				IDs:         []string{"1"},
+				Asset:       makeDid("erc721", "1", contractAddressVehicle.String(), "456"),
+			},
+		},
+	}
+
+	ipfsRecord, err := signSACDHelper(&permData)
+	require.NoError(t, err)
+
+	tests := []struct {
+		name            string
+		ethAddr         common.Address
+		accessRequest   *AccessRequest
+		mockSetup       func(t *testing.T)
+		expectedErrCode int
+	}{
+		{
+			name:    "vehicle NFT: valid request via SACD source doc from identity service",
+			ethAddr: userEthAddr,
+			accessRequest: &AccessRequest{
+				Asset: models.ERC721Asset{
+					ERC721DID: cloudevent.ERC721DID{
+						ContractAddress: contractAddressVehicle,
+						TokenID:         big.NewInt(456),
+						ChainID:         1,
+					},
+				},
+				EventFilters: []models.EventFilter{
+					{
+						EventType: cloudevent.TypeAttestation,
+						Source:    common.BigToAddress(big.NewInt(1)).Hex(),
+						IDs:       []string{"1"},
+					},
+				},
+			},
+			mockSetup: func(*testing.T) {
+				// SACDClient.GetVehicleSACDSource is called instead of sacdContract.CurrentPermissionRecord
+				mockSacdClient.EXPECT().GetVehicleSACDSource(gomock.Any(), 456, userEthAddr).Return("test-source", nil)
+				mockipfs.EXPECT().GetValidSacdDoc(gomock.Any(), "test-source").Return(ipfsRecord, nil)
+				mockSigValidator.EXPECT().ValidateSignature(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil)
+			},
+		},
+		{
+			name:    "vehicle NFT: valid request with single privilege falling back to identity service permissions",
+			ethAddr: devLicenseAddr,
+			accessRequest: &AccessRequest{
+				Asset: models.ERC721Asset{
+					ERC721DID: cloudevent.ERC721DID{
+						ContractAddress: contractAddressVehicle,
+						TokenID:         big.NewInt(456),
+						ChainID:         1,
+					},
+				},
+				Permissions: []string{tokenclaims.PrivilegeIDToName[4]},
+			},
+			mockSetup: func(*testing.T) {
+				// First tries to get source doc - error causes early return from getSourceDocURI
+				mockSacdClient.EXPECT().GetVehicleSACDSource(gomock.Any(), 456, devLicenseAddr).Return("", errors.New("no SACD source"))
+				// Falls back to permission bits via SACDClient.GetVehicleSACDPermissions
+				mockSacdClient.EXPECT().GetVehicleSACDPermissions(gomock.Any(), 456, devLicenseAddr, big.NewInt(0b1100000000)).Return(big.NewInt(0b1100000000), nil)
+			},
+		},
+		{
+			name:    "vehicle NFT: valid request with multiple privileges via identity service",
+			ethAddr: userEthAddr,
+			accessRequest: &AccessRequest{
+				Asset: models.ERC721Asset{
+					ERC721DID: cloudevent.ERC721DID{
+						ContractAddress: contractAddressVehicle,
+						TokenID:         big.NewInt(456),
+						ChainID:         1,
+					},
+				},
+				Permissions: []string{tokenclaims.PrivilegeIDToName[1], tokenclaims.PrivilegeIDToName[2], tokenclaims.PrivilegeIDToName[4], tokenclaims.PrivilegeIDToName[5]},
+			},
+			mockSetup: func(*testing.T) {
+				mockSacdClient.EXPECT().GetVehicleSACDSource(gomock.Any(), 456, userEthAddr).Return("", errors.New("no SACD source"))
+				mockSacdClient.EXPECT().GetVehicleSACDPermissions(gomock.Any(), 456, userEthAddr, big.NewInt(0b111100111100)).Return(big.NewInt(0b111100111100), nil)
+			},
+		},
+		{
+			name:    "vehicle NFT: missing privilege via identity service",
+			ethAddr: userEthAddr,
+			accessRequest: &AccessRequest{
+				Asset: models.ERC721Asset{
+					ERC721DID: cloudevent.ERC721DID{
+						ContractAddress: contractAddressVehicle,
+						TokenID:         big.NewInt(456),
+						ChainID:         1,
+					},
+				},
+				Permissions: []string{tokenclaims.PrivilegeIDToName[1], tokenclaims.PrivilegeIDToName[2], tokenclaims.PrivilegeIDToName[4], tokenclaims.PrivilegeIDToName[5]},
+			},
+			mockSetup: func(*testing.T) {
+				mockSacdClient.EXPECT().GetVehicleSACDSource(gomock.Any(), 456, userEthAddr).Return("", errors.New("no SACD source"))
+				// Returns fewer permissions than requested
+				mockSacdClient.EXPECT().GetVehicleSACDPermissions(gomock.Any(), 456, userEthAddr, big.NewInt(0b111100111100)).Return(big.NewInt(0b111100001100), nil)
+			},
+			expectedErrCode: fiber.StatusForbidden,
+		},
+		{
+			name:    "vehicle NFT: identity service GetVehicleSACDPermissions error",
+			ethAddr: userEthAddr,
+			accessRequest: &AccessRequest{
+				Asset: models.ERC721Asset{
+					ERC721DID: cloudevent.ERC721DID{
+						ContractAddress: contractAddressVehicle,
+						TokenID:         big.NewInt(456),
+						ChainID:         1,
+					},
+				},
+				Permissions: []string{tokenclaims.PrivilegeIDToName[4]},
+			},
+			mockSetup: func(*testing.T) {
+				mockSacdClient.EXPECT().GetVehicleSACDSource(gomock.Any(), 456, userEthAddr).Return("", errors.New("no SACD source"))
+				mockSacdClient.EXPECT().GetVehicleSACDPermissions(gomock.Any(), 456, userEthAddr, gomock.Any()).Return(nil, errors.New("identity service error"))
+			},
+			expectedErrCode: fiber.StatusInternalServerError,
+		},
+		{
+			name:    "vehicle NFT: identity service GetVehicleSACDSource error propagated with event filters",
+			ethAddr: userEthAddr,
+			accessRequest: &AccessRequest{
+				Asset: models.ERC721Asset{
+					ERC721DID: cloudevent.ERC721DID{
+						ContractAddress: contractAddressVehicle,
+						TokenID:         big.NewInt(456),
+						ChainID:         1,
+					},
+				},
+				EventFilters: []models.EventFilter{
+					{
+						EventType: cloudevent.TypeAttestation,
+						Source:    common.BigToAddress(big.NewInt(1)).Hex(),
+						IDs:       []string{"1"},
+					},
+				},
+			},
+			mockSetup: func(*testing.T) {
+				// When there are event filters, errors from getSourceDocURI don't fall back
+				mockSacdClient.EXPECT().GetVehicleSACDSource(gomock.Any(), 456, userEthAddr).Return("", errors.New("identity service error"))
+			},
+			expectedErrCode: fiber.StatusInternalServerError,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			tc.mockSetup(t)
+			err := accessService.ValidateAccess(t.Context(), tc.accessRequest, tc.ethAddr)
+			if tc.expectedErrCode == 0 {
+				require.NoError(t, err)
+				return
+			}
+			require.Error(t, err)
+			var richErr richerrors.Error
+			require.ErrorAs(t, err, &richErr)
+			require.Equal(t, tc.expectedErrCode, richErr.Code)
+		})
+	}
+}
