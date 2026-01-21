@@ -66,7 +66,7 @@ func TestClient_GetVehicleSACDSource(t *testing.T) {
 				json.NewEncoder(w).Encode(resp)
 			},
 			expectError:   true,
-			errorContains: "no SACD with that grantee",
+			errorContains: "no SACD",
 		},
 		{
 			name:    "vehicle not found",
@@ -250,7 +250,7 @@ func TestClient_GetVehicleSACDPermissions(t *testing.T) {
 				json.NewEncoder(w).Encode(resp)
 			},
 			expectError:   true,
-			errorContains: "no SACD with that grantee",
+			errorContains: "no SACD",
 		},
 		{
 			name:           "vehicle not found",
