@@ -57,36 +57,37 @@ query ($tokenId: Int!, $grantee: Address!) {
 func (c *Client) GetVehicleSACDSource(ctx context.Context, tokenID int, grantee common.Address) (string, error) {
 	r, err := c.getVehicleSACD(ctx, tokenID, grantee)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to retrieve SACD information via GraphQL: %v", err)
 	}
 	if r.SACD == nil {
-		return "", errors.New("no SACD with that grantee")
+		return "", errors.New("no SACD on this vehicle with that grantee")
 	}
 	return r.SACD.Source, nil
 }
 
 // GetVehicleSACDPermissions returns the intersection of the provided permissions and the permissions the grantee has on
 // the given vehicle NFT. If grantee is the owner of the vehicle NFT then he will have all permissions.
-func (c *Client) GetVehicleSACDPermissions(ctx context.Context, tokenID int, grantee common.Address, permissions *big.Int) (*big.Int, error) {
+func (c *Client) GetVehicleSACDPermissions(ctx context.Context, tokenID int, grantee common.Address, requestedPermissions *big.Int) (*big.Int, error) {
 	r, err := c.getVehicleSACD(ctx, tokenID, grantee)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to retrieve SACD information via GraphQL: %v", err)
 	}
 
 	// What follows recreates the calculations the contract does for getPermissions.
 	if r.Owner == grantee {
-		return permissions, nil
+		// Owner can have anything he wants.
+		return requestedPermissions, nil
 	}
 	if r.SACD == nil {
-		return nil, errors.New("no SACD with that grantee")
+		return nil, errors.New("grantee has no SACD and is not the owner")
 	}
 
 	onChainPerms, err := hexutil.DecodeBig(r.SACD.Permissions)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("couldn't parse permissions hex: %w", err)
 	}
 
-	return new(big.Int).And(onChainPerms, permissions), nil
+	return new(big.Int).And(onChainPerms, requestedPermissions), nil
 }
 
 func (c *Client) getVehicleSACD(ctx context.Context, tokenID int, grantee common.Address) (*vehicle, error) {
@@ -100,12 +101,12 @@ func (c *Client) getVehicleSACD(ctx context.Context, tokenID int, grantee common
 
 	b, err := json.Marshal(qb)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("couldn't marshal GraphQL request: %w", err)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, "POST", c.QueryEndpoint, bytes.NewReader(b))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("couldn't create HTTP request: %w", err)
 	}
 
 	req.Header.Set("Content-Type", "application/json")
@@ -118,17 +119,17 @@ func (c *Client) getVehicleSACD(ctx context.Context, tokenID int, grantee common
 	bb, err := io.ReadAll(res.Body)
 	res.Body.Close()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("request failed: %w", err)
 	}
 
 	if res.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("status code %d", res.StatusCode)
+		return nil, fmt.Errorf("unexpected status code %d", res.StatusCode)
 	}
 
 	var raw queryResponse
 	err = json.Unmarshal(bb, &raw)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("couldn't unmarshal GraphQL response: %w", err)
 	}
 
 	// TODO(elffjs): Check errors instead.
