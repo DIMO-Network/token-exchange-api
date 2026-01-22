@@ -17,7 +17,14 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 )
+
+var chainCallCount = promauto.NewCounter(prometheus.CounterOpts{
+	Name: "token_exchange_api_sacd_chain_calls_total",
+	Help: "The total number of SACD contract calls made directly to the blockchain",
+})
 
 type Proxy struct {
 	Contract               *sacd.Sacd
@@ -27,6 +34,7 @@ type Proxy struct {
 }
 
 func (p *Proxy) AccountPermissionRecords(opts *bind.CallOpts, grantor common.Address, grantee common.Address) (sacd.ISacdPermissionRecord, error) {
+	chainCallCount.Inc()
 	return p.Contract.AccountPermissionRecords(opts, grantor, grantee)
 }
 
@@ -74,10 +82,12 @@ func (p *Proxy) CurrentPermissionRecord(opts *bind.CallOpts, asset common.Addres
 		}, nil
 	}
 
+	chainCallCount.Inc()
 	return p.Contract.CurrentPermissionRecord(opts, asset, tokenID, grantee)
 }
 
 func (p *Proxy) GetAccountPermissions(opts *bind.CallOpts, grantor common.Address, grantee common.Address, permissions *big.Int) (*big.Int, error) {
+	chainCallCount.Inc()
 	return p.Contract.GetAccountPermissions(opts, grantor, grantee, permissions)
 }
 
@@ -109,6 +119,7 @@ func (p *Proxy) GetPermissions(opts *bind.CallOpts, asset common.Address, tokenI
 		return new(big.Int).And(identPerms, permissions), nil
 	}
 
+	chainCallCount.Inc()
 	return p.Contract.GetPermissions(opts, asset, tokenID, grantee, permissions)
 }
 
