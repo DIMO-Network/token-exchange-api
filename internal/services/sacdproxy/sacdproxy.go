@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"math/big"
 	"net/http"
 	"time"
@@ -57,7 +58,9 @@ func (p *Proxy) CurrentPermissionRecord(opts *bind.CallOpts, asset common.Addres
 
 		var templateID *big.Int
 		if v.SACD.Template != nil {
-			templateID = big.NewInt(int64(v.SACD.Template.TokenID))
+			templateID = v.SACD.Template.TokenID
+		} else {
+			templateID = big.NewInt(0)
 		}
 
 		return sacd.ISacdPermissionRecord{
@@ -104,11 +107,41 @@ func (p *Proxy) GetPermissions(opts *bind.CallOpts, asset common.Address, tokenI
 	return p.Contract.GetPermissions(opts, asset, tokenID, grantee, permissions)
 }
 
+// convertTokenID makes sure that the given tokenID is usable in the Identity API, and converts it
+// to an int for ease of use.
+func convertTokenID(tokenID *big.Int) (int, error) {
+	if tokenID == nil {
+		return 0, errors.New("nil pointer")
+	}
+
+	if tokenID.Sign() <= 0 {
+		return 0, errors.New("value not positive")
+	}
+
+	if !tokenID.IsInt64() {
+		return 0, errors.New("outside of int64 range")
+	}
+
+	tokenIDInt64 := tokenID.Int64()
+
+	// GraphQL Int is an int32.
+	if tokenIDInt64 > math.MaxInt32 {
+		return 0, errors.New("outside of int32 range")
+	}
+
+	return int(tokenIDInt64), nil
+}
+
 func (p *Proxy) getVehicleSACD(ctx context.Context, tokenID *big.Int, grantee common.Address) (*vehicle, error) {
+	tokenIDParsed, err := convertTokenID(tokenID)
+	if err != nil {
+		return nil, err
+	}
+
 	qb := queryRequest{
 		Query: query,
 		Variables: map[string]any{
-			"tokenId": tokenID,
+			"tokenId": tokenIDParsed,
 			"grantee": grantee,
 		},
 	}
@@ -175,7 +208,7 @@ type queryResponse struct {
 }
 
 type sacdTemplate struct {
-	TokenID int `json:"tokenId"`
+	TokenID *big.Int `json:"tokenId"`
 }
 
 type vehicle struct {

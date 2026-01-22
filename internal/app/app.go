@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/DIMO-Network/server-garage/pkg/richerrors"
 	"github.com/DIMO-Network/shared/pkg/logfields"
@@ -56,7 +57,9 @@ func CreateServers(logger zerolog.Logger, settings *config.Settings) (*fiber.App
 	}
 
 	prox := &sacdproxy.Proxy{
-		HTTP:                   &http.Client{},
+		HTTP: &http.Client{
+			Timeout: 5 * time.Second, // TODO(elffjs): Configurable?
+		},
 		QueryEndpoint:          settings.IdentityURL,
 		Contract:               sacdContract,
 		ContractAddressVehicle: settings.ContractAddressVehicle,
