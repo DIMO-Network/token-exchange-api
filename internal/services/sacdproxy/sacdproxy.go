@@ -36,6 +36,8 @@ var blankResp = sacd.ISacdPermissionRecord{
 	TemplateId:  big.NewInt(0),
 }
 
+// CurrentPermissionRecord returns the current "permission record" for the given asset. If no such record is found then
+// zero values are returned for all fields. In this case it may not be that the asset exists.
 func (p *Proxy) CurrentPermissionRecord(opts *bind.CallOpts, asset common.Address, tokenID *big.Int, grantee common.Address) (sacd.ISacdPermissionRecord, error) {
 	if asset == p.ContractAddressVehicle {
 		v, err := p.getVehicleSACD(opts.Context, tokenID, grantee)
@@ -79,6 +81,8 @@ func (p *Proxy) GetAccountPermissions(opts *bind.CallOpts, grantor common.Addres
 	return p.Contract.GetAccountPermissions(opts, grantor, grantee, permissions)
 }
 
+// GetPermissions computes the intersection of the provided permissions on the asset and the permissions that
+// the grantee has. If the grantee is the owner of the asset then he will have access to everything.
 func (p *Proxy) GetPermissions(opts *bind.CallOpts, asset common.Address, tokenID *big.Int, grantee common.Address, permissions *big.Int) (*big.Int, error) {
 	if asset == p.ContractAddressVehicle {
 		v, err := p.getVehicleSACD(opts.Context, tokenID, grantee)
