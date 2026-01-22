@@ -10,6 +10,7 @@ import (
 	"math"
 	"math/big"
 	"net/http"
+	"slices"
 	"time"
 
 	"github.com/DIMO-Network/token-exchange-api/internal/contracts/sacd"
@@ -179,9 +180,13 @@ func (p *Proxy) getVehicleSACD(ctx context.Context, tokenID *big.Int, grantee co
 		return nil, fmt.Errorf("couldn't unmarshal GraphQL response: %w", err)
 	}
 
-	// TODO(elffjs): Check errors instead.
-	if raw.Data == nil {
-		return nil, errVehicleNotFound
+	if len(raw.Errors) != 0 {
+		gqlErr := raw.Errors[0]
+		if slices.Equal(gqlErr.Path, []string{"vehicle"}) && gqlErr.Extensions.Code == "NOT_FOUND" {
+			return nil, errVehicleNotFound
+		}
+
+		return nil, fmt.Errorf("returned %d GraphQL errors, first is %q", len(raw.Errors), raw.Errors[0].Message)
 	}
 
 	return &raw.Data.Vehicle, nil
@@ -202,9 +207,16 @@ type vehicleSacd struct {
 }
 
 type queryResponse struct {
-	Data *struct {
+	Data struct {
 		Vehicle vehicle `json:"vehicle"`
 	} `json:"data"`
+	Errors []struct {
+		Message    string   `json:"message"`
+		Path       []string `json:"path"`
+		Extensions struct {
+			Code string `json:"code"`
+		} `json:"extensions"`
+	} `json:"errors"`
 }
 
 type sacdTemplate struct {

@@ -93,6 +93,20 @@ func TestProxy_GetPermissions(t *testing.T) {
 			wantPerms:      big.NewInt(0),
 		},
 		{
+			name:           "vehicle not found via GraphQL error returns zero",
+			response:       graphQLErrorResponse("vehicle", "NOT_FOUND", "Vehicle not found"),
+			tokenID:        big.NewInt(123),
+			requestedPerms: big.NewInt(0xff),
+			wantPerms:      big.NewInt(0),
+		},
+		{
+			name:           "other GraphQL error is returned",
+			response:       graphQLErrorResponse("vehicle", "INTERNAL_ERROR", "Something went wrong"),
+			tokenID:        big.NewInt(123),
+			requestedPerms: big.NewInt(0xff),
+			wantErr:        "returned 1 GraphQL errors",
+		},
+		{
 			name:           "server error",
 			statusCode:     http.StatusInternalServerError,
 			tokenID:        big.NewInt(123),
@@ -192,6 +206,18 @@ func TestProxy_CurrentPermissionRecord(t *testing.T) {
 			wantTplID:  big.NewInt(0),
 		},
 		{
+			name:       "vehicle not found via GraphQL error returns blank",
+			response:   graphQLErrorResponse("vehicle", "NOT_FOUND", "Vehicle not found"),
+			wantPerms:  big.NewInt(0),
+			wantExpire: big.NewInt(0),
+			wantTplID:  big.NewInt(0),
+		},
+		{
+			name:     "other GraphQL error is returned",
+			response: graphQLErrorResponse("vehicle", "INTERNAL_ERROR", "Something went wrong"),
+			wantErr:  "returned 1 GraphQL errors",
+		},
+		{
 			name: "invalid permissions hex",
 			response: graphQLResponse(ownerAddr, &sacdResponse{
 				Permissions: "not-hex",
@@ -261,3 +287,18 @@ func graphQLResponse(owner common.Address, sacd *sacdResponse) map[string]any {
 }
 
 func intPtr(i int) *int { return &i }
+
+func graphQLErrorResponse(path, code, message string) map[string]any {
+	return map[string]any{
+		"data": nil,
+		"errors": []map[string]any{
+			{
+				"message": message,
+				"path":    []string{path},
+				"extensions": map[string]any{
+					"code": code,
+				},
+			},
+		},
+	}
+}
