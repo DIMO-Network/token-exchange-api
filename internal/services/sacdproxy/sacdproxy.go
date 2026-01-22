@@ -25,7 +25,7 @@ type Proxy struct {
 }
 
 func (p *Proxy) AccountPermissionRecords(opts *bind.CallOpts, grantor common.Address, grantee common.Address) (sacd.ISacdPermissionRecord, error) {
-	return p.AccountPermissionRecords(opts, grantor, grantee)
+	return p.Contract.AccountPermissionRecords(opts, grantor, grantee)
 }
 
 var blankResp = sacd.ISacdPermissionRecord{
@@ -68,11 +68,11 @@ func (p *Proxy) CurrentPermissionRecord(opts *bind.CallOpts, asset common.Addres
 		}, nil
 	}
 
-	return p.CurrentPermissionRecord(opts, asset, tokenID, grantee)
+	return p.Contract.CurrentPermissionRecord(opts, asset, tokenID, grantee)
 }
 
 func (p *Proxy) GetAccountPermissions(opts *bind.CallOpts, grantor common.Address, grantee common.Address, permissions *big.Int) (*big.Int, error) {
-	return p.GetAccountPermissions(opts, grantor, grantee, permissions)
+	return p.Contract.GetAccountPermissions(opts, grantor, grantee, permissions)
 }
 
 func (p *Proxy) GetPermissions(opts *bind.CallOpts, asset common.Address, tokenID *big.Int, grantee common.Address, permissions *big.Int) (*big.Int, error) {
@@ -101,7 +101,7 @@ func (p *Proxy) GetPermissions(opts *bind.CallOpts, asset common.Address, tokenI
 		return new(big.Int).And(identPerms, permissions), nil
 	}
 
-	return p.GetPermissions(opts, asset, tokenID, grantee, permissions)
+	return p.Contract.GetPermissions(opts, asset, tokenID, grantee, permissions)
 }
 
 func (p *Proxy) getVehicleSACD(ctx context.Context, tokenID *big.Int, grantee common.Address) (*vehicle, error) {
