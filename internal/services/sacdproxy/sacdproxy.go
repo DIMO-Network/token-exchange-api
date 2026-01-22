@@ -55,16 +55,16 @@ func (p *Proxy) CurrentPermissionRecord(opts *bind.CallOpts, asset common.Addres
 
 		expire := big.NewInt(v.SACD.ExpiresAt.Unix())
 
-		var templateId *big.Int
+		var templateID *big.Int
 		if v.SACD.Template != nil {
-			templateId = big.NewInt(int64(v.SACD.Template.TokenID))
+			templateID = big.NewInt(int64(v.SACD.Template.TokenID))
 		}
 
 		return sacd.ISacdPermissionRecord{
 			Permissions: perms,
 			Expiration:  expire,
 			Source:      v.SACD.Source,
-			TemplateId:  templateId,
+			TemplateId:  templateID,
 		}, nil
 	}
 
