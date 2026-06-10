@@ -82,6 +82,14 @@ func NewAccessService(ipfsService IPFSClient,
 }
 
 func (s *Service) ValidateAccess(ctx context.Context, accessReq *AccessRequest, ethAddr common.Address) error {
+	// An account-level asset is a wallet address: when the requester is that
+	// wallet, there is no grantor/grantee relationship to validate, so the
+	// requested permissions are granted outright. Mirrors the vehicle owner
+	// auto-grant in the legacy bits path (sacdproxy.GetPermissions).
+	if accessReq.Asset.IsAccountLevel() && accessReq.Asset.GetContractAddress() == ethAddr {
+		return nil
+	}
+
 	err := s.ValidateAccessViaSourceDoc(ctx, accessReq, ethAddr)
 	if err != nil {
 		if len(accessReq.EventFilters) != 0 {

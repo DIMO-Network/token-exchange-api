@@ -609,7 +609,7 @@ func TestAccessService_ValidateAccess_WithoutAsset_WithoutTemplateId(t *testing.
 	}{
 		{
 			name:    "valid request with single privilege and no SACD document or event filters",
-			ethAddr: devLicenseAddr,
+			ethAddr: userEthAddr,
 			accessRequest: &AccessRequest{
 				Asset: models.EthrAsset{
 					EthrDID: cloudevent.EthrDID{
@@ -620,9 +620,9 @@ func TestAccessService_ValidateAccess_WithoutAsset_WithoutTemplateId(t *testing.
 				Permissions: []string{tokenclaims.PrivilegeIDToName[4]},
 			},
 			mockSetup: func(*testing.T) {
-				mockSacd.EXPECT().AccountPermissionRecords(gomock.Any(), devLicenseAddr, devLicenseAddr).Return(emptyPermRecord, nil)
+				mockSacd.EXPECT().AccountPermissionRecords(gomock.Any(), devLicenseAddr, userEthAddr).Return(emptyPermRecord, nil)
 				mockipfs.EXPECT().GetValidSacdDoc(gomock.Any(), gomock.Any()).Return(nil, errors.New("no valid doc"))
-				mockSacd.EXPECT().GetAccountPermissions(gomock.Any(), devLicenseAddr, devLicenseAddr, big.NewInt(0b1100000000)).Return(big.NewInt(0b1100000000), nil)
+				mockSacd.EXPECT().GetAccountPermissions(gomock.Any(), devLicenseAddr, userEthAddr, big.NewInt(0b1100000000)).Return(big.NewInt(0b1100000000), nil)
 			}},
 		{
 			name:    "valid request with multiple privileges and no SACD document or event filters",
@@ -857,7 +857,7 @@ func TestAccessService_ValidateAccess_WithoutAsset_WithTemplateId(t *testing.T) 
 	}{
 		{
 			name:    "valid request with single privilege and no SACD document or event filters",
-			ethAddr: devLicenseAddr,
+			ethAddr: userEthAddr,
 			accessRequest: &AccessRequest{
 				Asset: models.EthrAsset{
 					EthrDID: cloudevent.EthrDID{
@@ -868,9 +868,9 @@ func TestAccessService_ValidateAccess_WithoutAsset_WithTemplateId(t *testing.T) 
 				Permissions: []string{tokenclaims.PrivilegeIDToName[4]},
 			},
 			mockSetup: func(*testing.T) {
-				mockSacd.EXPECT().AccountPermissionRecords(gomock.Any(), devLicenseAddr, devLicenseAddr).Return(emptyPermRecord, nil)
+				mockSacd.EXPECT().AccountPermissionRecords(gomock.Any(), devLicenseAddr, userEthAddr).Return(emptyPermRecord, nil)
 				mockipfs.EXPECT().GetValidSacdDoc(gomock.Any(), gomock.Any()).Return(nil, errors.New("no valid doc"))
-				mockSacd.EXPECT().GetAccountPermissions(gomock.Any(), devLicenseAddr, devLicenseAddr, big.NewInt(0b1100000000)).Return(big.NewInt(0b1100000000), nil)
+				mockSacd.EXPECT().GetAccountPermissions(gomock.Any(), devLicenseAddr, userEthAddr, big.NewInt(0b1100000000)).Return(big.NewInt(0b1100000000), nil)
 			}},
 		{
 			name:    "valid request with multiple privileges and no SACD document or event filters",
@@ -1090,4 +1090,61 @@ func makeDid(method string, chainID string, address string, tokenID string) stri
 		return did + ":" + tokenID
 	}
 	return did
+}
+
+func TestAccessService_ValidateAccess_AccountOwnerSelfGrant(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	// No expectations are set on any mock: a self-grant must short-circuit
+	// before touching the SACD contract, IPFS, or the template service.
+	mockSacd := NewMockSACDInterface(mockCtrl)
+	mockTemplate := NewMockTemplate(mockCtrl)
+	mockipfs := NewMockIPFSClient(mockCtrl)
+
+	templateService, err := template.NewTemplateService(mockTemplate, mockipfs, nil)
+	require.NoError(t, err)
+
+	accessService, err := NewAccessService(mockipfs, mockSacd, templateService, nil, contractAddressManufacturer)
+	require.NoError(t, err)
+
+	userEthAddr := common.HexToAddress("0x20Ca3bE69a8B95D3093383375F0473A8c6341727")
+
+	accountAsset := models.EthrAsset{EthrDID: cloudevent.EthrDID{ChainID: 137, ContractAddress: userEthAddr}}
+
+	t.Run("caller wallet matches account asset", func(t *testing.T) {
+		err := accessService.ValidateAccess(t.Context(), &AccessRequest{
+			Asset:       accountAsset,
+			Permissions: []string{tokenclaims.PermissionGetRawData},
+		}, userEthAddr)
+		require.NoError(t, err)
+	})
+
+	t.Run("self-grant covers cloud event filters", func(t *testing.T) {
+		err := accessService.ValidateAccess(t.Context(), &AccessRequest{
+			Asset: accountAsset,
+			EventFilters: []models.EventFilter{
+				{EventType: "dimo.document.driver.license"},
+			},
+		}, userEthAddr)
+		require.NoError(t, err)
+	})
+
+	t.Run("other caller still requires an account permission record", func(t *testing.T) {
+		otherAddr := common.HexToAddress("0x69F5C4D08F6bC8cD29fE5f004d46FB566270868d")
+
+		mockSacd.EXPECT().
+			AccountPermissionRecords(gomock.Any(), userEthAddr, otherAddr).
+			Return(sacd.ISacdPermissionRecord{}, errors.New("no record")).
+			Times(1)
+
+		err := accessService.ValidateAccess(t.Context(), &AccessRequest{
+			Asset:       accountAsset,
+			Permissions: []string{tokenclaims.PermissionGetRawData},
+			EventFilters: []models.EventFilter{
+				{EventType: "dimo.document.driver.license"},
+			},
+		}, otherAddr)
+		require.Error(t, err)
+	})
 }
