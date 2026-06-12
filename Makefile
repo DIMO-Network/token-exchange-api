@@ -62,7 +62,7 @@ tools: tools-golangci-lint tools-protoc ## install all tools
 
 tools-golangci-lint: ## install golangci-lint
 	@mkdir -p $(PATHINSTBIN)
-	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | BINARY=golangci-lint bash -s -- ${GOLANGCI_VERSION}
+	GOBIN=$(PATHINSTBIN) go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@${GOLANGCI_VERSION}
 
 tools-protoc: ## install protoc
 	@mkdir -p $(PATHINSTBIN)
