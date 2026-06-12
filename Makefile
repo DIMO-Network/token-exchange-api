@@ -19,7 +19,7 @@ VERSION   := $(shell git describe --tags || echo "v0.0.0")
 VER_CUT   := $(shell echo $(VERSION) | cut -c2-)
 
 # Dependency versions
-GOLANGCI_VERSION   = latest
+GOLANGCI_VERSION   = v2.12.1
 PROTOC_VERSION		= 31.1
 
 
