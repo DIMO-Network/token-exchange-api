@@ -11,7 +11,7 @@ require (
 	github.com/dexidp/dex/api/v2 v2.35.3
 	github.com/ethereum/go-ethereum v1.17.0
 	github.com/gofiber/contrib/jwt v1.1.2
-	github.com/gofiber/fiber/v2 v2.52.12
+	github.com/gofiber/fiber/v2 v2.52.13
 	github.com/gofiber/swagger v1.1.1
 	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0
