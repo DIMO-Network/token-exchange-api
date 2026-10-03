@@ -6,7 +6,6 @@ import (
 	"io"
 	"net/http/httptest"
 	"testing"
-	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/gofiber/fiber/v2"
@@ -19,7 +18,6 @@ import (
 var (
 	testLicense = common.HexToAddress("0x299671D2b32ED62Cc61ce65D8f2b9e4f78486B37")
 	testSigner  = common.HexToAddress("0x71efD5d71a597eB6BEC28DFDB05a49283a3e20c5")
-	cutoff      = time.Unix(1_800_000_000, 0)
 )
 
 type fakeChecker struct {
@@ -44,19 +42,13 @@ func TestParseMode(t *testing.T) {
 }
 
 func TestMiddleware(t *testing.T) {
-	withSigner := TokenInfo{License: testLicense, Signer: testSigner.Hex(), IssuedAt: cutoff.Add(time.Hour)}
-	claimless := TokenInfo{License: testLicense, IssuedAt: cutoff.Add(time.Hour)}
-	licenseLookup := func(ok bool, err error) func(context.Context, common.Address) (bool, error) {
-		return func(context.Context, common.Address) (bool, error) { return ok, err }
-	}
+	withSigner := TokenInfo{License: testLicense, Signer: testSigner.Hex()}
 
 	tests := []struct {
 		name       string
 		mode       Mode
 		token      TokenInfo
 		checker    *fakeChecker
-		cutoff     time.Time
-		isLicense  func(context.Context, common.Address) (bool, error)
 		wantStatus int
 		wantBody   string
 		wantResult string
@@ -72,14 +64,6 @@ func TestMiddleware(t *testing.T) {
 		{name: "a token without ethereum_address is skipped", mode: ModeEnforce, token: TokenInfo{Signer: testSigner.Hex()}, checker: &fakeChecker{result: Denied}, wantStatus: 200, wantResult: "skipped"},
 		{name: "a non-license is skipped", mode: ModeEnforce, token: withSigner, checker: &fakeChecker{result: NotLicense}, wantStatus: 200, wantResult: "skipped", wantCalls: 1},
 		{name: "a malformed claim is refused without a check", mode: ModeEnforce, token: TokenInfo{License: testLicense, Signer: "0x1234"}, checker: &fakeChecker{result: Allowed}, wantStatus: 403, wantBody: MessageDenied, wantResult: "denied"},
-		{name: "cutoff refuses a claimless license token issued after it", mode: ModeEnforce, token: claimless, checker: &fakeChecker{}, cutoff: cutoff, isLicense: licenseLookup(true, nil), wantStatus: 403, wantBody: MessageDenied, wantResult: "denied"},
-		{name: "cutoff lets a claimless token issued before it through", mode: ModeEnforce, token: TokenInfo{License: testLicense, IssuedAt: cutoff.Add(-time.Hour)}, checker: &fakeChecker{}, cutoff: cutoff, isLicense: licenseLookup(true, nil), wantStatus: 200, wantResult: "skipped"},
-		{name: "cutoff lets a claimless non-license through", mode: ModeEnforce, token: claimless, checker: &fakeChecker{}, cutoff: cutoff, isLicense: licenseLookup(false, nil), wantStatus: 200, wantResult: "skipped"},
-		// The cutoff is a backstop for a dex path that forgets the claim. Every claimless token
-		// after it, mobile users' included, needs the license lookup, so an Identity outage must
-		// not refuse them all: count the error and let the request through.
-		{name: "cutoff lets a claimless token through and counts an error when the license lookup fails", mode: ModeEnforce, token: claimless, checker: &fakeChecker{}, cutoff: cutoff, isLicense: licenseLookup(false, errors.New("identity down")), wantStatus: 200, wantResult: "error"},
-		{name: "cutoff in log mode lets it through and counts it", mode: ModeLog, token: claimless, checker: &fakeChecker{}, cutoff: cutoff, isLicense: licenseLookup(true, nil), wantStatus: 200, wantResult: "denied"},
 	}
 
 	for _, tc := range tests {
@@ -87,13 +71,11 @@ func TestMiddleware(t *testing.T) {
 			service := "test-" + tc.name
 			app := fiber.New()
 			app.Get("/", Middleware(Config{
-				Service:            service,
-				Mode:               tc.mode,
-				Checker:            tc.checker,
-				Token:              func(*fiber.Ctx) (TokenInfo, error) { return tc.token, nil },
-				ClaimRequiredAfter: tc.cutoff,
-				IsLicense:          tc.isLicense,
-				Logger:             zerolog.Nop(),
+				Service: service,
+				Mode:    tc.mode,
+				Checker: tc.checker,
+				Token:   func(*fiber.Ctx) (TokenInfo, error) { return tc.token, nil },
+				Logger:  zerolog.Nop(),
 			}), func(c *fiber.Ctx) error { return c.SendStatus(fiber.StatusOK) })
 
 			resp, err := app.Test(httptest.NewRequest("GET", "/", nil), -1)
@@ -132,9 +114,8 @@ func TestMapClaimsToken(t *testing.T) {
 	got := read(jwt.MapClaims{
 		"ethereum_address": "0x299671d2b32ed62cc61ce65d8f2b9e4f78486b37",
 		"signer_address":   "0x71efd5d71a597eb6bec28dfdb05a49283a3e20c5",
-		"iat":              float64(cutoff.Unix()),
 	})
-	require.Equal(t, TokenInfo{License: testLicense, Signer: "0x71efd5d71a597eb6bec28dfdb05a49283a3e20c5", IssuedAt: cutoff}, got)
+	require.Equal(t, TokenInfo{License: testLicense, Signer: "0x71efd5d71a597eb6bec28dfdb05a49283a3e20c5"}, got)
 
 	require.Equal(t, TokenInfo{}, read(nil), "no token")
 	require.Equal(t, TokenInfo{License: testLicense}, read(jwt.MapClaims{"ethereum_address": testLicense.Hex()}), "no signer claim")

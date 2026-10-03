@@ -8,7 +8,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/gofiber/fiber/v2"
@@ -84,8 +83,6 @@ type TokenInfo struct {
 	License common.Address
 	// Signer is the signer_address claim as sent; empty when it is missing.
 	Signer string
-	// IssuedAt is the iat claim; the zero time when it is missing.
-	IssuedAt time.Time
 }
 
 // Config configures Middleware.
@@ -95,14 +92,8 @@ type Config struct {
 	Mode    Mode
 	Checker Checker
 	// Token reads the request's verified JWT. Mount the middleware after the JWT middleware.
-	Token func(c *fiber.Ctx) (TokenInfo, error)
-	// ClaimRequiredAfter, when set, refuses license tokens issued after it that lack
-	// signer_address (SIGNER_CLAIM_REQUIRED_AFTER). Only token-exchange-api sets it.
-	ClaimRequiredAfter time.Time
-	// IsLicense reports whether an address is a developer license. Required with
-	// ClaimRequiredAfter.
-	IsLicense func(ctx context.Context, addr common.Address) (bool, error)
-	Logger    zerolog.Logger
+	Token  func(c *fiber.Ctx) (TokenInfo, error)
+	Logger zerolog.Logger
 }
 
 // Middleware checks the request's developer JWT whenever it carries signer_address, and
@@ -124,28 +115,10 @@ func Middleware(cfg Config) fiber.Handler {
 		ctx := c.UserContext()
 
 		if tok.Signer == "" {
-			if cfg.ClaimRequiredAfter.IsZero() || !tok.IssuedAt.After(cfg.ClaimRequiredAfter) {
-				checks.WithLabelValues(cfg.Service, resultSkipped).Inc()
-				return c.Next()
-			}
-			isLicense, err := cfg.IsLicense(ctx, tok.License)
-			if err != nil {
-				// Every claimless token after the cutoff needs this lookup, mobile users' included
-				// (their ethereum_address is a wallet, never a license). The cutoff only backstops a
-				// dex path that forgets the claim, so an Identity outage counts as an error and the
-				// request goes through instead of refusing every one of them.
-				checks.WithLabelValues(cfg.Service, resultError).Inc()
-				cfg.Logger.Warn().Err(err).
-					Str("service", cfg.Service).
-					Str("license", tok.License.Hex()).
-					Msg("Signer check could not look up the license for a claimless token; letting it through.")
-				return c.Next()
-			}
-			if !isLicense {
-				checks.WithLabelValues(cfg.Service, resultSkipped).Inc()
-				return c.Next()
-			}
-			return cfg.refuse(c, resultDenied, tok, errors.New("license token issued after SIGNER_CLAIM_REQUIRED_AFTER without signer_address"))
+			// Tokens without signer_address (minted before dex set it, or not by a license's
+			// web3 login, e.g. every DIMO Mobile user's) are never checked.
+			checks.WithLabelValues(cfg.Service, resultSkipped).Inc()
+			return c.Next()
 		}
 
 		if !common.IsHexAddress(tok.Signer) {
@@ -210,9 +183,6 @@ func MapClaimsToken(localsKey string) func(c *fiber.Ctx) (TokenInfo, error) {
 				signer = "invalid"
 			}
 			info.Signer = signer
-		}
-		if iat, err := claims.GetIssuedAt(); err == nil && iat != nil {
-			info.IssuedAt = iat.Time
 		}
 		return info, nil
 	}

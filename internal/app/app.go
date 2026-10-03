@@ -89,13 +89,11 @@ func CreateServers(logger zerolog.Logger, settings *config.Settings) (*fiber.App
 		return nil, nil, err
 	}
 	signerMiddleware := signercheck.Middleware(signercheck.Config{
-		Service:            "token-exchange-api",
-		Mode:               signerMode,
-		Checker:            signerChecker,
-		Token:              signercheck.MapClaimsToken("user"),
-		ClaimRequiredAfter: settings.SignerClaimCutoff(),
-		IsLicense:          signerChecker.IsLicense,
-		Logger:             logger,
+		Service: "token-exchange-api",
+		Mode:    signerMode,
+		Checker: signerChecker,
+		Token:   signercheck.MapClaimsToken("user"),
+		Logger:  logger,
 	})
 
 	app, err := createHTTPServer(logger, settings, dexSvc, accessService, idSvc, signerMiddleware)
