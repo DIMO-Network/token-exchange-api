@@ -23,6 +23,7 @@ cronJob:
   schedule: 0 0 * * 0
 env:
   ENVIRONMENT: dev
+  SIGNER_CHECK_MODE: log
   LOG_LEVEL: info
   JWT_KEY_SET_URL: https://auth.dev.dimo.zone/keys
   PORT: 8080

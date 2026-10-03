@@ -22,4 +22,6 @@ type Settings struct {
 	IPFSBaseURL                 string         `yaml:"IPFS_BASE_URL"`
 	IPFSTimeout                 string         `yaml:"IPFS_TIMEOUT"`
 	DIMORegistryChainID         uint64         `yaml:"DIMO_REGISTRY_CHAIN_ID"`
+	// SignerCheckMode is enforce (default), log or off.
+	SignerCheckMode string `yaml:"SIGNER_CHECK_MODE"`
 }
