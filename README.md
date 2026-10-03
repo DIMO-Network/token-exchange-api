@@ -188,7 +188,7 @@ credit-tracker.
 | Setting                       | Values                            | Effect                                                                                                                                                    |
 | ----------------------------- | --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `SIGNER_CHECK_MODE`           | `enforce` (default), `log`, `off` | `enforce` answers 403 `signer no longer authorized for this license` or 503 `could not verify signer`; `log` only logs and counts; `off` skips the check. |
-| `SIGNER_CLAIM_REQUIRED_AFTER` | Unix time, unset by default       | License tokens issued after it without `signer_address` get the 403.                                                                                      |
+| `SIGNER_CLAIM_REQUIRED_AFTER` | Unix time, unset by default       | License tokens issued after it without `signer_address` get the 403. If Identity can't say whether the address is a license, the token passes and counts as `error`.                                                                                      |
 
 - **Metric:** `signer_check_total{service,result}`, with `result` one of `allowed`, `denied`, `error`, `skipped`.
 - **Alert:** `SignerCheckErrors` fires when `error` exceeds 1% of non-skipped checks (`allowed` + `denied` + `error`) for 5 minutes.

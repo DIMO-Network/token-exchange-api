@@ -130,7 +130,16 @@ func Middleware(cfg Config) fiber.Handler {
 			}
 			isLicense, err := cfg.IsLicense(ctx, tok.License)
 			if err != nil {
-				return cfg.refuse(c, resultError, tok, err)
+				// Every claimless token after the cutoff needs this lookup, mobile users' included
+				// (their ethereum_address is a wallet, never a license). The cutoff only backstops a
+				// dex path that forgets the claim, so an Identity outage counts as an error and the
+				// request goes through instead of refusing every one of them.
+				checks.WithLabelValues(cfg.Service, resultError).Inc()
+				cfg.Logger.Warn().Err(err).
+					Str("service", cfg.Service).
+					Str("license", tok.License.Hex()).
+					Msg("Signer check could not look up the license for a claimless token; letting it through.")
+				return c.Next()
 			}
 			if !isLicense {
 				checks.WithLabelValues(cfg.Service, resultSkipped).Inc()

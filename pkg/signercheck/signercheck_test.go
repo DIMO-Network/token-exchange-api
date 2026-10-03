@@ -75,7 +75,10 @@ func TestMiddleware(t *testing.T) {
 		{name: "cutoff refuses a claimless license token issued after it", mode: ModeEnforce, token: claimless, checker: &fakeChecker{}, cutoff: cutoff, isLicense: licenseLookup(true, nil), wantStatus: 403, wantBody: MessageDenied, wantResult: "denied"},
 		{name: "cutoff lets a claimless token issued before it through", mode: ModeEnforce, token: TokenInfo{License: testLicense, IssuedAt: cutoff.Add(-time.Hour)}, checker: &fakeChecker{}, cutoff: cutoff, isLicense: licenseLookup(true, nil), wantStatus: 200, wantResult: "skipped"},
 		{name: "cutoff lets a claimless non-license through", mode: ModeEnforce, token: claimless, checker: &fakeChecker{}, cutoff: cutoff, isLicense: licenseLookup(false, nil), wantStatus: 200, wantResult: "skipped"},
-		{name: "cutoff answers 503 when the license lookup fails", mode: ModeEnforce, token: claimless, checker: &fakeChecker{}, cutoff: cutoff, isLicense: licenseLookup(false, errors.New("identity down")), wantStatus: 503, wantBody: MessageUnavailable, wantResult: "error"},
+		// The cutoff is a backstop for a dex path that forgets the claim. Every claimless token
+		// after it, mobile users' included, needs the license lookup, so an Identity outage must
+		// not refuse them all: count the error and let the request through.
+		{name: "cutoff lets a claimless token through and counts an error when the license lookup fails", mode: ModeEnforce, token: claimless, checker: &fakeChecker{}, cutoff: cutoff, isLicense: licenseLookup(false, errors.New("identity down")), wantStatus: 200, wantResult: "error"},
 		{name: "cutoff in log mode lets it through and counts it", mode: ModeLog, token: claimless, checker: &fakeChecker{}, cutoff: cutoff, isLicense: licenseLookup(true, nil), wantStatus: 200, wantResult: "denied"},
 	}
 
