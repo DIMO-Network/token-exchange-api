@@ -18,9 +18,11 @@ import (
 	"github.com/DIMO-Network/token-exchange-api/internal/middleware"
 	"github.com/DIMO-Network/token-exchange-api/internal/services"
 	"github.com/DIMO-Network/token-exchange-api/internal/services/access"
+	"github.com/DIMO-Network/token-exchange-api/internal/services/licensesigner"
 	"github.com/DIMO-Network/token-exchange-api/internal/services/sacdproxy"
 	templatesvs "github.com/DIMO-Network/token-exchange-api/internal/services/template"
 	txgrpc "github.com/DIMO-Network/token-exchange-api/pkg/grpc"
+	"github.com/DIMO-Network/token-exchange-api/pkg/signercheck"
 	"github.com/ethereum/go-ethereum/ethclient"
 	jwtware "github.com/gofiber/contrib/jwt"
 	"github.com/gofiber/fiber/v2"
@@ -80,7 +82,23 @@ func CreateServers(logger zerolog.Logger, settings *config.Settings) (*fiber.App
 		return nil, nil, fmt.Errorf("failed to create access service: %w", err)
 	}
 
-	app, err := createHTTPServer(logger, settings, dexSvc, accessService)
+	idSvc := services.NewIdentityController(&logger, settings)
+	signerChecker := licensesigner.NewChecker(ethClient, idSvc)
+	signerMode, err := signercheck.ParseMode(settings.SignerCheckMode)
+	if err != nil {
+		return nil, nil, err
+	}
+	signerMiddleware := signercheck.Middleware(signercheck.Config{
+		Service:            "token-exchange-api",
+		Mode:               signerMode,
+		Checker:            signerChecker,
+		Token:              signercheck.MapClaimsToken("user"),
+		ClaimRequiredAfter: settings.SignerClaimCutoff(),
+		IsLicense:          signerChecker.IsLicense,
+		Logger:             logger,
+	})
+
+	app, err := createHTTPServer(logger, settings, dexSvc, accessService, idSvc, signerMiddleware)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to create http server: %w", err)
 	}
@@ -90,13 +108,11 @@ func CreateServers(logger zerolog.Logger, settings *config.Settings) (*fiber.App
 	return app, grpcServer, nil
 }
 
-func createHTTPServer(logger zerolog.Logger, settings *config.Settings, dexSvc *services.DexClient, accessService *access.Service) (*fiber.App, error) {
+func createHTTPServer(logger zerolog.Logger, settings *config.Settings, dexSvc *services.DexClient, accessService *access.Service, idSvc *services.IdentityController, signerMiddleware fiber.Handler) (*fiber.App, error) {
 	httpCtrl, err := httpcontroller.NewTokenExchangeController(settings, dexSvc, accessService)
 	if err != nil {
 		logger.Fatal().Err(err).Msg("Failed to initialize token exchange controller")
 	}
-	idSvc := services.NewIdentityController(&logger, settings)
-
 	devLicenseMiddleware := middleware.NewDevLicenseValidator(idSvc, logger)
 
 	app := fiber.New(fiber.Config{
@@ -121,7 +137,7 @@ func createHTTPServer(logger zerolog.Logger, settings *config.Settings, dexSvc *
 		JWKSetURLs: []string{settings.JWKKeySetURL},
 	})
 
-	handlers := []fiber.Handler{jwtAuth, devLicenseMiddleware}
+	handlers := []fiber.Handler{jwtAuth, devLicenseMiddleware, signerMiddleware}
 
 	// All api routes should be under v1
 	v1Route := app.Group("/v1")
