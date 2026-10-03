@@ -10,19 +10,29 @@ import (
 	"github.com/DIMO-Network/token-exchange-api/internal/models"
 	"github.com/DIMO-Network/token-exchange-api/internal/services/access"
 	"github.com/DIMO-Network/token-exchange-api/pkg/grpc"
+	"github.com/DIMO-Network/token-exchange-api/pkg/signercheck"
 	"github.com/ethereum/go-ethereum/common"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
+
+// SignerChecker answers whether a signer may still act for a license.
+type SignerChecker interface {
+	Check(ctx context.Context, license, signer common.Address) (signercheck.Result, error)
+}
 
 // TokenExchangeServer represents the gRPC server
 type TokenExchangeServer struct {
 	grpc.UnimplementedTokenExchangeServiceServer
 	accessService *access.Service
+	signerChecker SignerChecker
 }
 
 // NewTokenExchangeServer creates a new TokenExchangeServer.
-func NewTokenExchangeServer(accessService *access.Service) *TokenExchangeServer {
+func NewTokenExchangeServer(accessService *access.Service, signerChecker SignerChecker) *TokenExchangeServer {
 	return &TokenExchangeServer{
 		accessService: accessService,
+		signerChecker: signerChecker,
 	}
 }
 
@@ -73,4 +83,18 @@ func (s *TokenExchangeServer) AccessCheck(ctx context.Context, req *grpc.AccessC
 	return &grpc.AccessCheckResponse{
 		HasAccess: true,
 	}, nil
+}
+
+// SignerCheck reports whether a developer JWT's signer may still act for its license. It
+// answers true for addresses that aren't developer licenses, and shares the HTTP path's
+// 60-second cache.
+func (s *TokenExchangeServer) SignerCheck(ctx context.Context, req *grpc.SignerCheckRequest) (*grpc.SignerCheckResponse, error) {
+	if !common.IsHexAddress(req.GetLicense()) || !common.IsHexAddress(req.GetSigner()) {
+		return nil, status.Error(codes.InvalidArgument, "license and signer must be hex addresses")
+	}
+	result, err := s.signerChecker.Check(ctx, common.HexToAddress(req.GetLicense()), common.HexToAddress(req.GetSigner()))
+	if err != nil {
+		return nil, status.Error(codes.Unavailable, signercheck.MessageUnavailable)
+	}
+	return &grpc.SignerCheckResponse{IsSigner: result != signercheck.Denied}, nil
 }

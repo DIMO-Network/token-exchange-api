@@ -103,7 +103,7 @@ func CreateServers(logger zerolog.Logger, settings *config.Settings) (*fiber.App
 		return nil, nil, fmt.Errorf("failed to create http server: %w", err)
 	}
 
-	grpcServer := createGRPCServer(rpc.NewTokenExchangeServer(accessService))
+	grpcServer := createGRPCServer(rpc.NewTokenExchangeServer(accessService, signerChecker))
 
 	return app, grpcServer, nil
 }
