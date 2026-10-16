@@ -1,6 +1,7 @@
 package rpc_test
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"testing"
@@ -9,6 +10,7 @@ import (
 	"github.com/DIMO-Network/token-exchange-api/pkg/grpc"
 	"github.com/DIMO-Network/token-exchange-api/pkg/signercheck"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 	"google.golang.org/grpc/codes"
@@ -52,13 +54,19 @@ func TestSignerCheck(t *testing.T) {
 		require.Equal(t, codes.InvalidArgument, status.Code(err))
 	})
 
-	t.Run("checker errors are Unavailable", func(t *testing.T) {
+	t.Run("checker errors are logged and Unavailable", func(t *testing.T) {
 		checker := NewMockSignerChecker(gomock.NewController(t))
 		checker.EXPECT().Check(gomock.Any(), license, signer).Return(signercheck.Denied, errors.New("rpc down"))
+		var logs bytes.Buffer
+		ctx := zerolog.New(&logs).WithContext(context.Background())
 
-		_, err := rpc.NewTokenExchangeServer(nil, checker).SignerCheck(context.Background(), request)
+		_, err := rpc.NewTokenExchangeServer(nil, checker).SignerCheck(ctx, request)
 
 		require.Equal(t, codes.Unavailable, status.Code(err))
 		require.Equal(t, signercheck.MessageUnavailable, status.Convert(err).Message())
+		require.Contains(t, logs.String(), `"level":"warn"`)
+		require.Contains(t, logs.String(), `"error":"rpc down"`)
+		require.Contains(t, logs.String(), license.Hex())
+		require.Contains(t, logs.String(), signer.Hex())
 	})
 }

@@ -12,6 +12,7 @@ import (
 	"github.com/DIMO-Network/token-exchange-api/pkg/grpc"
 	"github.com/DIMO-Network/token-exchange-api/pkg/signercheck"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/rs/zerolog"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -92,8 +93,13 @@ func (s *TokenExchangeServer) SignerCheck(ctx context.Context, req *grpc.SignerC
 	if !common.IsHexAddress(req.GetLicense()) || !common.IsHexAddress(req.GetSigner()) {
 		return nil, status.Error(codes.InvalidArgument, "license and signer must be hex addresses")
 	}
-	result, err := s.signerChecker.Check(ctx, common.HexToAddress(req.GetLicense()), common.HexToAddress(req.GetSigner()))
+	license, signer := common.HexToAddress(req.GetLicense()), common.HexToAddress(req.GetSigner())
+	result, err := s.signerChecker.Check(ctx, license, signer)
 	if err != nil {
+		zerolog.Ctx(ctx).Warn().Err(err).
+			Str("license", license.Hex()).
+			Str("signer", signer.Hex()).
+			Msg("Signer check failed; answering Unavailable.")
 		return nil, status.Error(codes.Unavailable, signercheck.MessageUnavailable)
 	}
 	return &grpc.SignerCheckResponse{IsSigner: result != signercheck.Denied}, nil
