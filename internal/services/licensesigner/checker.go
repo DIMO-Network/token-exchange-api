@@ -21,8 +21,10 @@ import (
 // that to one minute.
 const TTL = 60 * time.Second
 
-// Timeout bounds each Identity lookup and each chain call.
-const Timeout = 3 * time.Second
+// Timeout bounds each Identity lookup and each chain call. A cold check makes one of each in
+// turn, so its worst case (4 s) stays inside the 5-second deadline that SignerCheck's gRPC
+// callers set (signercheck.GRPCTimeout).
+const Timeout = 2 * time.Second
 
 // maxEntries bounds each cache. When a write finds one full, expired answers are dropped,
 // and if none are expired that cache starts over.

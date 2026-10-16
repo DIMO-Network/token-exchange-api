@@ -205,6 +205,11 @@ func TestCheckerTimesOut(t *testing.T) {
 	require.Less(t, time.Since(start), 2*time.Second)
 }
 
+func TestCheckerWorstCaseFitsGRPCDeadline(t *testing.T) {
+	// A cold check makes an Identity lookup and then a chain call, each bounded by Timeout.
+	require.Less(t, 2*Timeout, signercheck.GRPCTimeout)
+}
+
 func TestCheckerSharesConcurrentMisses(t *testing.T) {
 	now := time.Unix(1_700_000_000, 0)
 	caller := &fakeCaller{answers: []fakeAnswer{{isSigner: true}}, block: true, release: make(chan struct{})}

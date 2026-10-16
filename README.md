@@ -181,7 +181,8 @@ curl -X POST https://token-exchange-api.dimo.zone/v1/tokens/exchange \
 Developer JWTs carry `signer_address`, the license signer (API key) that minted them. On every
 exchange, token-exchange-api checks that this signer is still enabled on the license in
 `ethereum_address`, whatever the token's audience. Addresses that aren't licenses are skipped.
-Answers are cached for 60 s; Identity and chain calls time out after 3 s.
+Answers are cached for 60 s; Identity and chain calls time out after 2 s each, so a cold check
+finishes inside the 5 s deadline that `SignerCheck` callers set.
 `SignerCheck` (gRPC) serves the same answers to vehicle-triggers-api, tesla-oracle and
 credit-tracker.
 
