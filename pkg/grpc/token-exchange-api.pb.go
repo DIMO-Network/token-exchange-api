@@ -273,6 +273,104 @@ func (x *RichError) GetErr() string {
 	return ""
 }
 
+type SignerCheckRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The developer JWT's ethereum_address: a license client ID, i.e. its license account.
+	License string `protobuf:"bytes,1,opt,name=license,proto3" json:"license,omitempty"`
+	// The developer JWT's signer_address claim.
+	Signer        string `protobuf:"bytes,2,opt,name=signer,proto3" json:"signer,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SignerCheckRequest) Reset() {
+	*x = SignerCheckRequest{}
+	mi := &file_pkg_grpc_token_exchange_api_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SignerCheckRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SignerCheckRequest) ProtoMessage() {}
+
+func (x *SignerCheckRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_pkg_grpc_token_exchange_api_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SignerCheckRequest.ProtoReflect.Descriptor instead.
+func (*SignerCheckRequest) Descriptor() ([]byte, []int) {
+	return file_pkg_grpc_token_exchange_api_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *SignerCheckRequest) GetLicense() string {
+	if x != nil {
+		return x.License
+	}
+	return ""
+}
+
+func (x *SignerCheckRequest) GetSigner() string {
+	if x != nil {
+		return x.Signer
+	}
+	return ""
+}
+
+type SignerCheckResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	IsSigner      bool                   `protobuf:"varint,1,opt,name=is_signer,json=isSigner,proto3" json:"is_signer,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SignerCheckResponse) Reset() {
+	*x = SignerCheckResponse{}
+	mi := &file_pkg_grpc_token_exchange_api_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SignerCheckResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SignerCheckResponse) ProtoMessage() {}
+
+func (x *SignerCheckResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_pkg_grpc_token_exchange_api_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SignerCheckResponse.ProtoReflect.Descriptor instead.
+func (*SignerCheckResponse) Descriptor() ([]byte, []int) {
+	return file_pkg_grpc_token_exchange_api_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *SignerCheckResponse) GetIsSigner() bool {
+	if x != nil {
+		return x.IsSigner
+	}
+	return false
+}
+
 var File_pkg_grpc_token_exchange_api_proto protoreflect.FileDescriptor
 
 const file_pkg_grpc_token_exchange_api_proto_rawDesc = "" +
@@ -299,9 +397,15 @@ const file_pkg_grpc_token_exchange_api_proto_rawDesc = "" +
 	"\tRichError\x12\x12\n" +
 	"\x04code\x18\x01 \x01(\x05R\x04code\x12!\n" +
 	"\fexternal_msg\x18\x02 \x01(\tR\vexternalMsg\x12\x10\n" +
-	"\x03err\x18\x03 \x01(\tR\x03err2Z\n" +
+	"\x03err\x18\x03 \x01(\tR\x03err\"F\n" +
+	"\x12SignerCheckRequest\x12\x18\n" +
+	"\alicense\x18\x01 \x01(\tR\alicense\x12\x16\n" +
+	"\x06signer\x18\x02 \x01(\tR\x06signer\"2\n" +
+	"\x13SignerCheckResponse\x12\x1b\n" +
+	"\tis_signer\x18\x01 \x01(\bR\bisSigner2\x9e\x01\n" +
 	"\x14TokenExchangeService\x12B\n" +
-	"\vAccessCheck\x12\x18.grpc.AccessCheckRequest\x1a\x19.grpc.AccessCheckResponseB5Z3github.com/DIMO-Network/token-exchange-api/pkg/grpcb\x06proto3"
+	"\vAccessCheck\x12\x18.grpc.AccessCheckRequest\x1a\x19.grpc.AccessCheckResponse\x12B\n" +
+	"\vSignerCheck\x12\x18.grpc.SignerCheckRequest\x1a\x19.grpc.SignerCheckResponseB5Z3github.com/DIMO-Network/token-exchange-api/pkg/grpcb\x06proto3"
 
 var (
 	file_pkg_grpc_token_exchange_api_proto_rawDescOnce sync.Once
@@ -315,20 +419,24 @@ func file_pkg_grpc_token_exchange_api_proto_rawDescGZIP() []byte {
 	return file_pkg_grpc_token_exchange_api_proto_rawDescData
 }
 
-var file_pkg_grpc_token_exchange_api_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_pkg_grpc_token_exchange_api_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_pkg_grpc_token_exchange_api_proto_goTypes = []any{
 	(*AccessCheckRequest)(nil),  // 0: grpc.AccessCheckRequest
 	(*EventFilter)(nil),         // 1: grpc.EventFilter
 	(*AccessCheckResponse)(nil), // 2: grpc.AccessCheckResponse
 	(*RichError)(nil),           // 3: grpc.RichError
+	(*SignerCheckRequest)(nil),  // 4: grpc.SignerCheckRequest
+	(*SignerCheckResponse)(nil), // 5: grpc.SignerCheckResponse
 }
 var file_pkg_grpc_token_exchange_api_proto_depIdxs = []int32{
 	1, // 0: grpc.AccessCheckRequest.events:type_name -> grpc.EventFilter
 	3, // 1: grpc.AccessCheckResponse.rich_error:type_name -> grpc.RichError
 	0, // 2: grpc.TokenExchangeService.AccessCheck:input_type -> grpc.AccessCheckRequest
-	2, // 3: grpc.TokenExchangeService.AccessCheck:output_type -> grpc.AccessCheckResponse
-	3, // [3:4] is the sub-list for method output_type
-	2, // [2:3] is the sub-list for method input_type
+	4, // 3: grpc.TokenExchangeService.SignerCheck:input_type -> grpc.SignerCheckRequest
+	2, // 4: grpc.TokenExchangeService.AccessCheck:output_type -> grpc.AccessCheckResponse
+	5, // 5: grpc.TokenExchangeService.SignerCheck:output_type -> grpc.SignerCheckResponse
+	4, // [4:6] is the sub-list for method output_type
+	2, // [2:4] is the sub-list for method input_type
 	2, // [2:2] is the sub-list for extension type_name
 	2, // [2:2] is the sub-list for extension extendee
 	0, // [0:2] is the sub-list for field type_name
@@ -345,7 +453,7 @@ func file_pkg_grpc_token_exchange_api_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_pkg_grpc_token_exchange_api_proto_rawDesc), len(file_pkg_grpc_token_exchange_api_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   4,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

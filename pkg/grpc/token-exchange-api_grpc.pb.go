@@ -20,6 +20,7 @@ const _ = grpc.SupportPackageIsVersion9
 
 const (
 	TokenExchangeService_AccessCheck_FullMethodName = "/grpc.TokenExchangeService/AccessCheck"
+	TokenExchangeService_SignerCheck_FullMethodName = "/grpc.TokenExchangeService/SignerCheck"
 )
 
 // TokenExchangeServiceClient is the client API for TokenExchangeService service.
@@ -27,6 +28,12 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type TokenExchangeServiceClient interface {
 	AccessCheck(ctx context.Context, in *AccessCheckRequest, opts ...grpc.CallOption) (*AccessCheckResponse, error)
+	// SignerCheck reports whether signer may still act for license: true when signer is an
+	// enabled signer on the developer license whose account (client ID) is license, and also
+	// true when license isn't a developer license (nothing to check). Answers are cached for
+	// 60 seconds. Unavailable means the chain or Identity couldn't be asked; callers must not
+	// treat it as true.
+	SignerCheck(ctx context.Context, in *SignerCheckRequest, opts ...grpc.CallOption) (*SignerCheckResponse, error)
 }
 
 type tokenExchangeServiceClient struct {
@@ -47,11 +54,27 @@ func (c *tokenExchangeServiceClient) AccessCheck(ctx context.Context, in *Access
 	return out, nil
 }
 
+func (c *tokenExchangeServiceClient) SignerCheck(ctx context.Context, in *SignerCheckRequest, opts ...grpc.CallOption) (*SignerCheckResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SignerCheckResponse)
+	err := c.cc.Invoke(ctx, TokenExchangeService_SignerCheck_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // TokenExchangeServiceServer is the server API for TokenExchangeService service.
 // All implementations must embed UnimplementedTokenExchangeServiceServer
 // for forward compatibility.
 type TokenExchangeServiceServer interface {
 	AccessCheck(context.Context, *AccessCheckRequest) (*AccessCheckResponse, error)
+	// SignerCheck reports whether signer may still act for license: true when signer is an
+	// enabled signer on the developer license whose account (client ID) is license, and also
+	// true when license isn't a developer license (nothing to check). Answers are cached for
+	// 60 seconds. Unavailable means the chain or Identity couldn't be asked; callers must not
+	// treat it as true.
+	SignerCheck(context.Context, *SignerCheckRequest) (*SignerCheckResponse, error)
 	mustEmbedUnimplementedTokenExchangeServiceServer()
 }
 
@@ -64,6 +87,9 @@ type UnimplementedTokenExchangeServiceServer struct{}
 
 func (UnimplementedTokenExchangeServiceServer) AccessCheck(context.Context, *AccessCheckRequest) (*AccessCheckResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AccessCheck not implemented")
+}
+func (UnimplementedTokenExchangeServiceServer) SignerCheck(context.Context, *SignerCheckRequest) (*SignerCheckResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SignerCheck not implemented")
 }
 func (UnimplementedTokenExchangeServiceServer) mustEmbedUnimplementedTokenExchangeServiceServer() {}
 func (UnimplementedTokenExchangeServiceServer) testEmbeddedByValue()                              {}
@@ -104,6 +130,24 @@ func _TokenExchangeService_AccessCheck_Handler(srv interface{}, ctx context.Cont
 	return interceptor(ctx, in, info, handler)
 }
 
+func _TokenExchangeService_SignerCheck_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SignerCheckRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(TokenExchangeServiceServer).SignerCheck(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: TokenExchangeService_SignerCheck_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(TokenExchangeServiceServer).SignerCheck(ctx, req.(*SignerCheckRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // TokenExchangeService_ServiceDesc is the grpc.ServiceDesc for TokenExchangeService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -114,6 +158,10 @@ var TokenExchangeService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "AccessCheck",
 			Handler:    _TokenExchangeService_AccessCheck_Handler,
+		},
+		{
+			MethodName: "SignerCheck",
+			Handler:    _TokenExchangeService_SignerCheck_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

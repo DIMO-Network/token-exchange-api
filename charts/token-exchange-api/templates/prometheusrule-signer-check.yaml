@@ -1,0 +1,27 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ include "token-exchange-api.fullname" . }}-signer-check
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "token-exchange-api.labels" . | nindent 4 }}
+spec:
+  groups:
+    - name: signer-check
+      rules:
+        - alert: SignerCheckErrors
+          expr: |
+            sum by (service) (rate(signer_check_total{namespace="{{ .Release.Namespace }}",result="error"}[5m]))
+              /
+            sum by (service) (rate(signer_check_total{namespace="{{ .Release.Namespace }}",result!="skipped"}[5m]))
+              > 0.01
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: 'Signer checks are failing in {{ "{{" }} $labels.service {{ "}}" }}'
+            description: >-
+              More than 1% of non-skipped developer-JWT signer checks (allowed + denied + error)
+              in {{ "{{" }} $labels.service {{ "}}" }} errored over 5 minutes. In enforce mode those requests get 503. Check
+              token-exchange-api's RPC and Identity reachability; to stop refusing, set
+              SIGNER_CHECK_MODE=log on the affected service.

@@ -175,3 +175,26 @@ curl -X POST https://token-exchange-api.dimo.zone/v1/tokens/exchange \
 ---
 
 📖 **For service developers**: See [DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md) for architecture details, testing, and contribution guidelines.
+
+## Signer check
+
+Developer JWTs carry `signer_address`, the license signer (API key) that minted them. On every
+exchange, token-exchange-api checks that this signer is still enabled on the license in
+`ethereum_address`, whatever the token's audience. Addresses that aren't licenses are skipped.
+Answers are cached for 60 s; Identity and chain calls time out after 2 s each, so a cold check
+finishes inside the 5 s deadline that `SignerCheck` callers set.
+`SignerCheck` (gRPC) serves the same answers to vehicle-triggers-api and tesla-oracle.
+
+| Setting             | Values                            | Effect                                                                                                                                                    |
+| ------------------- | --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SIGNER_CHECK_MODE` | `enforce` (default), `log`, `off` | `enforce` answers 403 `signer no longer authorized for this license` or 503 `could not verify signer`; `log` only logs and counts; `off` skips the check. |
+
+- **Metric:** `signer_check_total{service,result}`, with `result` one of `allowed`, `denied`, `error`, `skipped`.
+  Prometheus keeps the ServiceMonitor's own `service` label (the Kubernetes Service), so the app's
+  `service` label arrives as `exported_service`; filter on that, e.g.
+  `sum by (result) (rate(signer_check_total{exported_service="vehicle-triggers-api"}[5m]))`.
+- **Alert:** `SignerCheckErrors` fires when `error` exceeds 1% of non-skipped checks (`allowed` + `denied` + `error`) for 5 minutes.
+- **Rollback order:**
+  - turn the console's `NEXT_PUBLIC_TEAM_DATA_ACCESS_ENABLED` off;
+  - set `SIGNER_CHECK_MODE=off` (or roll back) on vehicle-triggers-api and tesla-oracle, then token-exchange-api;
+  - roll back dex last.

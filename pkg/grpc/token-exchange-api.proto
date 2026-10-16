@@ -7,6 +7,12 @@ package grpc;
 
 service TokenExchangeService {
   rpc AccessCheck(AccessCheckRequest) returns (AccessCheckResponse);
+  // SignerCheck reports whether signer may still act for license: true when signer is an
+  // enabled signer on the developer license whose account (client ID) is license, and also
+  // true when license isn't a developer license (nothing to check). Answers are cached for
+  // 60 seconds. Unavailable means the chain or Identity couldn't be asked; callers must not
+  // treat it as true.
+  rpc SignerCheck(SignerCheckRequest) returns (SignerCheckResponse);
 }
 
 message AccessCheckRequest {
@@ -36,4 +42,15 @@ message RichError {
   int32 code = 1;
   string external_msg = 2;
   string err = 3;
+}
+
+message SignerCheckRequest {
+  // The developer JWT's ethereum_address: a license client ID, i.e. its license account.
+  string license = 1;
+  // The developer JWT's signer_address claim.
+  string signer = 2;
+}
+
+message SignerCheckResponse {
+  bool is_signer = 1;
 }
