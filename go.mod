@@ -1,6 +1,6 @@
 module github.com/DIMO-Network/token-exchange-api
 
-go 1.24.0
+go 1.27.0
 
 replace github.com/dexidp/dex/api/v2 => github.com/DIMO-Network/dex/api/v2 v2.0.1-0.20240402140037-3b70843c1bed
 
